@@ -118,8 +118,7 @@ class MVSRegistration:
                     progress.update()
                     progress.close()
 
-            sims2d = [si_utils.max_project_sim(sim, dim='z') for sim in sims] if is_stack else sims
-            original_fused = self.fuse(sims2d, params, transform_key=self.source_transform_key)
+            original_fused = self.fuse(sims, params, transform_key=self.source_transform_key)
 
             original_fused_filename = output + 'original'
             save_image(original_fused_filename, original_fused, transform_key=self.source_transform_key,
