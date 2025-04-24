@@ -267,7 +267,14 @@ def split_value_unit_list(text: str) -> list:
 def eval_context(data, key, default_value, context):
     value = data.get(key, default_value)
     if isinstance(value, str):
-        value = eval(value, context)
+        try:
+            value = value.format_map(context)
+        except:
+            pass
+        try:
+            value = eval(value, context)
+        except:
+            pass
     return value
 
 

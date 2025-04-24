@@ -643,7 +643,8 @@ def normalise(sims, transform_key, use_global=True):
             translation=si_utils.get_origin_from_sim(sim),
             transform_key=transform_key,
             affine=si_utils.get_affine_from_sim(sim, transform_key),
-            c_coords=sim.c
+            c_coords=sim.c.data,
+            t_coords=sim.t.data
         )
         new_sims.append(new_sim)
     return new_sims

@@ -138,6 +138,7 @@ class MVSRegistration:
         mappings_filename = output + 'mappings.json'
         registration_done = os.path.exists(mappings_filename)
         if registration_done:
+            logging.info('Loading registration mappings...')
             # load registration mappings
             mappings = import_json(mappings_filename)
             # copy transforms to sims
@@ -185,17 +186,13 @@ class MVSRegistration:
                     print('\t'.join(map(str, row)))
             export_csv(output + 'mappings.csv', data, header=mappings_header)
 
-            summary_plot = reg_result.get('pairwise_registration', {}).get('summary_plot')
-            if summary_plot is not None:
-                figure, axes = summary_plot
-                summary_plot_filename = output + 'pairwise_registration.pdf'
-                figure.savefig(summary_plot_filename)
-
-            summary_plot = reg_result.get('groupwise_resolution', {}).get('summary_plot')
-            if summary_plot is not None:
-                figure, axes = summary_plot
-                summary_plot_filename = output + 'groupwise_resolution.pdf'
-                figure.savefig(summary_plot_filename)
+            for reg_label, reg_item in reg_result.items():
+                if isinstance(reg_item, dict):
+                    summary_plot = reg_item.get('summary_plot')
+                    if summary_plot is not None:
+                        figure, axes = summary_plot
+                        summary_plot_filename = output + f'{reg_label}.pdf'
+                        figure.savefig(summary_plot_filename)
 
         registered_positions_filename = output + 'positions_registered.pdf'
         if self.verbose:
@@ -261,7 +258,8 @@ class MVSRegistration:
             rotation = source.get_rotation()
             if isinstance(source_metadata, dict):
                 filename_numeric = find_all_numbers(filename)
-                context = {'filename_numeric': filename_numeric, 'fn': filename_numeric}
+                filename_dict = {key: int(value) for key, value in split_numeric_dict(filename).items()}
+                context = {'filename_numeric': filename_numeric, 'fn': filename_numeric} | filename_dict
                 if 'position' in source_metadata:
                     translation0 = source_metadata['position']
                     translation = [eval_context(translation0, 'x', 0, context),
