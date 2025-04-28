@@ -18,8 +18,8 @@ class Pipeline:
         self.mvs_registration = MVSRegistration(self.params_general)
 
     def init_logging(self):
-        verbose = self.params_general.get('verbose', False)
-        verbose_mvs = self.params_general.get('verbose_mvs', False)
+        self.verbose = self.params_general.get('verbose', False)
+        self.verbose_mvs = self.params_general.get('verbose_mvs', False)
         log_filename = self.params_general.get('log_filename', 'logfile.log')
         log_format = self.params_general.get('log_format')
         basepath = os.path.dirname(log_filename)
@@ -27,13 +27,13 @@ class Pipeline:
             os.makedirs(basepath)
 
         handlers = [logging.FileHandler(log_filename, encoding='utf-8')]
-        if verbose:
+        if self.verbose:
             handlers += [logging.StreamHandler()]
 
         logging.basicConfig(level=logging.INFO, format=log_format, handlers=handlers, encoding='utf-8')
 
         # verbose external modules
-        if verbose_mvs:
+        if self.verbose_mvs:
             # expose multiview_stitcher.registration logger and make more verbose
             mvsr_logger = logging.getLogger('multiview_stitcher.registration')
             mvsr_logger.setLevel(logging.INFO)
@@ -75,6 +75,8 @@ class Pipeline:
         if len(filenames) == 0:
             logging.warning(f'Skipping operation {operation} (no files)')
             return
+        elif self.verbose:
+            logging.info(f'Total #files: {len(filenames)}')
 
         operation_parts = operation.split()
         if 'match' in operation_parts:
