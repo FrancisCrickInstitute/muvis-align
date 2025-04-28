@@ -136,8 +136,7 @@ class MVSRegistration:
             raise ValueError(f'Not enough overlap: {overall_overlap * 100:.1f}%')
 
         mappings_filename = output + 'mappings.json'
-        registration_done = os.path.exists(mappings_filename)
-        if registration_done:
+        if not overwrite and os.path.exists(mappings_filename):
             logging.info('Loading registration mappings...')
             # load registration mappings
             mappings = import_json(mappings_filename)
