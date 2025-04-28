@@ -21,7 +21,7 @@ from src.image.ome_helper import save_image, exists_output_image
 from src.image.ome_tiff_helper import save_tiff, save_ome_tiff
 from src.image.source_helper import create_source
 from src.image.util import *
-from src.metrics import calc_frc
+from src.metrics import calc_frc, calc_ssim
 from src.util import *
 
 
@@ -695,9 +695,11 @@ class MVSRegistration:
             try:
                 # experimental; in case fail to extract overlap images
                 overlap_sims = self.get_overlap_images((sims[pair[0]], sims[pair[1]]))
-                metrics[pair] = calc_frc(overlap_sims[0], overlap_sims[1])
-            except Exception:
-                logging.warning(f'Failed to calculate FRC')
+                #metrics[pair] = calc_frc(overlap_sims[0], overlap_sims[1])
+                metrics[pair] = calc_ssim(overlap_sims[0], overlap_sims[1])
+            except Exception as e:
+                logging.exception(e)
+                #logging.warning(f'Failed to calculate resolution metric')
         return metrics
 
     def get_overlap_images(self, sims):
@@ -730,6 +732,7 @@ class MVSRegistration:
             )
             for isim, sim in enumerate(sims)
         ]
+        overlaps_sims = [sim.squeeze() for sim in overlaps_sims]
         return overlaps_sims
 
     def calc_metrics(self, results, labels):
@@ -761,12 +764,13 @@ class MVSRegistration:
         else:
             registration_quality = 0
 
-        #frcs = {labels[key[0]] + ' - ' + labels[key[1]]: value
-        #        for key, value in self.calc_resolution_metric(results).items()}
-        #frc = np.mean(list(frcs.values()))
+        ssims = {labels[key[0]] + ' - ' + labels[key[1]]: value
+                for key, value in self.calc_resolution_metric(results).items()}
+        ssim = np.mean(list(ssims.values()))
 
         summary = (f'Residual error: {residual_error:.3f}'
                    f' Registration quality: {registration_quality:.3f}'
+                   f' SSIM: {ssim:.4f}'
                    f' Confidence: {confidence:.3f}')
 
         return {'mappings': mappings,
@@ -775,6 +779,8 @@ class MVSRegistration:
                 'residual_errors': residual_errors,
                 'registration_quality': registration_quality,
                 'registration_qualities': registration_qualities,
+                'ssim': ssim,
+                'ssims': ssims,
                 'summary': summary}
 
     def save_video(self, output, sims, fused_image, params):

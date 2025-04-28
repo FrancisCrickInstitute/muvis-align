@@ -1,6 +1,7 @@
 import frc
 from multiview_stitcher import spatial_image_utils as si_utils
 import numpy as np
+from skimage.metrics import structural_similarity
 from sklearn.metrics import euclidean_distances
 
 from src.image.util import image_reshape
@@ -59,12 +60,17 @@ def calc_match_metrics(points1, points2, transform, threshold, lowe_ratio=None):
     return metrics
 
 
+def calc_ssim(image1, image2):
+    max_size = np.flip(np.max([image1.shape, image2.shape], 0))
+    image1 = image_reshape(image1, max_size)
+    image2 = image_reshape(image2, max_size)
+    return structural_similarity(np.array(image1), np.array(image2))
+
+
 def calc_frc(image1, image2):
     pixel_size1 = si_utils.get_spacing_from_sim(image1)
     pixel_size2 = si_utils.get_spacing_from_sim(image2)
     pixel_size = np.mean([pixel_size1['x'], pixel_size1['y'], pixel_size2['x'], pixel_size2['y']])
-    image1 = image1.squeeze()
-    image2 = image2.squeeze()
     max_size = np.flip(np.max([image1.shape, image2.shape], 0))
     image1 = frc.util.square_image(image_reshape(image1, max_size), add_padding=True)
     image2 = frc.util.square_image(image_reshape(image2, max_size), add_padding=True)
