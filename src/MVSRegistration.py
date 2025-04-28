@@ -761,13 +761,12 @@ class MVSRegistration:
         else:
             registration_quality = 0
 
-        frcs = {labels[key[0]] + ' - ' + labels[key[1]]: value
-                for key, value in self.calc_resolution_metric(results).items()}
-        frc = np.mean(list(frcs.values()))
+        #frcs = {labels[key[0]] + ' - ' + labels[key[1]]: value
+        #        for key, value in self.calc_resolution_metric(results).items()}
+        #frc = np.mean(list(frcs.values()))
 
         summary = (f'Residual error: {residual_error:.3f}'
                    f' Registration quality: {registration_quality:.3f}'
-                   f' FRC: {frc:.4f}'
                    f' Confidence: {confidence:.3f}')
 
         return {'mappings': mappings,
@@ -776,8 +775,6 @@ class MVSRegistration:
                 'residual_errors': residual_errors,
                 'registration_quality': registration_quality,
                 'registration_qualities': registration_qualities,
-                'frc': frc,
-                'frcs': frcs,
                 'summary': summary}
 
     def save_video(self, output, sims, fused_image, params):

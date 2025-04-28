@@ -76,13 +76,13 @@ class Pipeline:
             logging.warning(f'Skipping operation {operation} (no files)')
             return
         elif self.verbose:
-            logging.info(f'Total #files: {len(filenames)}')
+            logging.info(f'# total files: {len(filenames)}')
 
         operation_parts = operation.split()
         if 'match' in operation_parts:
             # check if match label provided
             index = operation_parts.index('match') + 1
-            if len(operation_parts) > index:
+            if index < len(operation_parts):
                 match_label = operation_parts[index]
             else:
                 match_label = None
@@ -91,13 +91,18 @@ class Pipeline:
                 parts = split_numeric_dict(filename)
                 match_value = parts.get(match_label)
                 if match_value is not None:
+                    if match_value.isdecimal():
+                        match_value = int(match_value)
                     if match_value not in matches:
                         matches[match_value] = []
                     matches[match_value].append(filename)
                 if len(matches) == 0:
                     matches[0] = filenames
-            filesets = list(matches.values())
-            fileset_labels = [match_label + label for label in matches.keys()]
+            filesets = []
+            fileset_labels = []
+            for label in sorted(matches):
+                filesets.append(matches[label])
+                fileset_labels.append(f'{match_label}:{label}')
             logging.info(f'# matched file sets: {len(filesets)}')
         else:
             filesets = [filenames]
