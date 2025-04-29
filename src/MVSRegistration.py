@@ -21,7 +21,7 @@ from src.image.ome_helper import save_image, exists_output_image
 from src.image.ome_tiff_helper import save_tiff, save_ome_tiff
 from src.image.source_helper import create_source
 from src.image.util import *
-from src.metrics import calc_frc, calc_ssim
+from src.metrics import calc_ncc, calc_ssim, calc_frc
 from src.util import *
 
 
@@ -683,8 +683,9 @@ class MVSRegistration:
         save_ome_tiff(output_filename, fused_image.data, dimension_order, pixel_size,
                       scaler=scaler, compression=compression)
 
-    def calc_resolution_metric(self, results):
-        metrics = {}
+    def calc_overlap_metrics(self, results):
+        nccs = {}
+        ssims = {}
         sims = results['sims']
         pairs = results['pairs']
         if pairs is None:
@@ -695,12 +696,13 @@ class MVSRegistration:
             try:
                 # experimental; in case fail to extract overlap images
                 overlap_sims = self.get_overlap_images((sims[pair[0]], sims[pair[1]]))
-                #metrics[pair] = calc_frc(overlap_sims[0], overlap_sims[1])
-                metrics[pair] = calc_ssim(overlap_sims[0], overlap_sims[1])
+                nccs[pair] = calc_ncc(overlap_sims[0], overlap_sims[1])
+                ssims[pair] = calc_ssim(overlap_sims[0], overlap_sims[1])
+                #frcs[pair] = calc_frc(overlap_sims[0], overlap_sims[1])
             except Exception as e:
                 logging.exception(e)
                 #logging.warning(f'Failed to calculate resolution metric')
-        return metrics
+        return {'ncc': nccs, 'ssim': ssims}
 
     def get_overlap_images(self, sims):
         # functionality copied from registration.register_pair_of_msims()
@@ -744,11 +746,11 @@ class MVSRegistration:
         if len(distances) > 2:
             # Coefficient of variation
             cvar = np.std(distances) / np.mean(distances)
-            confidence = 1 - min(cvar / 10, 1)
+            var = cvar
         else:
             size = get_sim_physical_size(results['sims'][0])
             norm_distance = np.sum(distances) / np.linalg.norm(size)
-            confidence = 1 - min(math.sqrt(norm_distance), 1)
+            var = norm_distance
 
         residual_errors = {labels[key[0]] + ' - ' + labels[key[1]]: value
                            for key, value in results['residual_errors'].items()}
@@ -764,21 +766,30 @@ class MVSRegistration:
         else:
             registration_quality = 0
 
+        overlap_metrics = self.calc_overlap_metrics(results)
+
+        nccs = {labels[key[0]] + ' - ' + labels[key[1]]: value
+                 for key, value in overlap_metrics['ncc'].items()}
+        ncc = np.mean(list(nccs.values()))
+
         ssims = {labels[key[0]] + ' - ' + labels[key[1]]: value
-                for key, value in self.calc_resolution_metric(results).items()}
+                 for key, value in overlap_metrics['ssim'].items()}
         ssim = np.mean(list(ssims.values()))
 
         summary = (f'Residual error: {residual_error:.3f}'
                    f' Registration quality: {registration_quality:.3f}'
-                   f' SSIM: {ssim:.4f}'
-                   f' Confidence: {confidence:.3f}')
+                   f' NCC: {ncc:.3f}'
+                   f' SSIM: {ssim:.3f}'
+                   f' Variation: {var:.3f}')
 
         return {'mappings': mappings,
-                'confidence': confidence,
+                'variation': var,
                 'residual_error': residual_error,
                 'residual_errors': residual_errors,
                 'registration_quality': registration_quality,
                 'registration_qualities': registration_qualities,
+                'ncc': ncc,
+                'nccs': nccs,
                 'ssim': ssim,
                 'ssims': ssims,
                 'summary': summary}

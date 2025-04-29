@@ -60,11 +60,35 @@ def calc_match_metrics(points1, points2, transform, threshold, lowe_ratio=None):
     return metrics
 
 
+def calc_ncc(image1, image2):
+    max_size = np.flip(np.max([image1.shape, image2.shape], 0))
+    image1 = image_reshape(image1, max_size)
+    image2 = image_reshape(image2, max_size)
+
+    normimage1 = np.array(image1 - np.mean(image1))
+    normimage2 = np.array(image2 - np.mean(image2))
+    ncc = np.sum(normimage1 * normimage2) / (np.linalg.norm(normimage1) * np.linalg.norm(normimage2))
+    return float(ncc)
+
+
+def calc_ncc2(image1, image2):
+    max_size = np.flip(np.max([image1.shape, image2.shape], 0))
+    image1 = image_reshape(image1, max_size)
+    image2 = image_reshape(image2, max_size)
+
+    normimage1 = (image1 - np.mean(image1)) / np.std(image1)
+    normimage2 = (image2 - np.mean(image2)) / np.std(image2)
+    array1 = np.array(normimage1).reshape(-1)
+    array2 = np.array(normimage2).reshape(-1)
+    ncc = (np.correlate(array1, array2) / max(len(array1), len(array2)))[0]
+    return float(ncc)
+
+
 def calc_ssim(image1, image2):
     max_size = np.flip(np.max([image1.shape, image2.shape], 0))
     image1 = image_reshape(image1, max_size)
     image2 = image_reshape(image2, max_size)
-    return structural_similarity(np.array(image1), np.array(image2))
+    return float(structural_similarity(np.array(image1), np.array(image2)))
 
 
 def calc_frc(image1, image2):
