@@ -6,12 +6,12 @@ general:
   verbose: True
   verbose_mvs: False
   metadata_summary: False
-  chunk_size: [1024, 1024]
+  chunk_size: [4096, 4096]
   output:
     clear: False
-    overwrite: True
+    overwrite: False
     format: thumbnail, ome.zarr
-    tile_size: [1024, 1024]
+    tile_size: [4096, 4096]
     compression: []
     npyramid_add: 4
     pyramid_downsample: 2
