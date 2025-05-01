@@ -1,5 +1,5 @@
 general:
-  log_filename: log/muvis-align.log
+  log_filename: log/muvis-align-empiar12193.log
   log_format: '%(asctime)s %(levelname)s: %(message)s'
   show_original: False
   break_on_error: True
@@ -9,7 +9,7 @@ general:
   chunk_size: [4096, 4096]
   output:
     clear: False
-    overwrite: False
+    overwrite: True
     format: thumbnail, ome.zarr
     tile_size: [4096, 4096]
     compression: []
