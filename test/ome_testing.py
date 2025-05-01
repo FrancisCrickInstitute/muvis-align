@@ -1,8 +1,8 @@
 from multiview_stitcher import registration, vis_utils
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import xarray as xr
 from tqdm import tqdm
+import xarray as xr
 
 from src.image.ome_helper import save_image
 from src.image.source_helper import create_source
@@ -49,13 +49,16 @@ def calc_shape(y, x, offset):
     return image
 
 
-def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_order0='yx', transform_key='stage_metadata'):
+def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_order0='yx',
+                       is_3d=False, transform_key='stage_metadata'):
     z_scale = 0.5
-    pixel_size = [0.1, 0.1, z_scale]
+    pixel_size = [0.1, 0.1]
+    if is_3d:
+        pixel_size += [z_scale]
     dtype = np.dtype(np.uint16)
 
     dimension_order = dimension_order0
-    if 'z' not in dimension_order:
+    if is_3d and 'z' not in dimension_order:
         # add z axis to store z position
         dimension_order = 'z' + dimension_order
 
@@ -66,7 +69,9 @@ def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_orde
     offset = [0, 0]
     sims = []
     for _ in tqdm(range(n), desc='Init tiles'):
-        position = list(np.random.rand(2)) + [z_position]
+        position = list(np.random.rand(2))
+        if is_3d:
+            position += [z_position]
         shape_image = np.fromfunction(calc_shape, tuple(size), dtype=np.float32, offset=offset)
         noise_image = np.random.random_sample(size)
         pattern_image = float2int_image(
@@ -100,7 +105,7 @@ def init_sim(data, chunks=(1024, 1024), dimension_order='yx', position=None, pix
     return sim.chunk(chunks)
 
 
-def test(sims, tmp_path):
+def test_combine(sims, tmp_path):
     z_scale = 0.5
     output_stack_properties = si_utils.get_stack_properties_from_sim(sims[0])
     if z_scale is not None:
@@ -118,7 +123,7 @@ def test(sims, tmp_path):
     fused_image.compute()
 
 
-def test2(sims, tmp_path):
+def test_combine2(sims, tmp_path):
     # error in fuse: fix_dims=[] (instead of ['z']), not fusing plane-wise; division by 0 in edt_support_spacing = {...}
     # z_scale = 0.5
     output_stack_properties = si_utils.get_stack_properties_from_sim(sims[0])
@@ -139,7 +144,7 @@ def test2(sims, tmp_path):
     show_image(fused_image[0][0][1])
 
 
-def test3(sims, tmp_path):
+def test_combine3(sims, tmp_path):
     # error in fuse: fix_dims=[] (instead of ['z']), not fusing plane-wise; division by 0 in edt_support_spacing = {...}
     # z_scale = 0.5
     output_stack_properties = si_utils.get_stack_properties_from_sim(sims[0])
@@ -163,7 +168,7 @@ def test3(sims, tmp_path):
     show_image(stack_sims[1][0][0][0])
 
 
-def test4(sims, tmp_path):
+def test_3d_stack(sims, tmp_path):
     z_scale = 0.5
     transform_key = 'stage_metadata'
 
@@ -193,13 +198,106 @@ def test4(sims, tmp_path):
         sims,
         transform_key=transform_key,
         output_stack_properties=output_stack_properties,
-        #output_chunksize={'z': 1, 'y': 1024, 'x': 1024},
+        output_chunksize={'z': 1, 'y': 1024, 'x': 1024},
         fusion_func=fusion.simple_average_fusion,
     )
     return fused_image
 
 
-def test5(sims, tmp_path):
+def test_reg_2d(sims, tmp_path):
+    transform_key = 'stage_metadata'
+    new_transform_key = 'registered'
+
+    reg_msims = [msi_utils.get_msim_from_sim(sim) for sim in sims]
+    progress = tqdm(desc='Register', total=1)
+    params = registration.register(
+        reg_msims,
+        reg_channel=sims[0].coords['c'].values[0],
+        transform_key=transform_key,
+        new_transform_key=new_transform_key,
+    )
+    progress.update()
+    progress.close()
+    for param in params:
+        print(param.data[0].tolist())
+
+    # set missing transforms
+    for sim, reg_msim in zip(sims, reg_msims):
+        if new_transform_key not in si_utils.get_tranform_keys_from_sim(sim):
+            si_utils.set_sim_affine(
+                sim,
+                msi_utils.get_transform_from_msim(reg_msim, new_transform_key),
+                transform_key=new_transform_key)
+
+    # continue with new transform key
+    transform_key = new_transform_key
+
+    print(f'New transforms shape: {sims[0].transforms[new_transform_key].shape}')
+
+    # *** error
+    overlap_boxes = registration.get_overlap_bboxes(
+        sims[0],
+        sims[1],
+        input_transform_key=transform_key,
+    )
+    print('overlap_boxes', overlap_boxes)
+
+    progress = tqdm(desc='Plot', total=1)
+    vis_utils.plot_positions(sims, transform_key=transform_key, use_positional_colors=False)
+    progress.update()
+    progress.close()
+
+    output_spacing = si_utils.get_spacing_from_sim(sims[0])
+    # calculate output stack properties from input views
+    output_properties = fusion.calc_stack_properties_from_view_properties_and_params(
+        [si_utils.get_stack_properties_from_sim(sim) for sim in sims],
+        [np.array(si_utils.get_affine_from_sim(sim, transform_key).squeeze()) for sim in sims],
+        output_spacing,
+        mode='union',
+    )
+    # convert to dict form (this should not be needed anymore in the next release)
+    output_properties = {
+        k: {dim: v[idim] for idim, dim in enumerate(output_spacing.keys())}
+        for k, v in output_properties.items()
+    }
+
+    data_size = np.prod(list(output_properties['shape'].values())) * sims[0].dtype.itemsize
+    print(f'Fused size {print_hbytes(data_size)}')
+
+    progress = tqdm(desc='Fuse', total=1)
+    # fuse all sims together using simple average fusion
+    fused_image = fusion.fuse(
+        sims,
+        transform_key=transform_key,
+        output_stack_properties=output_properties,
+        output_chunksize={'y': 1024, 'x': 1024},
+        fusion_func=fusion.simple_average_fusion,
+    )
+    progress.update()
+    progress.close()
+
+    # *** works fine here
+    overlap_boxes = registration.get_overlap_bboxes(
+        sims[0],
+        sims[1],
+        input_transform_key=transform_key,
+    )
+    print('overlap_boxes', overlap_boxes)
+
+    show_image(fused_image)
+
+    progress = tqdm(desc='Save zarr', total=1)
+    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key, params={'format': 'zar'})
+    progress.update()
+    progress.close()
+
+    progress = tqdm(desc='Save tiff', total=1)
+    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key, params={'format': 'tif'})
+    progress.update()
+    progress.close()
+
+
+def test_reg_3d_stack(sims, tmp_path):
     transform_key = 'stage_metadata'
     new_transform_key = 'registered'
 
@@ -290,15 +388,6 @@ def test5(sims, tmp_path):
     progress.close()
 
 
-def test_pipeline(tmp_path, n=2):
-    size = (1000, 1000)
-    chunks = (1024, 1024)
-    print('size:', size)
-    print('chunks:', chunks)
-    sims = init_tiles_pattern(n, size=size, chunks=chunks)
-    test5(sims, tmp_path)
-
-
 def create_stack(path, n=100):
     dtype = np.dtype(np.uint16)
     size = (10000, 10000)
@@ -379,6 +468,18 @@ def test_create_stack(path, n):
     progress.update()
     progress.close()
 
+
+def test_pipeline(tmp_path, n=2):
+    size = (1000, 1000)
+    chunks = (1024, 1024)
+    print('size:', size)
+    print('chunks:', chunks)
+
+    sims = init_tiles_pattern(n, size=size, chunks=chunks, is_3d=False)
+    test_reg_2d(sims, tmp_path)
+
+    sims = init_tiles_pattern(n, size=size, chunks=chunks, is_3d=True)
+    test_reg_3d_stack(sims, tmp_path)
 
 
 if __name__ == '__main__':
