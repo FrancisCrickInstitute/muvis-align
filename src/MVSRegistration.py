@@ -708,9 +708,11 @@ class MVSRegistration:
         # functionality copied from registration.register_pair_of_msims()
         spatial_dims = si_utils.get_spatial_dims_from_sim(sims[0])
         overlap_tolerance = {dim: 0.0 for dim in spatial_dims}
+        # work-around for points error in get_overlap_bboxes()
+        overlap_sims = [si_utils.sim_sel_coords(sim, {'t': 0}) for sim in sims]
         lowers, uppers = get_overlap_bboxes(
-            sims[0],
-            sims[1],
+            overlap_sims[0],
+            overlap_sims[1],
             input_transform_key=self.reg_transform_key,
             output_transform_key=None,
             overlap_tolerance=overlap_tolerance,

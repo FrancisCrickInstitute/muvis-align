@@ -234,18 +234,21 @@ def test_reg_2d(sims, tmp_path):
 
     print(f'New transforms shape: {sims[0].transforms[new_transform_key].shape}')
 
-    # *** error
-    overlap_boxes = registration.get_overlap_bboxes(
-        sims[0],
-        sims[1],
-        input_transform_key=transform_key,
-    )
+    # work-around for points error in get_overlap_bboxes()
+    overlap_sims = [si_utils.sim_sel_coords(sim, {'t': 0}) for sim in sims]
+    overlap_boxes = registration.get_overlap_bboxes(overlap_sims[0],
+                                                    overlap_sims[1],
+                                                    input_transform_key=transform_key)
     print('overlap_boxes', overlap_boxes)
+
+    print(set(sims[0].coords.xindexes.keys()))
 
     progress = tqdm(desc='Plot', total=1)
     vis_utils.plot_positions(sims, transform_key=transform_key, use_positional_colors=False)
     progress.update()
     progress.close()
+
+    print(set(sims[0].coords.xindexes.keys()))
 
     output_spacing = si_utils.get_spacing_from_sim(sims[0])
     # calculate output stack properties from input views
@@ -275,14 +278,6 @@ def test_reg_2d(sims, tmp_path):
     )
     progress.update()
     progress.close()
-
-    # *** works fine here
-    overlap_boxes = registration.get_overlap_bboxes(
-        sims[0],
-        sims[1],
-        input_transform_key=transform_key,
-    )
-    print('overlap_boxes', overlap_boxes)
 
     show_image(fused_image)
 
