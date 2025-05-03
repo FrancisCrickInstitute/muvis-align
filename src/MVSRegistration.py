@@ -675,7 +675,10 @@ class MVSRegistration:
                                             transform_key=transform_key)
         fused_image = self.fuse(sims, params, transform_key=transform_key).squeeze()
         dimension_order = ''.join(fused_image.dims)
-        pixel_size = [si_utils.get_spacing_from_sim(fused_image)[dim] for dim in 'xyz']
+        spacing = si_utils.get_spacing_from_sim(fused_image)
+        pixel_size = [spacing[dim] for dim in 'xy']
+        if 'z' in dimension_order:
+            pixel_size += [spacing['z']]
         compression = output_params.get('compression')
         pyramid_downsample = output_params.get('pyramid_downsample', 2)
         npyramid_add = get_max_downsamples(fused_image.shape, output_params.get('npyramid_add', 0), pyramid_downsample)
@@ -757,14 +760,14 @@ class MVSRegistration:
         residual_errors = {labels[key[0]] + ' - ' + labels[key[1]]: value
                            for key, value in results['residual_errors'].items()}
         if len(residual_errors) > 0:
-            residual_error = np.mean(list(residual_errors.values()))
+            residual_error = np.nanmean(list(residual_errors.values()))
         else:
             residual_error = 1
 
         registration_qualities = {labels[key[0]] + ' - ' + labels[key[1]]: value.item()
                                   for key, value in results['registration_qualities'].items()}
         if len(registration_qualities) > 0:
-            registration_quality = np.mean(list(registration_qualities.values()))
+            registration_quality = np.nanmean(list(registration_qualities.values()))
         else:
             registration_quality = 0
 
@@ -772,11 +775,11 @@ class MVSRegistration:
 
         nccs = {labels[key[0]] + ' - ' + labels[key[1]]: value
                  for key, value in overlap_metrics['ncc'].items()}
-        ncc = np.mean(list(nccs.values()))
+        ncc = np.nanmean(list(nccs.values()))
 
         ssims = {labels[key[0]] + ' - ' + labels[key[1]]: value
                  for key, value in overlap_metrics['ssim'].items()}
-        ssim = np.mean(list(ssims.values()))
+        ssim = np.nanmean(list(ssims.values()))
 
         summary = (f'Residual error: {residual_error:.3f}'
                    f' Registration quality: {registration_quality:.3f}'
