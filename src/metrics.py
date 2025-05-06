@@ -85,17 +85,16 @@ def calc_ncc2(image1, image2):
 
 
 def calc_ssim(image1, image2):
-    ssim = None
     dtype = image1.dtype
     maxval = 2 ** (8 * dtype.itemsize) - 1
     max_size = np.flip(np.max([image1.shape, image2.shape], 0))
     image1 = image_reshape(image1, max_size)
     image2 = image_reshape(image2, max_size)
     try:
-        ssim = float(structural_similarity(np.array(image1), np.array(image2), data_range=maxval))
+        ssim = structural_similarity(np.array(image1), np.array(image2), data_range=maxval)
     except ValueError:
-        pass
-    return ssim
+        ssim = np.nan
+    return float(ssim)
 
 
 def calc_frc(image1, image2):
