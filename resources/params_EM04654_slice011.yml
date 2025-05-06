@@ -1,7 +1,8 @@
 general:
+  ui: napari  #mpl
   log_filename: log/muvis-align.log
   log_format: '%(asctime)s %(levelname)s: %(message)s'
-  show_original: False
+  show_original: True
   break_on_error: True
   verbose: True
   verbose_mvs: False
@@ -9,7 +10,7 @@ general:
   chunk_size: [4096, 4096]
   output:
     clear: False
-    overwrite: False
+    overwrite: True
     format: thumbnail, ome.zarr
     tile_size: [4096, 4096]
     compression: []
@@ -18,9 +19,9 @@ general:
 
 operations:
   - operation: register match s
-    input: /nemo/project/proj-mrc-mm/raw/em/EM04654/EM04654_slice011/EM04654_slice11_run_final_24-11-15/tiles/g????/t????/*.ome.tif
+    #input: /nemo/project/proj-mrc-mm/raw/em/EM04654/EM04654_slice011/EM04654_slice11_run_final_24-11-15/tiles/g????/t????/*.ome.tif
     #input: D:/slides/EM04654_slice011/tiles/g????/t????/*.ome.tif
-    #input: D:/slides/EM04654_slice011/tiles_slice21_24/g????/t????/*.ome.tif
+    input: D:/slides/EM04654_slice011/tiles_slice21_24/g????/t????/*.ome.tif
     #source_metadata: source normalise global center
     source_metadata: {'position': {'x':'{t} % 15 * 38.96', 'y':'{t} // 15 * 28.72'}}
     normalisation: True
@@ -29,8 +30,8 @@ operations:
     output: ../../../stitched/slice{s}/
 
   - operation: stack
-    input: /nemo/project/proj-mrc-mm/raw/em/EM04654/EM04654_slice011/EM04654_slice11_run_final_24-11-15/stitched/slice?????/*.ome.zarr
-    #input: D:/slides/EM04654_slice011/stitched/slice?????/registered.ome.zarr
+    #input: /nemo/project/proj-mrc-mm/raw/em/EM04654/EM04654_slice011/EM04654_slice11_run_final_24-11-15/stitched/slice?????/*.ome.zarr
+    input: D:/slides/EM04654_slice011/stitched/slice?????/registered.ome.zarr
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
     normalisation: False

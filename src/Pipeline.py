@@ -1,4 +1,5 @@
 import logging
+from napari.qt.threading import WorkerBase
 import numpy as np
 import os
 import pandas as pd
@@ -9,13 +10,17 @@ from src.image.source_helper import get_images_metadata
 from src.util import dir_regex, get_filetitle, find_all_numbers, split_numeric_dict
 
 
-class Pipeline:
-    def __init__(self, params):
+class Pipeline(WorkerBase):
+    def __init__(self, params, viewer=None):
+        super().__init__()
         self.params = params
+        self.viewer = viewer
+
         self.params_general = params['general']
         self.init_logging()
+
         from src.MVSRegistration import MVSRegistration
-        self.mvs_registration = MVSRegistration(self.params_general)
+        self.mvs_registration = MVSRegistration(self.params_general, self.viewer)
 
     def init_logging(self):
         self.verbose = self.params_general.get('verbose', False)

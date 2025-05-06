@@ -5,7 +5,7 @@ from contextlib import nullcontext
 from dask.diagnostics import ProgressBar
 import logging
 import multiview_stitcher
-from multiview_stitcher import registration, msi_utils, vis_utils
+from multiview_stitcher import registration, msi_utils, vis_utils, mv_graph
 from multiview_stitcher import spatial_image_utils as si_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes
@@ -21,16 +21,20 @@ from src.image.ome_helper import save_image, exists_output_image
 from src.image.ome_tiff_helper import save_tiff, save_ome_tiff
 from src.image.source_helper import create_source
 from src.image.util import *
-from src.metrics import calc_ncc, calc_ssim, calc_frc
+from src.metrics import calc_ncc, calc_ssim
 from src.util import *
 
 
 class MVSRegistration:
-    def __init__(self, params_general):
+    def __init__(self, params_general, viewer=None):
         self.params_general = params_general
+        self.viewer = viewer
+
         self.verbose = self.params_general.get('verbose', False)
         self.verbose_mvs = self.params_general.get('verbose_mvs', False)
-
+        self.ui = self.params_general.get('ui', '')
+        self.mpl_ui = ('mpl' in self.ui or 'plot' in self.ui)
+        self.napari_ui = ('napari' in self.ui)
         self.source_transform_key = 'source_metadata'
         self.reg_transform_key = 'registered'
         self.transition_transform_key = 'transition'
@@ -101,10 +105,25 @@ class MVSRegistration:
                 progress = tqdm(desc='Plotting', total=1)
             vis_utils.plot_positions(sims, transform_key=self.source_transform_key,
                                      use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
-                                     show_plot=self.verbose, output_filename=original_positions_filename)
+                                     show_plot=self.mpl_ui, output_filename=original_positions_filename)
             if self.verbose:
                 progress.update()
                 progress.close()
+
+            if self.napari_ui:
+                shapes = []
+                for sim in sims:
+                    stack_props = si_utils.get_stack_properties_from_sim(sim, transform_key=self.source_transform_key)
+                    faces = mv_graph.get_faces_from_stack_props(stack_props)
+                    vertices = mv_graph.get_vertices_from_stack_props(stack_props)
+                    shapes.append(vertices)
+
+                #for sim, label in zip(sims, file_labels):
+                #    self.viewer.add_image(sim.data, name=label, scale=si_utils.get_spacing_from_sim(sim))
+                #self.viewer.add_points(positions, name='Positions', size=5)
+                self.viewer.add_shapes(shapes, name='original')
+                self.viewer.grid.enabled = True
+                self.viewer.show()
 
             if 'thumb' in output_params.get('format', ''):
                 if self.verbose:
@@ -198,7 +217,7 @@ class MVSRegistration:
             progress = tqdm(desc='Plotting', total=1)
         vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
                                  use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
-                                 show_plot=self.verbose, output_filename=registered_positions_filename)
+                                 show_plot=self.mpl_ui, output_filename=registered_positions_filename)
         if self.verbose:
             progress.update()
             progress.close()
@@ -520,7 +539,7 @@ class MVSRegistration:
                     post_registration_do_quality_filter=True,
                     post_registration_quality_threshold=0.1,
 
-                    plot_summary=True,
+                    plot_summary=self.mpl_ui,
                     return_dict=True
                 )
                 # copy transforms from register sims to unmodified sims
