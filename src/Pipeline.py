@@ -133,5 +133,5 @@ class Pipeline(WorkerBase):
                 logging.info(f'File set: {fileset_label}')
             center = global_center if use_global_metadata else None
             rotation = rotations[index] if use_global_metadata else None
-            self.mvs_registration.run_operation(fileset, params,
+            self.mvs_registration.run_operation(fileset_label, fileset, params,
                                                 global_center=center, global_rotation=rotation)

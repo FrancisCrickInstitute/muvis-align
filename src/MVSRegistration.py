@@ -5,12 +5,13 @@ from contextlib import nullcontext
 from dask.diagnostics import ProgressBar
 import logging
 import multiview_stitcher
-from multiview_stitcher import registration, msi_utils, vis_utils, mv_graph
+from multiview_stitcher import registration, msi_utils, vis_utils
 from multiview_stitcher import spatial_image_utils as si_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes
 import numpy as np
 from ome_zarr.scale import Scaler
+from qtpy.QtCore import QObject, Signal, Slot
 import shutil
 from tqdm import tqdm
 import xarray as xr
@@ -25,10 +26,14 @@ from src.metrics import calc_ncc, calc_ssim
 from src.util import *
 
 
-class MVSRegistration:
+class MVSRegistration(QObject):
+    update_napari_signal = Signal(str, list, list)
+
     def __init__(self, params_general, viewer=None):
+        super().__init__()
         self.params_general = params_general
         self.viewer = viewer
+        self.update_napari_signal.connect(self.update_napari)
 
         self.verbose = self.params_general.get('verbose', False)
         self.verbose_mvs = self.params_general.get('verbose_mvs', False)
@@ -41,7 +46,7 @@ class MVSRegistration:
 
         logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
-    def run_operation(self, filenames, params, global_rotation=None, global_center=None):
+    def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
         operation = params['operation']
         overlap_threshold = params.get('overlap_threshold', 0.5)
         source_metadata = params.get('source_metadata', {})
@@ -103,7 +108,7 @@ class MVSRegistration:
 
             if self.verbose:
                 progress = tqdm(desc='Plotting', total=1)
-            vis_utils.plot_positions(sims, transform_key=self.source_transform_key,
+            vis_utils.plot_positions(sims.copy(), transform_key=self.source_transform_key,
                                      use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
                                      show_plot=self.mpl_ui, output_filename=original_positions_filename)
             if self.verbose:
@@ -111,19 +116,8 @@ class MVSRegistration:
                 progress.close()
 
             if self.napari_ui:
-                shapes = []
-                for sim in sims:
-                    stack_props = si_utils.get_stack_properties_from_sim(sim, transform_key=self.source_transform_key)
-                    faces = mv_graph.get_faces_from_stack_props(stack_props)
-                    vertices = mv_graph.get_vertices_from_stack_props(stack_props)
-                    shapes.append(vertices)
-
-                #for sim, label in zip(sims, file_labels):
-                #    self.viewer.add_image(sim.data, name=label, scale=si_utils.get_spacing_from_sim(sim))
-                #self.viewer.add_points(positions, name='Positions', size=5)
-                self.viewer.add_shapes(shapes, name='original')
-                self.viewer.grid.enabled = True
-                self.viewer.show()
+                shapes = [get_sim_shape_2d(sim, transform_key=self.source_transform_key) for sim in sims]
+                self.update_napari_signal.emit(f'{fileset_label} original', shapes, file_labels)
 
             if 'thumb' in output_params.get('format', ''):
                 if self.verbose:
@@ -215,12 +209,16 @@ class MVSRegistration:
         registered_positions_filename = output + 'positions_registered.pdf'
         if self.verbose:
             progress = tqdm(desc='Plotting', total=1)
-        vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
+        vis_utils.plot_positions(sims.copy(), transform_key=self.reg_transform_key,
                                  use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
                                  show_plot=self.mpl_ui, output_filename=registered_positions_filename)
         if self.verbose:
             progress.update()
             progress.close()
+
+        if self.napari_ui:
+            shapes = [get_sim_shape_2d(sim, transform_key=self.reg_transform_key) for sim in sims]
+            self.update_napari_signal.emit(f'{fileset_label} registered', shapes, file_labels)
 
         if 'thumb' in output_params.get('format', ''):
             if self.verbose:
@@ -730,8 +728,14 @@ class MVSRegistration:
         # functionality copied from registration.register_pair_of_msims()
         spatial_dims = si_utils.get_spatial_dims_from_sim(sims[0])
         overlap_tolerance = {dim: 0.0 for dim in spatial_dims}
-        # work-around for points error in get_overlap_bboxes()
-        overlap_sims = [si_utils.sim_sel_coords(sim, {'t': 0}) for sim in sims]
+        overlap_sims = []
+        for sim in sims:
+            if 't' in sim.coords.xindexes:
+                # work-around for points error in get_overlap_bboxes()
+                sim1 = si_utils.sim_sel_coords(sim, {'t': 0})
+            else:
+                sim1 = sim
+            overlap_sims.append(sim1)
         lowers, uppers = get_overlap_bboxes(
             overlap_sims[0],
             overlap_sims[1],
@@ -851,3 +855,11 @@ class MVSRegistration:
             video.write(frame)
 
         video.close()
+
+    @Slot(str, list, list)
+    def update_napari(self, layer_name, shapes, labels):
+        if len(shapes) > 0:
+            text = {'string': '{labels}'}
+            features = {'labels': labels}
+            self.viewer.add_shapes(shapes, name=layer_name, text=text, features=features, opacity=0.5)
+            self.viewer.show()

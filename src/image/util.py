@@ -6,7 +6,7 @@ from skimage.transform import downscale_local_mean
 from tifffile import TiffFile
 from xarray import DataTree
 
-from multiview_stitcher import msi_utils, param_utils, fusion
+from multiview_stitcher import msi_utils, param_utils, fusion, mv_graph
 from multiview_stitcher import spatial_image_utils as si_utils
 
 
@@ -676,6 +676,26 @@ def calc_output_properties(sims, transform_key, z_scale=None):
     return output_properties
 
 
+def get_sim_shape_2d(sim, transform_key=None):
+    if 't' in sim.coords.xindexes:
+        # work-around for points error in get_overlap_bboxes()
+        sim1 = si_utils.sim_sel_coords(sim, {'t': 0})
+    else:
+        sim1 = sim
+    stack_props = si_utils.get_stack_properties_from_sim(sim1, transform_key=transform_key)
+    vertices = mv_graph.get_vertices_from_stack_props(stack_props)
+    if vertices.shape[1] == 3:
+        # remove z coordinate
+        vertices = vertices[:, 1:]
+    if len(vertices) >= 8:
+        # remove redundant x/y vertices
+        vertices = vertices[:4]
+    if len(vertices) >= 4:
+        # last 2 vertices appear to be swapped
+        vertices[2:] = np.array(list(reversed(vertices[2:])))
+    return vertices
+
+
 def get_properties_from_transform(transform, invert=False):
     if len(transform.shape) == 3:
         transform = transform[0]
@@ -738,5 +758,5 @@ def validate_transform(transform, size, max_scale=1.2):
     if scale < 1 / max_scale or scale > max_scale:
         return False
     if np.any(np.abs(translation[:len(size)]) >= size):
-        return
+        return False
     return True
