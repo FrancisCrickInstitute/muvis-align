@@ -629,6 +629,9 @@ class MVSRegistration(QObject):
             data_size = np.prod(list(output_stack_properties['shape'].values())) * source_type.itemsize
             logging.info(f'Fusing Z stack {print_hbytes(data_size)}')
 
+            if 'z' not in output_chunksize:
+                output_chunksize['z'] = 1
+
             # fuse all sims together using simple average fusion
             fused_image = fusion.fuse(
                 sims,
