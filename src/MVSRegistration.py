@@ -11,7 +11,6 @@ from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes
 import numpy as np
 from ome_zarr.scale import Scaler
-from qtpy.QtCore import QObject, Signal, Slot
 import shutil
 from tqdm import tqdm
 import xarray as xr
@@ -26,14 +25,10 @@ from src.metrics import calc_ncc, calc_ssim
 from src.util import *
 
 
-class MVSRegistration(QObject):
-    update_napari_signal = Signal(str, list, list)
-
-    def __init__(self, params_general, viewer=None):
+class MVSRegistration:
+    def __init__(self, params_general):
         super().__init__()
         self.params_general = params_general
-        self.viewer = viewer
-        self.update_napari_signal.connect(self.update_napari)
 
         self.verbose = self.params_general.get('verbose', False)
         self.verbose_mvs = self.params_general.get('verbose_mvs', False)
@@ -858,11 +853,3 @@ class MVSRegistration(QObject):
             video.write(frame)
 
         video.close()
-
-    @Slot(str, list, list)
-    def update_napari(self, layer_name, shapes, labels):
-        if len(shapes) > 0:
-            text = {'string': '{labels}'}
-            features = {'labels': labels}
-            self.viewer.add_shapes(shapes, name=layer_name, text=text, features=features, opacity=0.5)
-            self.viewer.show()

@@ -14,7 +14,7 @@ if __name__ == '__main__':
     with open(args.params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
 
-    napari_ui = 'napari' in params.get('general', {}).get('ui', '')
+    napari_ui = 'napari' in params['general'].get('ui', '')
     if napari_ui:
         try:
             import napari

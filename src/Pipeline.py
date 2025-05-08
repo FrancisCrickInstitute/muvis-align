@@ -1,8 +1,8 @@
 import logging
-from napari.qt.threading import WorkerBase
 import numpy as np
 import os
 import pandas as pd
+from threading import Thread
 from tqdm import tqdm
 
 from src.constants import version
@@ -10,7 +10,7 @@ from src.image.source_helper import get_images_metadata
 from src.util import dir_regex, get_filetitle, find_all_numbers, split_numeric_dict
 
 
-class Pipeline(WorkerBase):
+class Pipeline(Thread):
     def __init__(self, params, viewer=None):
         super().__init__()
         self.params = params
@@ -19,8 +19,13 @@ class Pipeline(WorkerBase):
         self.params_general = params['general']
         self.init_logging()
 
-        from src.MVSRegistration import MVSRegistration
-        self.mvs_registration = MVSRegistration(self.params_general, self.viewer)
+        napari_ui = 'napari' in self.params_general.get('ui', '')
+        if napari_ui:
+            from src.MVSRegistrationNapari import MVSRegistrationNapari
+            self.mvs_registration = MVSRegistrationNapari(self.params_general, self.viewer)
+        else:
+            from src.MVSRegistration import MVSRegistration
+            self.mvs_registration = MVSRegistration(self.params_general)
 
     def init_logging(self):
         self.verbose = self.params_general.get('verbose', False)
