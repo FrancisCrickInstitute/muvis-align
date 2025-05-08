@@ -28,6 +28,8 @@ def save_image(filename, sim, transform_key=None, channels=None, translation0=No
 
     tile_size = params.get('tile_size')
     if tile_size:
+        if 'z' in sim.dims and len(tile_size) < 3:
+            tile_size = list(tile_size) + [1]
         tile_size = tuple(reversed(tile_size))
         chunking = retuple(tile_size, sim.shape)
         sim = sim.chunk(chunks=chunking)

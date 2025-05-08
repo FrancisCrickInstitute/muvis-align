@@ -10,7 +10,7 @@ general:
   output:
     clear: False
     overwrite: False
-    format: thumbnail, ome.zarr
+    format: ome.zarr
     tile_size: [4096, 4096]
     compression: []
     npyramid_add: 4
