@@ -11,6 +11,7 @@ if __name__ == '__main__':
                         default='resources/params.yml')
 
     args = parser.parse_args()
+    print(f'Parameters file: {args.params}')
     with open(args.params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
 
