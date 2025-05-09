@@ -31,6 +31,6 @@ operations:
     #input: D:/slides/12193/stitched/S???/*.ome.zarr
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
-    normalisation: False
+    normalisation: True
     method: phase_correlation
     output: ../../aligned/
