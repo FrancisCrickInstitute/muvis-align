@@ -424,9 +424,9 @@ class MVSRegistration:
                 logging.info('Normalising image (global)...')
             else:
                 logging.info('Normalising images...')
-            register_sims = normalise(sims, self.source_transform_key, use_global=use_global)
+            new_sims = normalise(sims, self.source_transform_key, use_global=use_global)
         else:
-            register_sims = sims
+            new_sims = sims
 
         if filter_foreground:
             logging.info('Filtering foreground images...')
@@ -436,12 +436,12 @@ class MVSRegistration:
             #threshold3, _ = cv.threshold(np.array(tile_vars).astype(np.uint16), 0, 1, cv.THRESH_OTSU)
             #threshold = min(threshold1, threshold2, threshold3)
             #foregrounds = (tile_vars >= threshold)
-            register_sims = [sim for sim, is_foreground in zip(register_sims, foreground_map) if is_foreground]
-            logging.info(f'Foreground images: {len(register_sims)} / {len(sims)}')
+            new_sims = [sim for sim, is_foreground in zip(new_sims, foreground_map) if is_foreground]
+            logging.info(f'Foreground images: {len(new_sims)} / {len(sims)}')
             indices = np.where(foreground_map)[0]
         else:
             indices = range(len(sims))
-        return register_sims, indices
+        return new_sims, indices
 
     def register(self, sims, register_sims, indices, params):
         sim0 = sims[0]

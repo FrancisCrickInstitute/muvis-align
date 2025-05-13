@@ -505,7 +505,8 @@ def get_image_window(image, low=0.01, high=0.99):
 
 
 def normalise_values(image: np.ndarray, min_value: float, max_value: float) -> np.ndarray:
-    return np.clip((image.astype(np.float32) - min_value) / (max_value - min_value), 0, 1)
+    image = (image.astype(np.float32) - min_value) / (max_value - min_value)
+    return image.clip(0, 1)
 
 
 def norm_image_variance(image0):
@@ -513,7 +514,8 @@ def norm_image_variance(image0):
         image, alpha = image0[..., :3], image0[..., 3]
     else:
         image, alpha = image0, None
-    normimage = np.clip((image - np.mean(image)) / np.std(image), 0, 1).astype(np.float32)
+    normimage = (image - np.mean(image)) / np.std(image)
+    normimage = normimage.clip(0, 1).astype(np.float32)
     if alpha is not None:
         normimage = np.dstack([normimage, alpha])
     return normimage
@@ -526,7 +528,8 @@ def norm_image_quantiles(image0, quantile=0.99):
         image, alpha = image0, None
     min_value = np.quantile(image, 1 - quantile)
     max_value = np.quantile(image, quantile)
-    normimage = np.clip((image - min_value) / (max_value - min_value), 0, 1).astype(np.float32)
+    normimage = (image - np.mean(image)) / (max_value - min_value)
+    normimage = normimage.clip(0, 1).astype(np.float32)
     if alpha is not None:
         normimage = np.dstack([normimage, alpha])
     return normimage
@@ -635,7 +638,8 @@ def normalise(sims, transform_key, use_global=True):
         if not use_global:
             min = np.mean(sim, dtype=np.float32)
             range = np.std(sim, dtype=np.float32)
-        image = float2int_image(np.clip((sim - min) / range, 0, 1), dtype)
+        image = (sim - min) / range
+        image = float2int_image(image.clip(0, 1), dtype)    # np.clip(image) is not dask-compatible, use image.clip() instead
         new_sim = si_utils.get_sim_from_array(
             image,
             dims=sim.dims,

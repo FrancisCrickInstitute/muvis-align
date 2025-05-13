@@ -74,9 +74,8 @@ def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_orde
             position += [z_position]
         shape_image = np.fromfunction(calc_shape, tuple(size), dtype=np.float32, offset=offset)
         noise_image = np.random.random_sample(size)
-        pattern_image = float2int_image(
-            np.clip(0.9 * shape_image + 0.1 * noise_image, 0, 1),
-            target_dtype=dtype)
+        image = 0.9 * shape_image + 0.1 * noise_image
+        pattern_image = float2int_image(image.clip(0, 1), target_dtype=dtype)
         pattern_image = redimension_data(pattern_image, dimension_order0, dimension_order)
         sim = si_utils.get_sim_from_array(
             pattern_image,

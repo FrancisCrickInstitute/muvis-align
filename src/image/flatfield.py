@@ -63,5 +63,5 @@ def image_flatfield_correction(image0, dark=0, bright=1, clip=True):
     mean_bright_dark = np.mean(bright - dark, (0, 1))
     image = (image0 - dark) * mean_bright_dark / (bright - dark)
     if clip:
-        image = np.clip(image, 0, 1)
+        image = image.clip(0, 1)
     return image
