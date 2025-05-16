@@ -16,7 +16,7 @@ if __name__ == '__main__':
     with open(args.params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
 
-    with LocalCluster(processes=False) as cluster:
+    with LocalCluster(processes=False, threads_per_worker=8) as cluster:
         print(cluster)
         with Client(cluster) as client:
             print(client)
