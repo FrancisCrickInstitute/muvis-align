@@ -4,7 +4,7 @@ general:
   show_original: False
   break_on_error: True
   verbose: True
-  verbose_mvs: False
+  verbose_mvs: True
   metadata_summary: False
   chunk_size: [1024, 1024]
   output:
