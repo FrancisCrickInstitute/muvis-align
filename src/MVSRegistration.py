@@ -533,7 +533,9 @@ class MVSRegistration:
                     post_registration_quality_threshold=0.1,
 
                     plot_summary=self.mpl_ui,
-                    return_dict=True
+                    return_dict=True,
+
+                    scheduler = 'single-threaded'   # TODO *** only for z-stack!
                 )
                 # copy transforms from register sims to unmodified sims
                 for reg_msim, index in zip(register_msims, indices):
