@@ -62,7 +62,7 @@ class MVSRegistration:
 
         if len(filenames) == 0:
             logging.warning('Skipping (no images)')
-            return
+            return False
 
         file_labels = get_unique_file_labels(filenames)
         input_dir = os.path.dirname(filenames[0])
@@ -74,7 +74,7 @@ class MVSRegistration:
         output_dir = os.path.dirname(output)
         if not overwrite and exists_output_image(registered_fused_filename):
             logging.warning(f'Skipping existing output {os.path.normpath(output_dir)}')
-            return
+            return False
         if clear:
             shutil.rmtree(output_dir, ignore_errors=True)
         if not os.path.exists(output_dir):
@@ -136,7 +136,7 @@ class MVSRegistration:
             logging.warning('Skipping registration (single image)')
             save_image(registered_fused_filename, sims[0], channels=channels, translation0=positions[0],
                        params=output_params, verbose=self.verbose)
-            return
+            return False
 
         overlaps = self.validate_overlap(sims, file_labels, is_stack, is_stack or is_channel_overlay)
         overall_overlap = np.mean(overlaps)
@@ -235,6 +235,8 @@ class MVSRegistration:
 
         if is_transition:
             self.save_video(output, sims, fused_image, params)
+
+        return True
 
     def init_sims(self, filenames, params, global_center=None, global_rotation=None, target_scale=None):
         operation = params['operation']

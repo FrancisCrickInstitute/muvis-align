@@ -1,6 +1,5 @@
 import argparse
 import yaml
-from distributed import LocalCluster, Client
 
 from src.Pipeline import Pipeline
 
@@ -15,11 +14,6 @@ if __name__ == '__main__':
     print(f'Parameters file: {args.params}')
     with open(args.params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
-
-    #with LocalCluster(processes=False, threads_per_worker=8) as cluster:
-    #    print(cluster)
-    #    with Client(cluster) as client:
-    #        print(client)
 
     napari_ui = 'napari' in params['general'].get('ui', '')
     if napari_ui:

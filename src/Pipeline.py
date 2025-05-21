@@ -1,4 +1,8 @@
+import datetime
+from distributed import Client
+from distributed.diagnostics import MemorySampler
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
@@ -30,13 +34,13 @@ class Pipeline(Thread):
     def init_logging(self):
         self.verbose = self.params_general.get('verbose', False)
         self.verbose_mvs = self.params_general.get('verbose_mvs', False)
-        log_filename = self.params_general.get('log_filename', 'logfile.log')
+        self.log_filename = self.params_general.get('log_filename', 'logfile.log')
         log_format = self.params_general.get('log_format')
-        basepath = os.path.dirname(log_filename)
+        basepath = os.path.dirname(self.log_filename)
         if not os.path.exists(basepath):
             os.makedirs(basepath)
 
-        handlers = [logging.FileHandler(log_filename, encoding='utf-8')]
+        handlers = [logging.FileHandler(self.log_filename, encoding='utf-8')]
         if self.verbose:
             handlers += [logging.StreamHandler()]
 
@@ -61,17 +65,31 @@ class Pipeline(Thread):
 
     def run(self):
         break_on_error = self.params_general.get('break_on_error', False)
+        timestamp_filename = (os.path.splitext(self.log_filename)[0]
+                              + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
 
         for operation_params in tqdm(self.params['operations']):
+            error = False
             input_path = operation_params['input']
             logging.info(f'Input: {input_path}')
-            try:
-                self.run_operation(operation_params)
-            except Exception as e:
-                logging.exception(f'Error processing: {input_path}')
-                print(f'Error processing: {input_path}: {e}')
-                if break_on_error:
-                    break
+            with Client() as client:
+                if self.verbose:
+                    print(client)
+                ms = MemorySampler()
+                with ms.sample(interval=60):
+                    try:
+                        ok = True
+                        ok = self.run_operation(operation_params)
+                    except Exception as e:
+                        logging.exception(f'Error processing: {input_path}')
+                        print(f'Error processing: {input_path}: {e}')
+                        error = True
+                if ok:
+                    axes = ms.plot()
+                    axes.plot()
+                    plt.savefig(timestamp_filename + '_memory.pdf')
+            if error and break_on_error:
+                break
 
         logging.info('Done!')
 
@@ -84,7 +102,7 @@ class Pipeline(Thread):
         filenames = sorted(filenames, key=lambda file: list(find_all_numbers(file)))    # sort first key first
         if len(filenames) == 0:
             logging.warning(f'Skipping operation {operation} (no files)')
-            return
+            return False
         elif self.verbose:
             logging.info(f'# total files: {len(filenames)}')
 
@@ -133,10 +151,13 @@ class Pipeline(Thread):
                 # fix missing rotation values
                 rotations = pd.Series(rotations).interpolate(limit_direction='both').to_numpy()
 
+        ok = False
         for index, (fileset, fileset_label) in enumerate(zip(filesets, fileset_labels)):
             if len(filesets) > 1:
                 logging.info(f'File set: {fileset_label}')
             center = global_center if use_global_metadata else None
             rotation = rotations[index] if use_global_metadata else None
-            self.mvs_registration.run_operation(fileset_label, fileset, params,
-                                                global_center=center, global_rotation=rotation)
+            ok |= self.mvs_registration.run_operation(fileset_label, fileset, params,
+                                                      global_center=center, global_rotation=rotation)
+
+        return ok

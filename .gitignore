@@ -166,3 +166,4 @@ cython_debug/
 *.tiff
 *.z*
 *.json
+/log
