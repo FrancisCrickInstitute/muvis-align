@@ -16,21 +16,21 @@ if __name__ == '__main__':
     with open(args.params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
 
-    with LocalCluster(processes=False, threads_per_worker=8) as cluster:
-        print(cluster)
-        with Client(cluster) as client:
-            print(client)
+    #with LocalCluster(processes=False, threads_per_worker=8) as cluster:
+    #    print(cluster)
+    #    with Client(cluster) as client:
+    #        print(client)
 
-            napari_ui = 'napari' in params['general'].get('ui', '')
-            if napari_ui:
-                try:
-                    import napari
-                    viewer = napari.Viewer()
-                    pipeline = Pipeline(params, viewer)
-                    pipeline.start()    # run as thread
-                    napari.run()
-                except ImportError:
-                    raise ImportError('Napari not installed.')
-            else:
-                pipeline = Pipeline(params)
-                pipeline.run()
+    napari_ui = 'napari' in params['general'].get('ui', '')
+    if napari_ui:
+        try:
+            import napari
+            viewer = napari.Viewer()
+            pipeline = Pipeline(params, viewer)
+            pipeline.start()    # run as thread
+            napari.run()
+        except ImportError:
+            raise ImportError('Napari not installed.')
+    else:
+        pipeline = Pipeline(params)
+        pipeline.run()

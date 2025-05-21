@@ -490,6 +490,13 @@ class MVSRegistration:
             pairwise_reg_func = registration.registration_ANTsPy
         else:
             pairwise_reg_func = registration.phase_correlation_registration
+
+        # Pass registration through metrics method
+        #from src.registration_methods.RegistrationMetrics import RegistrationMetrics
+        #registration_metrics = RegistrationMetrics(source_type, pairwise_reg_function)
+        #pairwise_reg_function = registration_metrics.registration
+        # TODO: extract metrics from registration_metrics
+
         logging.info(f'Registration method: {method}')
 
         if use_rotation:
@@ -794,20 +801,20 @@ class MVSRegistration:
         else:
             registration_quality = 0
 
-        overlap_metrics = self.calc_overlap_metrics(results)
+        #overlap_metrics = self.calc_overlap_metrics(results)
 
-        nccs = {labels[key[0]] + ' - ' + labels[key[1]]: value
-                 for key, value in overlap_metrics['ncc'].items()}
-        ncc = np.nanmean(list(nccs.values()))
+        #nccs = {labels[key[0]] + ' - ' + labels[key[1]]: value
+        #         for key, value in overlap_metrics['ncc'].items()}
+        #ncc = np.nanmean(list(nccs.values()))
 
-        ssims = {labels[key[0]] + ' - ' + labels[key[1]]: value
-                 for key, value in overlap_metrics['ssim'].items()}
-        ssim = np.nanmean(list(ssims.values()))
+        #ssims = {labels[key[0]] + ' - ' + labels[key[1]]: value
+        #         for key, value in overlap_metrics['ssim'].items()}
+        #ssim = np.nanmean(list(ssims.values()))
 
         summary = (f'Residual error: {residual_error:.3f}'
                    f' Registration quality: {registration_quality:.3f}'
-                   f' NCC: {ncc:.3f}'
-                   f' SSIM: {ssim:.3f}'
+        #           f' NCC: {ncc:.3f}'
+        #           f' SSIM: {ssim:.3f}'
                    f' Variation: {var:.3f}')
 
         return {'mappings': mappings,
@@ -816,10 +823,10 @@ class MVSRegistration:
                 'residual_errors': residual_errors,
                 'registration_quality': registration_quality,
                 'registration_qualities': registration_qualities,
-                'ncc': ncc,
-                'nccs': nccs,
-                'ssim': ssim,
-                'ssims': ssims,
+         #       'ncc': ncc,
+         #       'nccs': nccs,
+         #       'ssim': ssim,
+         #       'ssims': ssims,
                 'summary': summary}
 
     def save_video(self, output, sims, fused_image, params):
