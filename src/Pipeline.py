@@ -1,8 +1,5 @@
 import datetime
-from distributed import Client
-from distributed.diagnostics import MemorySampler
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
@@ -69,25 +66,25 @@ class Pipeline(Thread):
                               + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
 
         for operation_params in tqdm(self.params['operations']):
+            ok = True
             error = False
             input_path = operation_params['input']
             logging.info(f'Input: {input_path}')
-            with Client() as client:
-                if self.verbose:
-                    print(client)
-                ms = MemorySampler()
-                with ms.sample(interval=60):
-                    try:
-                        ok = True
-                        ok = self.run_operation(operation_params)
-                    except Exception as e:
-                        logging.exception(f'Error processing: {input_path}')
-                        print(f'Error processing: {input_path}: {e}')
-                        error = True
-                if ok:
-                    axes = ms.plot()
-                    axes.plot()
-                    plt.savefig(timestamp_filename + '_memory.pdf')
+            #with Client() as client:
+                #if self.verbose:
+                #    print(client)
+                #ms = MemorySampler()
+                #with ms.sample(interval=60):
+            try:
+                ok = self.run_operation(operation_params)
+            except Exception as e:
+                logging.exception(f'Error processing: {input_path}')
+                print(f'Error processing: {input_path}: {e}')
+                error = True
+                #if ok:
+                #    axes = ms.plot()
+                #    axes.plot()
+                #    plt.savefig(timestamp_filename + '_memory.pdf')
             if error and break_on_error:
                 break
 
