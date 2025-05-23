@@ -1,4 +1,4 @@
-name: muvis-env
+name: muvis-align-env
 channels:
  - conda-forge
  - defaults
