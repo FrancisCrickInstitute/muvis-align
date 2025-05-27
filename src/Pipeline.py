@@ -63,33 +63,28 @@ class Pipeline(Thread):
 
     def run(self):
         break_on_error = self.params_general.get('break_on_error', False)
-        timestamp_filename = (os.path.splitext(self.log_filename)[0]
-                              + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
 
-        for operation_params in tqdm(self.params['operations']):
-            ok = True
-            error = False
-            input_path = operation_params['input']
-            logging.info(f'Input: {input_path}')
-            with Client(processes=False) as client:
-                if self.verbose:
-                    print(client)
-                #ms = MemorySampler()
-                #with ms.sample(interval=60):
+        with Client(processes=False) as client:
+            if self.verbose:
+                print(client)
+
+            for operation_params in tqdm(self.params['operations']):
+                error = False
+                timestamp_filename = (os.path.splitext(self.log_filename)[0]
+                                      + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+                input_path = operation_params['input']
+                logging.info(f'Input: {input_path}')
                 with performance_report(filename=timestamp_filename + "_report.html"):
 
                     try:
-                        ok = self.run_operation(operation_params)
+                        self.run_operation(operation_params)
                     except Exception as e:
                         logging.exception(f'Error processing: {input_path}')
                         print(f'Error processing: {input_path}: {e}')
                         error = True
-                        #if ok:
-                        #    axes = ms.plot()
-                        #    axes.plot()
-                        #    plt.savefig(timestamp_filename + '_memory.pdf')
-                    if error and break_on_error:
-                        break
+
+                if error and break_on_error:
+                    break
 
         logging.info('Done!')
 
