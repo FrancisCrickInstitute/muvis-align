@@ -1,4 +1,5 @@
 import datetime
+from distributed import Client, performance_report
 import logging
 import numpy as np
 import os
@@ -70,23 +71,25 @@ class Pipeline(Thread):
             error = False
             input_path = operation_params['input']
             logging.info(f'Input: {input_path}')
-            #with Client() as client:
-                #if self.verbose:
-                #    print(client)
+            with Client() as client:
+                if self.verbose:
+                    print(client)
                 #ms = MemorySampler()
                 #with ms.sample(interval=60):
-            try:
-                ok = self.run_operation(operation_params)
-            except Exception as e:
-                logging.exception(f'Error processing: {input_path}')
-                print(f'Error processing: {input_path}: {e}')
-                error = True
-                #if ok:
-                #    axes = ms.plot()
-                #    axes.plot()
-                #    plt.savefig(timestamp_filename + '_memory.pdf')
-            if error and break_on_error:
-                break
+                with performance_report(filename=timestamp_filename + "_report.html"):
+
+                    try:
+                        ok = self.run_operation(operation_params)
+                    except Exception as e:
+                        logging.exception(f'Error processing: {input_path}')
+                        print(f'Error processing: {input_path}: {e}')
+                        error = True
+                        #if ok:
+                        #    axes = ms.plot()
+                        #    axes.plot()
+                        #    plt.savefig(timestamp_filename + '_memory.pdf')
+                    if error and break_on_error:
+                        break
 
         logging.info('Done!')
 
