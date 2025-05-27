@@ -71,7 +71,7 @@ class Pipeline(Thread):
             error = False
             input_path = operation_params['input']
             logging.info(f'Input: {input_path}')
-            with Client() as client:
+            with Client(processes=False) as client:
                 if self.verbose:
                     print(client)
                 #ms = MemorySampler()
