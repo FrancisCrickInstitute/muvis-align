@@ -5,6 +5,7 @@ from enum import Enum
 import numpy as np
 import os
 from tifffile import TiffFile, TiffPage, PHOTOMETRIC
+import zarr
 
 from src.OmeSource import OmeSource
 from src.image.util import *
@@ -203,9 +204,14 @@ class TiffSource(OmeSource):
                     page = self.pages[level]
                     if isinstance(page, list):
                         page = page[0]
-                    data = da.from_zarr(page.aszarr())
+                    data = page.aszarr()
                 else:
-                    data = da.from_zarr(self.tiff.aszarr(level=level))
+                    store = self.tiff.aszarr(multiscales=True)
+                    group = zarr.open_group(store=store, mode='r')
+                    # using group.attrs to get multiscales is recommended by cgohlke
+                    paths = group.attrs['multiscales'][0]['datasets']
+                    data = group[paths[level]['path']]
+                data = da.from_zarr(data)
                 if data.chunksize == data.shape:
                     data = data.rechunk()
                 self.arrays.append(data)

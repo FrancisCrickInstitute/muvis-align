@@ -42,6 +42,10 @@ class MVSRegistration:
         logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
     def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
+        with ProgressBar(dt=1) if self.verbose_mvs else nullcontext():
+            return self._run_operation(fileset_label, filenames, params, global_rotation, global_center)
+
+    def _run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
         operation = params['operation']
         overlap_threshold = params.get('overlap_threshold', 0.5)
         source_metadata = params.get('source_metadata', {})
@@ -228,6 +232,7 @@ class MVSRegistration:
                 progress.close()
 
         fused_image = self.fuse(sims, params)
+
         logging.info('Saving fused image...')
         save_image(registered_fused_filename, fused_image,
                    transform_key=self.reg_transform_key, channels=channels, translation0=positions[0],
@@ -520,61 +525,60 @@ class MVSRegistration:
         if self.verbose:
             progress = tqdm(desc='Registering', total=1)
 
-        with ProgressBar() if self.verbose_mvs else nullcontext():
-            try:
-                logging.info('Registering...')
-                register_msims = [msi_utils.get_msim_from_sim(sim) for sim in register_sims]
-                reg_result = registration.register(
-                    register_msims,
-                    reg_channel=reg_channel,
-                    reg_channel_index=reg_channel_index,
-                    transform_key=self.source_transform_key,
-                    new_transform_key=self.reg_transform_key,
+        try:
+            logging.info('Registering...')
+            register_msims = [msi_utils.get_msim_from_sim(sim) for sim in register_sims]
+            reg_result = registration.register(
+                register_msims,
+                reg_channel=reg_channel,
+                reg_channel_index=reg_channel_index,
+                transform_key=self.source_transform_key,
+                new_transform_key=self.reg_transform_key,
 
-                    pairs=pairs,
-                    pre_registration_pruning_method=None,
+                pairs=pairs,
+                pre_registration_pruning_method=None,
 
-                    pairwise_reg_func=pairwise_reg_func,
-                    pairwise_reg_func_kwargs=pairwise_reg_func_kwargs,
-                    groupwise_resolution_kwargs=groupwise_resolution_kwargs,
+                pairwise_reg_func=pairwise_reg_func,
+                pairwise_reg_func_kwargs=pairwise_reg_func_kwargs,
+                groupwise_resolution_kwargs=groupwise_resolution_kwargs,
 
-                    post_registration_do_quality_filter=True,
-                    post_registration_quality_threshold=0.1,
+                post_registration_do_quality_filter=True,
+                post_registration_quality_threshold=0.1,
 
-                    plot_summary=self.mpl_ui,
-                    return_dict=True,
+                plot_summary=self.mpl_ui,
+                return_dict=True,
 
-                    scheduler = 'single-threaded'   # TODO *** only for z-stack!
-                )
-                # copy transforms from register sims to unmodified sims
-                for reg_msim, index in zip(register_msims, indices):
+                scheduler = 'single-threaded'   # TODO *** only for z-stack!
+            )
+            # copy transforms from register sims to unmodified sims
+            for reg_msim, index in zip(register_msims, indices):
+                si_utils.set_sim_affine(
+                    sims[index],
+                    msi_utils.get_transform_from_msim(reg_msim, transform_key=self.reg_transform_key),
+                    transform_key=self.reg_transform_key)
+
+            # set missing transforms
+            for sim in sims:
+                if self.reg_transform_key not in si_utils.get_tranform_keys_from_sim(sim):
                     si_utils.set_sim_affine(
-                        sims[index],
-                        msi_utils.get_transform_from_msim(reg_msim, transform_key=self.reg_transform_key),
+                        sim,
+                        param_utils.identity_transform(ndim=ndims, t_coords=[0]),
                         transform_key=self.reg_transform_key)
 
-                # set missing transforms
-                for sim in sims:
-                    if self.reg_transform_key not in si_utils.get_tranform_keys_from_sim(sim):
-                        si_utils.set_sim_affine(
-                            sim,
-                            param_utils.identity_transform(ndim=ndims, t_coords=[0]),
-                            transform_key=self.reg_transform_key)
-
-                mappings = reg_result['params']
-                # re-index from subset of sims
-                residual_error_dict = reg_result.get('groupwise_resolution', {}).get('metrics', {}).get('residuals', {})
-                residual_error_dict = {(indices[key[0]], indices[key[1]]): value.item()
-                                       for key, value in residual_error_dict.items()}
-                registration_qualities_dict = reg_result.get('pairwise_registration', {}).get('metrics', {}).get('qualities', {})
-                registration_qualities_dict = {(indices[key[0]], indices[key[1]]): value
-                                               for key, value in registration_qualities_dict.items()}
-            except NotEnoughOverlapError:
-                logging.warning('Not enough overlap')
-                reg_result = {}
-                mappings = [param_utils.identity_transform(ndim=ndims, t_coords=[0])] * len(sims)
-                residual_error_dict = {}
-                registration_qualities_dict = {}
+            mappings = reg_result['params']
+            # re-index from subset of sims
+            residual_error_dict = reg_result.get('groupwise_resolution', {}).get('metrics', {}).get('residuals', {})
+            residual_error_dict = {(indices[key[0]], indices[key[1]]): value.item()
+                                   for key, value in residual_error_dict.items()}
+            registration_qualities_dict = reg_result.get('pairwise_registration', {}).get('metrics', {}).get('qualities', {})
+            registration_qualities_dict = {(indices[key[0]], indices[key[1]]): value
+                                           for key, value in registration_qualities_dict.items()}
+        except NotEnoughOverlapError:
+            logging.warning('Not enough overlap')
+            reg_result = {}
+            mappings = [param_utils.identity_transform(ndim=ndims, t_coords=[0])] * len(sims)
+            residual_error_dict = {}
+            registration_qualities_dict = {}
 
         # re-index from subset of sims
         mappings_dict = {index: mapping for index, mapping in zip(indices, mappings)}
