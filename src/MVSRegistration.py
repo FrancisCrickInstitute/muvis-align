@@ -42,7 +42,7 @@ class MVSRegistration:
         logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
     def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
-        with ProgressBar(dt=1) if self.verbose_mvs else nullcontext():
+        with ProgressBar(minimum=10, dt=1) if self.verbose_mvs else nullcontext():
             return self._run_operation(fileset_label, filenames, params, global_rotation, global_center)
 
     def _run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
