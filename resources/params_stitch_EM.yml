@@ -1,9 +1,13 @@
 general:
-  log_filename: log/muvis-align.log
-  log_format: '%(asctime)s %(levelname)s: %(message)s'
   show_original: False
   break_on_error: False
-  verbose: True
+  logging:
+    filename: log/muvis-align.log
+    format: '%(asctime)s %(levelname)s: %(message)s'
+    mvs: True
+    dask: True
+    time: True
+    verbose: True
   output:
     clear: True
     format: ome.zarr
@@ -17,7 +21,7 @@ operations:
     input: C:/Project/slides/EM04768_01_substrate_04/EM/a0004/roi0000/.*.ome.tif
     source_metadata: source normalise
     #flatfield_quantile: 0.95
-    normalisation: True
+    normalisation: global
     filter_foreground: False
     use_orthogonal_pairs: True
     use_rotation: False

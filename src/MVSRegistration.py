@@ -10,15 +10,15 @@ from multiview_stitcher import spatial_image_utils as si_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes
 import numpy as np
-from ome_zarr.scale import Scaler
 import shutil
 from tqdm import tqdm
 import xarray as xr
 
+from src.Timer import Timer
 from src.Video import Video
 from src.image.flatfield import flatfield_correction
 from src.image.ome_helper import save_image, exists_output_image
-from src.image.ome_tiff_helper import save_tiff, save_ome_tiff
+from src.image.ome_tiff_helper import save_tiff
 from src.image.source_helper import create_source
 from src.image.util import *
 from src.metrics import calc_ncc, calc_ssim
@@ -30,8 +30,10 @@ class MVSRegistration:
         super().__init__()
         self.params_general = params_general
 
-        self.verbose = self.params_general.get('verbose', False)
-        self.verbose_mvs = self.params_general.get('verbose_mvs', False)
+        params_logging = self.params_general.get('logging', {})
+        self.verbose = params_logging.get('verbose', False)
+        self.logging_dask = params_logging.get('dask', False)
+        self.logging_time = params_logging.get('time', False)
         self.ui = self.params_general.get('ui', '')
         self.mpl_ui = ('mpl' in self.ui or 'plot' in self.ui)
         self.napari_ui = ('napari' in self.ui)
@@ -42,7 +44,7 @@ class MVSRegistration:
         logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
     def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
-        with ProgressBar(minimum=10, dt=1) if self.verbose_mvs else nullcontext():
+        with ProgressBar(minimum=10, dt=1) if self.logging_dask else nullcontext():
             return self._run_operation(fileset_label, filenames, params, global_rotation, global_center)
 
     def _run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
@@ -84,20 +86,16 @@ class MVSRegistration:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        sims, scales, positions, rotations = self.init_sims(filenames, params,
-                                                            global_center=global_center,
-                                                            global_rotation=global_rotation)
+        with Timer('init sims', self.logging_time):
+            sims, scales, positions, rotations = self.init_sims(filenames, params,
+                                                                global_center=global_center,
+                                                                global_rotation=global_rotation)
         data = []
-        if self.verbose:
-            print('Pre-reg mappings')
-            print('\t'.join(mappings_header))
         for label, sim, scale in zip(file_labels, sims, scales):
             position, rotation = get_data_mapping(sim, transform_key=self.source_transform_key)
             position_pixels = np.array(position) / scale
             row = [label] + list(position_pixels) + list(position) + [rotation]
             data.append(row)
-            if self.verbose:
-                print('\t'.join(map(str, row)))
         export_csv(output + 'prereg_mappings.csv', data, header=mappings_header)
 
         if show_original:
@@ -105,41 +103,33 @@ class MVSRegistration:
             logging.info('Exporting original...')
             original_positions_filename = output + 'positions_original.pdf'
 
-            if self.verbose:
-                progress = tqdm(desc='Plotting', total=1)
-            vis_utils.plot_positions(sims.copy(), transform_key=self.source_transform_key,
-                                     use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
-                                     show_plot=self.mpl_ui, output_filename=original_positions_filename)
-            if self.verbose:
-                progress.update()
-                progress.close()
+            with Timer('plot positions', self.logging_time):
+                vis_utils.plot_positions(sims.copy(), transform_key=self.source_transform_key,
+                                         use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
+                                         show_plot=self.mpl_ui, output_filename=original_positions_filename)
 
             if self.napari_ui:
                 shapes = [get_sim_shape_2d(sim, transform_key=self.source_transform_key) for sim in sims]
                 self.update_napari_signal.emit(f'{fileset_label} original', shapes, file_labels)
 
-            if 'thumb' in output_params.get('format', ''):
-                if self.verbose:
-                    progress = tqdm(desc='Saving thumbnail', total=1)
-                self.save_thumbnail(output + 'thumb_original.ome.tiff', params, filenames,
-                                    global_center=global_center,
-                                    global_rotation=global_rotation,
-                                    nom_sims=sims,
-                                    transform_key=self.source_transform_key)
-                if self.verbose:
-                    progress.update()
-                    progress.close()
+            if output_params.get('thumbnail'):
+                with Timer('create thumbnail', self.logging_time):
+                    self.save_thumbnail(output + 'thumb_original', params, filenames,
+                                        global_center=global_center,
+                                        global_rotation=global_rotation,
+                                        nom_sims=sims,
+                                        transform_key=self.source_transform_key)
 
             original_fused = self.fuse(sims, params, transform_key=self.source_transform_key)
 
             original_fused_filename = output + 'original'
-            save_image(original_fused_filename, original_fused, transform_key=self.source_transform_key,
-                       params=output_params)
+            save_image(original_fused_filename, output_params.get('format'), original_fused, channels=channels,
+                       transform_key=self.source_transform_key, params=output_params)
 
         if len(filenames) == 1:
             logging.warning('Skipping registration (single image)')
-            save_image(registered_fused_filename, sims[0], channels=channels, translation0=positions[0],
-                       params=output_params, verbose=self.verbose)
+            save_image(registered_fused_filename, output_params.get('format'), sims[0], channels=channels,
+                       translation0=positions[0], params=output_params)
             return False
 
         overlaps = self.validate_overlap(sims, file_labels, is_stack, is_stack or is_channel_overlay)
@@ -162,8 +152,11 @@ class MVSRegistration:
                     transform = mapping
                 si_utils.set_sim_affine(sim, transform, transform_key=self.reg_transform_key)
         else:
-            register_sims, indices = self.preprocess(sims, params)
-            results = self.register(sims, register_sims, indices, params)
+            with Timer('pre-process', self.logging_time):
+                register_sims, indices = self.preprocess(sims, params)
+
+            with Timer('register', self.logging_time):
+                results = self.register(sims, register_sims, indices, params)
 
             reg_result = results['reg_result']
             sims = results['sims']
@@ -174,14 +167,7 @@ class MVSRegistration:
             logging.info(metrics['summary'])
             export_json(mappings_filename, mappings)
             export_json(output + 'metrics.json', metrics)
-            if self.verbose:
-                print('Mappings:')
-                for key, value in mappings.items():
-                    print(f'{key}: {value}')
             data = []
-            if self.verbose:
-                print('Mappings')
-                print('\t'.join(mappings_header))
             for sim, (label, mapping), scale, position, rotation in zip(sims, mappings.items(), scales, positions, rotations):
                 if not normalise_orientation:
                     # rotation already in msim affine transform
@@ -193,8 +179,6 @@ class MVSRegistration:
                 position_pixels = np.array(position) / scale
                 row = [label] + list(position_pixels) + list(position) + [rotation]
                 data.append(row)
-                if self.verbose:
-                    print('\t'.join(map(str, row)))
             export_csv(output + 'mappings.csv', data, header=mappings_header)
 
             for reg_label, reg_item in reg_result.items():
@@ -206,37 +190,30 @@ class MVSRegistration:
                         figure.savefig(summary_plot_filename)
 
         registered_positions_filename = output + 'positions_registered.pdf'
-        if self.verbose:
-            progress = tqdm(desc='Plotting', total=1)
-        vis_utils.plot_positions(sims.copy(), transform_key=self.reg_transform_key,
-                                 use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
-                                 show_plot=self.mpl_ui, output_filename=registered_positions_filename)
-        if self.verbose:
-            progress.update()
-            progress.close()
+        with Timer('plot positions', self.logging_time):
+            vis_utils.plot_positions(sims.copy(), transform_key=self.reg_transform_key,
+                                     use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
+                                     show_plot=self.mpl_ui, output_filename=registered_positions_filename)
 
         if self.napari_ui:
             shapes = [get_sim_shape_2d(sim, transform_key=self.reg_transform_key) for sim in sims]
             self.update_napari_signal.emit(f'{fileset_label} registered', shapes, file_labels)
 
-        if 'thumb' in output_params.get('format', ''):
-            if self.verbose:
-                progress = tqdm(desc='Saving thumbnail', total=1)
-            self.save_thumbnail(output + 'thumb.ome.tiff', params, filenames,
-                                global_center=global_center,
-                                global_rotation=global_rotation,
-                                nom_sims=sims,
-                                transform_key=self.reg_transform_key)
-            if self.verbose:
-                progress.update()
-                progress.close()
+        if output_params.get('thumbnail'):
+            with Timer('create thumbnail', self.logging_time):
+                self.save_thumbnail(output + 'thumb', params, filenames,
+                                    global_center=global_center,
+                                    global_rotation=global_rotation,
+                                    nom_sims=sims,
+                                    transform_key=self.reg_transform_key)
 
-        fused_image = self.fuse(sims, params)
+        with Timer('fuse image', self.logging_time):
+            fused_image = self.fuse(sims, params)
 
         logging.info('Saving fused image...')
-        save_image(registered_fused_filename, fused_image,
-                   transform_key=self.reg_transform_key, channels=channels, translation0=positions[0],
-                   params=output_params, verbose=self.verbose)
+        with Timer('save fused image', self.logging_time):
+            save_image(registered_fused_filename, output_params.get('format'), fused_image, channels=channels,
+                       transform_key=self.reg_transform_key, translation0=positions[0], params=output_params)
 
         if is_transition:
             self.save_video(output, sims, fused_image, params)
@@ -312,10 +289,11 @@ class MVSRegistration:
             if global_rotation is not None:
                 rotation = global_rotation
 
+            image = redimension_data(source.get_source_dask()[pyramid_level], source.dimension_order, output_order)
+
             scales.append(scale)
             translations.append(translation)
             rotations.append(rotation)
-            image = redimension_data(source.get_source_dask()[pyramid_level], source.dimension_order, output_order)
             images.append(image)
             last_z_position = z_position
 
@@ -412,12 +390,8 @@ class MVSRegistration:
 
     def preprocess(self, sims, params):
         flatfield_quantiles = params.get('flatfield_quantiles')
-        normalisation = params.get('normalisation', False)
+        normalisation = params.get('normalisation', '')
         filter_foreground = params.get('filter_foreground', False)
-        extra_metadata = params.get('extra_metadata', {})
-        channels = extra_metadata.get('channels', [])
-
-        is_channel_overlay = (len(channels) > 1)
 
         if flatfield_quantiles is not None or filter_foreground:
             foreground_map = calc_foreground_map(sims)
@@ -426,7 +400,7 @@ class MVSRegistration:
                                         foreground_map=foreground_map)
 
         if normalisation:
-            use_global = not is_channel_overlay
+            use_global = ('global' in normalisation)
             if use_global:
                 logging.info('Normalising image (global)...')
             else:
@@ -522,9 +496,6 @@ class MVSRegistration:
             pairwise_reg_func_kwargs = None
             groupwise_resolution_kwargs = None
 
-        if self.verbose:
-            progress = tqdm(desc='Registering', total=1)
-
         try:
             logging.info('Registering...')
             register_msims = [msi_utils.get_msim_from_sim(sim) for sim in register_sims]
@@ -583,10 +554,6 @@ class MVSRegistration:
         # re-index from subset of sims
         mappings_dict = {index: mapping for index, mapping in zip(indices, mappings)}
 
-        if self.verbose:
-            progress.update()
-            progress.close()
-
         if is_stack:
             # set 3D affine transforms from 2D registration params
             for index, sim in enumerate(sims):
@@ -624,9 +591,6 @@ class MVSRegistration:
         for dim in sim0.dims:
             if dim not in output_chunksize:
                 output_chunksize[dim] = 1
-
-        if self.verbose:
-            progress = tqdm(desc='Fusing', total=1)
 
         if is_stack:
             output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
@@ -678,15 +642,12 @@ class MVSRegistration:
                 transform_key=transform_key,
                 output_chunksize=output_chunksize,
             )
-
-        if self.verbose:
-            progress.update()
-            progress.close()
-
         return fused_image
 
     def save_thumbnail(self, output_filename, params, filenames, global_center, global_rotation,
                        nom_sims=None, transform_key=None):
+        extra_metadata = params.get('extra_metadata', {})
+        channels = extra_metadata.get('channels', [])
         output_params = self.params_general['output']
         sims = self.init_sims(filenames, params,
                               global_center=global_center,
@@ -704,17 +665,8 @@ class MVSRegistration:
                                             si_utils.get_affine_from_sim(nom_sim, transform_key=transform_key),
                                             transform_key=transform_key)
         fused_image = self.fuse(sims, params, transform_key=transform_key).squeeze()
-        dimension_order = ''.join(fused_image.dims)
-        spacing = si_utils.get_spacing_from_sim(fused_image)
-        pixel_size = [spacing[dim] for dim in 'xy']
-        if 'z' in dimension_order:
-            pixel_size += [spacing['z']]
-        compression = output_params.get('compression')
-        pyramid_downsample = output_params.get('pyramid_downsample', 2)
-        npyramid_add = get_max_downsamples(fused_image.shape, output_params.get('npyramid_add', 0), pyramid_downsample)
-        scaler = Scaler(downscale=pyramid_downsample, max_layer=npyramid_add)
-        save_ome_tiff(output_filename, fused_image.data, dimension_order, pixel_size,
-                      scaler=scaler, compression=compression)
+        save_image(output_filename, output_params.get('thumbnail'), fused_image, channels=channels,
+                   transform_key=self.reg_transform_key, params=output_params)
 
     def calc_overlap_metrics(self, results):
         nccs = {}

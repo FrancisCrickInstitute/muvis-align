@@ -1,11 +1,14 @@
 general:
-  log_filename: log/muvis-align.log
-  log_format: '%(asctime)s %(levelname)s: %(message)s'
   show_original: False
   break_on_error: True
-  verbose: True
-  verbose_mvs: False
   metadata_summary: True
+  logging:
+    filename: log/muvis-align.log
+    format: '%(asctime)s %(levelname)s: %(message)s'
+    mvs: True
+    dask: True
+    time: True
+    verbose: True
   output:
     clear: False
     overwrite: True
@@ -19,6 +22,5 @@ operations:
   - operation: stack
     input: D:/slides/EM04654_slice011/subset_small/*.ome.tif
     source_metadata: source
-    normalisation: False
     method: phase_correlation
     output: aligned/

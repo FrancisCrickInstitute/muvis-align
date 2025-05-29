@@ -30,10 +30,11 @@ class Pipeline(Thread):
             self.mvs_registration = MVSRegistration(self.params_general)
 
     def init_logging(self):
-        self.verbose = self.params_general.get('verbose', False)
-        self.verbose_mvs = self.params_general.get('verbose_mvs', False)
-        self.log_filename = self.params_general.get('log_filename', 'logfile.log')
-        log_format = self.params_general.get('log_format')
+        params_logging = self.params_general.get('logging', {})
+        self.log_filename = params_logging.get('filename', 'logfile.log')
+        self.verbose = params_logging.get('verbose', False)
+        logging_mvs = params_logging.get('mvs', False)
+        log_format = params_logging.get('format')
         basepath = os.path.dirname(self.log_filename)
         if not os.path.exists(basepath):
             os.makedirs(basepath)
@@ -41,11 +42,10 @@ class Pipeline(Thread):
         handlers = [logging.FileHandler(self.log_filename, encoding='utf-8')]
         if self.verbose:
             handlers += [logging.StreamHandler()]
-
         logging.basicConfig(level=logging.INFO, format=log_format, handlers=handlers, encoding='utf-8')
 
         # verbose external modules
-        if self.verbose_mvs:
+        if logging_mvs:
             # expose multiview_stitcher.registration logger and make more verbose
             mvsr_logger = logging.getLogger('multiview_stitcher.registration')
             mvsr_logger.setLevel(logging.INFO)
@@ -64,27 +64,27 @@ class Pipeline(Thread):
     def run(self):
         break_on_error = self.params_general.get('break_on_error', False)
 
-        with Client(processes=False) as client:
-            if self.verbose:
-                print(client)
+        #with Client(processes=False, serializers=['dask']) as client:
+        #    if self.verbose:
+        #        print(client)
 
-            for operation_params in tqdm(self.params['operations']):
-                error = False
-                timestamp_filename = (os.path.splitext(self.log_filename)[0]
-                                      + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
-                input_path = operation_params['input']
-                logging.info(f'Input: {input_path}')
-                with performance_report(filename=timestamp_filename + "_report.html"):
+        for operation_params in tqdm(self.params['operations']):
+            error = False
+            timestamp_filename = (os.path.splitext(self.log_filename)[0]
+                                  + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+            input_path = operation_params['input']
+            logging.info(f'Input: {input_path}')
+            #with performance_report(filename=timestamp_filename + "_report.html"):
 
-                    try:
-                        self.run_operation(operation_params)
-                    except Exception as e:
-                        logging.exception(f'Error processing: {input_path}')
-                        print(f'Error processing: {input_path}: {e}')
-                        error = True
+            try:
+                self.run_operation(operation_params)
+            except Exception as e:
+                logging.exception(f'Error processing: {input_path}')
+                print(f'Error processing: {input_path}: {e}')
+                error = True
 
-                if error and break_on_error:
-                    break
+            if error and break_on_error:
+                break
 
         logging.info('Done!')
 

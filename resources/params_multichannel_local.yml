@@ -1,10 +1,13 @@
 general:
-  log_filename: log/muvis-align.log
-  log_format: '%(asctime)s %(levelname)s: %(message)s'
   show_original: False
   break_on_error: True
-  verbose: True
-  verbose_mvs: False
+  logging:
+    filename: log/muvis-align.log
+    format: '%(asctime)s %(levelname)s: %(message)s'
+    mvs: True
+    dask: True
+    time: True
+    verbose: True
   output:
     format: ome.zarr, ome.tiff
     tile_size: []
@@ -19,7 +22,7 @@ operations:
     #flatfield_quantiles: [0.95]
     source_metadata: source invert
     #filter_foreground: True
-    normalisation: True
+    normalisation: global
     use_orthogonal_pairs: True
     method: phase_correlation
     output: D:/slides/EM04768_01_substrate_04/registered/reflection_stitched/
@@ -30,7 +33,7 @@ operations:
     #flatfield_quantiles: [0.95]
     source_metadata: source invert
     #filter_foreground: True
-    normalisation: True
+    normalisation: global
     use_orthogonal_pairs: True
     method: phase_correlation
     output: D:/slides/EM04768_01_substrate_04/registered/fluorescence_stitched/
@@ -39,7 +42,7 @@ operations:
     input:
       - D:/slides/EM04768_01_substrate_04/registered/reflection_stitched/registered.ome.zarr
       - D:/slides/EM04768_01_substrate_04/registered/fluorescence_stitched/registered.ome.zarr
-    normalisation: True
+    normalisation: individual
     method: ANTsPy
     channel: 0
     extra_metadata: {'channels': [{'label':reflection, 'color':[1, 1, 1, 1]}, {'label':fluorescence, 'color':[0, 1, 0, 1]}]}
