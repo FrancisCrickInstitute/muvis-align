@@ -10,6 +10,7 @@ from multiview_stitcher import spatial_image_utils as si_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes
 import numpy as np
+import os.path
 import shutil
 from tqdm import tqdm
 import xarray as xr
@@ -19,7 +20,7 @@ from src.Video import Video
 from src.image.flatfield import flatfield_correction
 from src.image.ome_helper import save_image, exists_output_image
 from src.image.ome_tiff_helper import save_tiff
-from src.image.source_helper import create_source
+from src.image.source_helper import create_source, create_dask_data
 from src.image.util import *
 from src.metrics import calc_ncc, calc_ssim
 from src.util import *
@@ -289,7 +290,8 @@ class MVSRegistration:
             if global_rotation is not None:
                 rotation = global_rotation
 
-            image = redimension_data(source.get_source_dask()[pyramid_level], source.dimension_order, output_order)
+            dask_data = create_dask_data(filename, level=pyramid_level)
+            image = redimension_data(dask_data, source.dimension_order, output_order)
 
             scales.append(scale)
             translations.append(translation)
@@ -402,9 +404,9 @@ class MVSRegistration:
         if normalisation:
             use_global = ('global' in normalisation)
             if use_global:
-                logging.info('Normalising image (global)...')
+                logging.info('Normalising (global)...')
             else:
-                logging.info('Normalising images...')
+                logging.info('Normalising (individual)...')
             new_sims = normalise(sims, self.source_transform_key, use_global=use_global)
         else:
             new_sims = sims

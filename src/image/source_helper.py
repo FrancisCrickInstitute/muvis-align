@@ -1,9 +1,37 @@
+import dask
+import dask.array as da
+import imageio
 import numpy as np
 import os
+import tifffile
+from tifffile import TiffFile
+import zarr
 
 from src.OmeZarrSource import OmeZarrSource
 from src.TiffSource import TiffSource
 from src.util import get_filetitle, get_orthogonal_pairs
+
+
+def create_dask_data(filename, level=0):
+    ext = os.path.splitext(filename)[1]
+    if 'zar' in ext:
+        group = zarr.open_group(filename, mode='r')
+        # using group.attrs to get multiscales is recommended by cgohlke
+        paths = group.attrs['multiscales'][0]['datasets']
+        path0 = paths[level]['path']
+        dask_data = da.from_zarr(os.path.join(filename, path0))
+    elif 'tif' in ext:
+        with TiffFile(filename) as tif:
+            series0 = tif.series[0]
+            shape = series0.shape
+            dtype = series0.dtype
+        lazy_array = dask.delayed(tifffile.imread)(filename, level=level)
+        dask_data = da.from_delayed(lazy_array, shape=shape, dtype=dtype)
+    else:
+        lazy_array = dask.delayed(imageio.imread)(filename)
+        # TODO get metadata from metadata = PIL.Image.info
+        dask_data = da.from_delayed(lazy_array, shape=shape, dtype=dtype)
+    return dask_data
 
 
 def create_source(filename):
