@@ -6,7 +6,6 @@ general:
   logging:
     filename: log/muvis-align.log
     format: '%(asctime)s %(levelname)s: %(message)s'
-    mvs: True
     dask: True
     time: True
     verbose: True

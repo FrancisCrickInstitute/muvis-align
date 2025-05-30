@@ -31,7 +31,7 @@ class Pipeline(Thread):
 
     def init_logging(self):
         params_logging = self.params_general.get('logging', {})
-        self.log_filename = params_logging.get('filename', 'logfile.log')
+        self.log_filename = params_logging.get('filename', 'muvis-align.log')
         self.verbose = params_logging.get('verbose', False)
         logging_mvs = params_logging.get('mvs', False)
         log_format = params_logging.get('format')
@@ -64,7 +64,7 @@ class Pipeline(Thread):
     def run(self):
         break_on_error = self.params_general.get('break_on_error', False)
 
-        #with Client(processes=False, serializers=['dask']) as client:
+        #with Client(processes=False) as client:
         #    if self.verbose:
         #        print(client)
 

@@ -5,8 +5,9 @@ import time
 
 
 class Timer(object):
-    def __init__(self, title, verbose=False):
+    def __init__(self, title, auto_unit=True, verbose=True):
         self.title = title
+        self.auto_unit = auto_unit
         self.verbose = verbose
 
     def __enter__(self):
@@ -20,7 +21,7 @@ class Timer(object):
             pelapsed = ptime_end - self.ptime_start
             elapsed = time_end - self.time_start
             unit = 'seconds'
-            if elapsed >= 60:
+            if self.auto_unit and elapsed >= 60:
                 pelapsed /= 60
                 elapsed /= 60
                 unit = 'minutes'
@@ -28,4 +29,4 @@ class Timer(object):
                     pelapsed /= 60
                     elapsed /= 60
                     unit = 'hours'
-            logging.info(f'Time {self.title}: {elapsed:.1f} ({pelapsed:.1f}) {unit}')
+            print(f'Time {self.title}: {elapsed:.1f} ({pelapsed:.1f}) {unit}')

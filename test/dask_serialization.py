@@ -2,16 +2,21 @@
 # https://docs.dask.org/en/stable/best-practices.html#load-data-with-dask
 # https://dask.discourse.group/t/could-not-serialize-object-of-type-highlevelgraph-with-client-ome-tiff/3959
 
+import dask
 import dask.array as da
 from dask.distributed import Client
 from distributed import performance_report
 import glob
 from multiview_stitcher import spatial_image_utils as si_utils
 import numpy as np
+import os
 from skimage.transform import resize
+import tifffile
 from tifffile import TiffFile, TiffWriter
+import zarr
 
 from src.Timer import Timer
+from src.image.source_helper import create_source
 from src.image.util import normalise
 from src.util import convert_xyz_to_dict
 
@@ -37,37 +42,85 @@ def dask_ome_tiff(filename):
     return dask_data
 
 
-def dask_ome_zarr(filename):
-    return da.from_zarr(filename + '/0')
+def dask_ome_tiff_array(filename):
+    data = TiffFile(filename).asarray(level=0)
+    dask_data = da.from_array(data)
+    return dask_data
 
 
-if __name__ == "__main__":
+def dask_ome_tiff_lazy(filename, level=0):
+    # use this for tiff files
+    with TiffFile(filename) as tif:
+        series0 = tif.series[0]
+        shape = series0.shape
+        dtype = series0.dtype
+    lazy_array = dask.delayed(tifffile.imread)(filename, level=level)
+    dask_data = da.from_delayed(lazy_array, shape=shape, dtype=dtype)
+    return dask_data
+
+
+def dask_ome_tiff_lazy_array(filename):
+    with TiffFile(filename) as tif:
+        series0 = tif.series[0]
+        shape = series0.shape
+        dtype = series0.dtype
+    lazy_array = dask.delayed(TiffFile(filename).asarray)()
+    dask_data = da.from_delayed(lazy_array, shape=shape, dtype=dtype)
+    return dask_data
+
+
+def dask_ome_zarr(filename, level=0):
+    # use this for zarr files
+    group = zarr.open_group(filename, mode='r')
+    # using group.attrs to get multiscales is recommended by cgohlke
+    paths = group.attrs['multiscales'][0]['datasets']
+    path0 = paths[level]['path']
+    return da.from_zarr(os.path.join(filename, path0))
+
+
+def dask_ome_zarr_source(filename):
+    source = create_source(filename)
+    return source.get_source_dask()[0]
+
+
+def dask_load(filename):
+    if filename.endswith('.tiff'):
+        return dask_ome_tiff_lazy(filename)
+    elif filename.endswith('.zarr'):
+        return dask_ome_zarr(filename)
+    return None
+
+
+def task():
     #data = np.ones(shape=(512, 1024)).astype(np.float32)
     #filename = 'test.ome.tiff'
     #save_ome_tiff(filename, data, npyramid_add=4)
 
+    #filenames = 'D:/slides/12193/stitched/S???/registered.ome.tiff'
+    filenames = 'D:/slides/12193/stitched/S???/registered.ome.zarr'
     chunk_size = [1024, 1024]
 
-    with Client(processes=False) as client:
-        print(client)
+    sims = []
+    transform_key = 'transform_key'
+    with Timer('reading', auto_unit=False):
+        for filename in glob.glob(filenames):
+            print(f'reading {filename}')
+            dask_data = dask_load(filename)
+            sim = si_utils.get_sim_from_array(dask_data, transform_key=transform_key)
+            sim = sim.chunk(convert_xyz_to_dict(chunk_size))
+            sims.append(sim)
 
-        with performance_report(filename="report.html"):
+    with Timer('normalise', auto_unit=False):
+        #value = np.mean(dask_data).compute()
+        new_sims = normalise(sims, transform_key=transform_key)
+    with Timer('computing', auto_unit=False):
+        for new_sim in new_sims:
+            new_sim.compute()
 
-            #dask_data = dask_ome_tiff('D:/slides/12193/stitched/S???/registered.ome.tiff')
 
-            sims = []
-            transform_key = 'transform_key'
-            for filename in glob.glob('D:/slides/12193/stitched/S???/registered.ome.zarr'):
-                print(f'reading {filename}')
-                dask_data = dask_ome_zarr(filename)
-                sim = si_utils.get_sim_from_array(dask_data, transform_key=transform_key)
-                sim = sim.chunk(convert_xyz_to_dict(chunk_size))
-                sims.append(sim)
-
-            print('normalising')
-            #value = np.mean(dask_data).compute()
-            new_sims = normalise(sims, transform_key=transform_key)
-            print('computing')
-            for new_sim in new_sims:
-                new_sim.compute()
-            print('done')
+if __name__ == "__main__":
+    #with Client(processes=False) as client:
+    #    print(client)
+        #with performance_report(filename="report.html"):
+    task()
+    print('done')
