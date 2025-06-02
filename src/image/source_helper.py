@@ -8,6 +8,8 @@ from tifffile import TiffFile
 import zarr
 
 from src.OmeZarrSource import OmeZarrSource
+from src.TiffDaskSource import TiffDaskSource
+from src.ZarrDaskSource import ZarrDaskSource
 from src.TiffSource import TiffSource
 from src.util import get_filetitle, get_orthogonal_pairs
 
@@ -43,6 +45,17 @@ def create_source(filename):
     else:
         raise ValueError(f'Unsupported file type: {ext}')
     return source
+
+
+def create_dask_source(filename):
+    ext = os.path.splitext(filename)[1].lstrip('.').lower()
+    if ext.startswith('tif'):
+        dask_source = TiffDaskSource(filename)
+    elif ext.startswith('zar'):
+        dask_source = ZarrDaskSource(filename)
+    else:
+        raise ValueError(f'Unsupported file type: {ext}')
+    return dask_source
 
 
 def get_images_metadata(filenames):

@@ -278,7 +278,7 @@ def eval_context(data, key, default_value, context):
     return value
 
 
-def get_value_units_micrometer(value_units0: list) -> list:
+def get_value_units_micrometer(value_units0: list|dict) -> list|dict|None:
     conversions = {
         'nm': 1e-3,
         'µm': 1, 'um': 1, 'micrometer': 1,
@@ -289,13 +289,22 @@ def get_value_units_micrometer(value_units0: list) -> list:
     if value_units0 is None:
         return None
 
-    values_um = []
-    for value_unit in value_units0:
-        if isinstance(value_unit, (list, tuple)):
-            value_um = value_unit[0] * conversions.get(value_unit[1], 1)
-        else:
-            value_um = value_unit
-        values_um.append(value_um)
+    if isinstance(value_units0, dict):
+        values_um = {}
+        for dim, value_unit in value_units0.items():
+            if isinstance(value_unit, (list, tuple)):
+                value_um = value_unit[0] * conversions.get(value_unit[1], 1)
+            else:
+                value_um = value_unit
+            values_um[dim] = value_um
+    else:
+        values_um = []
+        for value_unit in value_units0:
+            if isinstance(value_unit, (list, tuple)):
+                value_um = value_unit[0] * conversions.get(value_unit[1], 1)
+            else:
+                value_um = value_unit
+            values_um.append(value_um)
     return values_um
 
 
@@ -335,6 +344,8 @@ def create_transform0(center=(0, 0), angle=0, scale=1, translate=(0, 0)):
 
 
 def create_transform(center, angle, matrix_size=3):
+    if isinstance(center, dict):
+        center = [center[dim] for dim in 'xyz']
     if len(center) == 2:
         center = np.array(list(center) + [0])
     if angle is None:

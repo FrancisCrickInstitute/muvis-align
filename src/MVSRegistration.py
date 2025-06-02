@@ -20,7 +20,7 @@ from src.Video import Video
 from src.image.flatfield import flatfield_correction
 from src.image.ome_helper import save_image, exists_output_image
 from src.image.ome_tiff_helper import save_tiff
-from src.image.source_helper import create_source, create_dask_data
+from src.image.source_helper import create_dask_source
 from src.image.util import *
 from src.metrics import calc_ncc, calc_ssim
 from src.util import *
@@ -228,7 +228,7 @@ class MVSRegistration:
         extra_metadata = params.get('extra_metadata', {})
         z_scale = extra_metadata.get('scale', {}).get('z')
 
-        sources = [create_source(file) for file in filenames]
+        sources = [create_dask_source(file) for file in filenames]
         source0 = sources[0]
         images = []
         sims = []
@@ -237,7 +237,7 @@ class MVSRegistration:
         rotations = []
 
         is_stack = ('stack' in operation)
-        is_3d = (source0.get_size_xyzct()[2] > 1)
+        is_3d = (source0.get_size().get('z', 1) > 1)
         pyramid_level = 0
 
         output_order = 'zyx' if is_stack or is_3d else 'yx'
@@ -249,8 +249,8 @@ class MVSRegistration:
         different_z_positions = False
         delta_zs = []
         for filename, source in tqdm(zip(filenames, sources), total=len(filenames), disable=not self.verbose, desc='Initialising sims'):
-            scale = source.get_pixel_size_micrometer()
-            translation = source.get_position_micrometer()
+            scale = source.get_pixel_size()
+            translation = source.get_position()
             rotation = source.get_rotation()
             if isinstance(source_metadata, dict):
                 filename_numeric = find_all_numbers(filename)
@@ -272,11 +272,8 @@ class MVSRegistration:
                     rotation = source_metadata['rotation']
 
             if target_scale:
-                pyramid_level = np.argmin(abs(np.mean(np.array(source.sizes[0]) / source.sizes, -1) - target_scale))
-                scale_z = scale[2] if len(scale) >= 3 else None
-                scale = np.array(scale)[:2] * source.sizes[0] / source.sizes[pyramid_level]
-                if scale_z is not None:
-                    scale = list(scale) + [scale_z]
+                pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
+                scale = source.get_pixel_size(pyramid_level)
             if 'invert' in source_metadata:
                 translation[0] = -translation[0]
                 translation[1] = -translation[1]
@@ -290,7 +287,7 @@ class MVSRegistration:
             if global_rotation is not None:
                 rotation = global_rotation
 
-            dask_data = create_dask_data(filename, level=pyramid_level)
+            dask_data = source.get_data(level=pyramid_level)
             image = redimension_data(dask_data, source.dimension_order, output_order)
 
             scales.append(scale)
@@ -325,12 +322,10 @@ class MVSRegistration:
         translations2 = []
         for source, image, scale, translation, rotation in zip(sources, images, scales, translations, rotations):
             # transform #dimensions need to match
-            scale_dict = convert_xyz_to_dict(scale)
-            if len(scale_dict) > 0 and 'z' not in scale_dict:
-                scale_dict['z'] = abs(z_scale)
-            translation_dict = convert_xyz_to_dict(translation)
-            if (len(translation_dict) > 0 and 'z' not in translation_dict) or increase_z_positions:
-                translation_dict['z'] = z_position
+            if len(scale) > 0 and 'z' not in scale:
+                scale['z'] = abs(z_scale)
+            if (len(translation) > 0 and 'z' not in translation) or increase_z_positions:
+                translation['z'] = z_position
             if increase_z_positions:
                 z_position += z_scale
             channel_labels = [channel.get('label', '') for channel in source.get_channels()]
@@ -344,15 +339,15 @@ class MVSRegistration:
             sim = si_utils.get_sim_from_array(
                 image,
                 dims=list(output_order),
-                scale=scale_dict,
-                translation=translation_dict,
+                scale=scale,
+                translation=translation,
                 affine=transform,
                 transform_key=self.source_transform_key,
                 c_coords=channel_labels
             )
             sims.append(sim.chunk(convert_xyz_to_dict(chunk_size)))
-            scales2.append([scale_dict[dim] for dim in 'xyz'])
-            translations2.append([translation_dict[dim] for dim in 'xyz'])
+            scales2.append([scale[dim] for dim in 'xyz'])
+            translations2.append([translation[dim] for dim in 'xyz'])
         return sims, scales2, translations2, rotations
 
     def validate_overlap(self, sims, labels, is_stack=False, expect_large_overlap=False):

@@ -9,14 +9,16 @@ from distributed import performance_report
 import glob
 from multiview_stitcher import spatial_image_utils as si_utils
 import numpy as np
+from ome_zarr.io import parse_url
+from ome_zarr.reader import Reader
 import os
 from skimage.transform import resize
 import tifffile
-from tifffile import TiffFile, TiffWriter
+from tifffile import TiffFile, TiffWriter, imread
 import zarr
 
 from src.Timer import Timer
-from src.image.source_helper import create_source
+from src.image.source_helper import create_source, create_dask_source
 from src.image.util import normalise
 from src.util import convert_xyz_to_dict
 
@@ -36,7 +38,17 @@ def save_ome_tiff(filename, data, npyramid_add=0):
             writer.write(data, subifds=subifds, subfiletype=subfiletype)
 
 
+def ome_tiff(filename, level=0):
+    store = imread(filename, aszarr=True)
+    group = zarr.open(store=store, mode='r')
+    paths = group.attrs['multiscales'][0]['datasets']
+    path = paths[level]['path']
+    data = group[path]
+    return data
+
+
 def dask_ome_tiff(filename):
+    # incompatible with Client/Cluster
     store = TiffFile(filename).aszarr(level=0)
     dask_data = da.from_zarr(store)
     return dask_data
@@ -60,6 +72,7 @@ def dask_ome_tiff_lazy(filename, level=0):
 
 
 def dask_ome_tiff_lazy_array(filename):
+    # incompatible with Client/Cluster
     with TiffFile(filename) as tif:
         series0 = tif.series[0]
         shape = series0.shape
@@ -69,13 +82,32 @@ def dask_ome_tiff_lazy_array(filename):
     return dask_data
 
 
+def ome_zarr(filename, level=0):
+    group = zarr.open_group(filename, mode='r')
+    # using group.attrs to get multiscales is recommended by cgohlke
+    paths = group.attrs['multiscales'][0]['datasets']
+    path = paths[level]['path']
+    data = group[path]
+    return data
+
+
 def dask_ome_zarr(filename, level=0):
     # use this for zarr files
     group = zarr.open_group(filename, mode='r')
     # using group.attrs to get multiscales is recommended by cgohlke
     paths = group.attrs['multiscales'][0]['datasets']
-    path0 = paths[level]['path']
-    return da.from_zarr(os.path.join(filename, path0))
+    path = paths[level]['path']
+    return da.from_zarr(os.path.join(filename, path))
+
+
+def dask_ome_zarr_py(filename, level=0):
+    reader = Reader(parse_url(filename))
+    # nodes may include images, labels etc
+    nodes = list(reader())
+    # first node will be the image pixel data
+    image_node = nodes[0]
+    dask_data = image_node.data[level]
+    return dask_data
 
 
 def dask_ome_zarr_source(filename):
@@ -83,7 +115,7 @@ def dask_ome_zarr_source(filename):
     return source.get_source_dask()[0]
 
 
-def dask_load(filename):
+def load_dask0(filename):
     if filename.endswith('.tiff'):
         return dask_ome_tiff_lazy(filename)
     elif filename.endswith('.zarr'):
@@ -91,13 +123,18 @@ def dask_load(filename):
     return None
 
 
+def load_dask(filename, level=0):
+    dask_source = create_dask_source(filename)
+    return dask_source.get_data(level=level)
+
+
 def task():
     #data = np.ones(shape=(512, 1024)).astype(np.float32)
     #filename = 'test.ome.tiff'
     #save_ome_tiff(filename, data, npyramid_add=4)
 
-    #filenames = 'D:/slides/12193/stitched/S???/registered.ome.tiff'
-    filenames = 'D:/slides/12193/stitched/S???/registered.ome.zarr'
+    filenames = 'D:/slides/12193/stitched/S???/registered.ome.tiff'
+    #filenames = 'D:/slides/12193/stitched/S???/registered.ome.zarr'
     chunk_size = [1024, 1024]
 
     sims = []
@@ -105,7 +142,7 @@ def task():
     with Timer('reading', auto_unit=False):
         for filename in glob.glob(filenames):
             print(f'reading {filename}')
-            dask_data = dask_load(filename)
+            dask_data = load_dask(filename)
             sim = si_utils.get_sim_from_array(dask_data, transform_key=transform_key)
             sim = sim.chunk(convert_xyz_to_dict(chunk_size))
             sims.append(sim)
