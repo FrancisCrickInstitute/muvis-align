@@ -79,7 +79,7 @@ class MVSRegistration:
         registered_fused_filename = output + 'registered'
 
         output_dir = os.path.dirname(output)
-        if not overwrite and exists_output_image(registered_fused_filename):
+        if not overwrite and exists_output_image(registered_fused_filename, output_params.get('format')):
             logging.warning(f'Skipping existing output {os.path.normpath(output_dir)}')
             return False
         if clear:

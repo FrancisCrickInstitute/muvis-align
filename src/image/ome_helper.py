@@ -50,5 +50,10 @@ def save_image(filename, output_format, sim, transform_key=None, channels=None, 
                       channels, positions, rotation, tile_size=tile_size, compression=compression, scaler=scaler)
 
 
-def exists_output_image(path):
-    return os.path.exists(path + zarr_extension) or os.path.exists(path + tiff_extension)
+def exists_output_image(path, output_format):
+    exists = True
+    if 'zar' in output_format:
+        exists = exists and os.path.exists(path + zarr_extension)
+    if 'tif' in output_format:
+        exists = exists and os.path.exists(path + tiff_extension)
+    return exists
