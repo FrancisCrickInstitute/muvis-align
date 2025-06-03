@@ -277,7 +277,8 @@ class MVSRegistration:
 
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
-                scale = source.get_pixel_size(pyramid_level)
+                pyramid_scale = source.scales[pyramid_level]
+                scale = {dim: size * pyramid_scale for dim, size in scale.items()}
             if 'invert' in source_metadata:
                 translation[0] = -translation[0]
                 translation[1] = -translation[1]
