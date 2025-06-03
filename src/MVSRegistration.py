@@ -258,16 +258,20 @@ class MVSRegistration:
                 context = {'filename_numeric': filename_numeric, 'fn': filename_numeric} | filename_dict
                 if 'position' in source_metadata:
                     translation0 = source_metadata['position']
-                    translation = [eval_context(translation0, 'x', 0, context),
-                                   eval_context(translation0, 'y', 0, context)]
+                    if 'x' in translation0:
+                        translation['x'] = eval_context(translation0, 'x', 0, context)
+                    if 'y' in translation0:
+                        translation['y'] = eval_context(translation0, 'y', 0, context)
                     if 'z' in translation0:
-                        translation += [eval_context(translation0, 'z', 0, context)]
+                        translation['z'] = eval_context(translation0, 'z', 0, context)
                 if 'scale' in source_metadata:
                     scale0 = source_metadata['scale']
-                    scale = [eval_context(scale0, 'x', 1, context),
-                             eval_context(scale0, 'y', 1, context)]
+                    if 'x' in scale0:
+                        scale['x'] = eval_context(scale0, 'x', 1, context)
+                    if 'y' in scale0:
+                        scale['y'] = eval_context(scale0, 'y', 1, context)
                     if 'z' in scale0:
-                        scale += [eval_context(scale0, 'z', 1, context)]
+                        scale['z'] = eval_context(scale0, 'z', 1, context)
                 if 'rotation' in source_metadata:
                     rotation = source_metadata['rotation']
 

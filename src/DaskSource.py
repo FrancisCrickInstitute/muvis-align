@@ -7,6 +7,7 @@ class DaskSource:
     def __init__(self, filename):
         self.filename = filename
         self.dimension_order = ''
+        self.is_rgb = False
         self.shapes = []
         self.shape = []
         self.dtype = None
@@ -51,12 +52,17 @@ class DaskSource:
         return self.get_size().get('c', 1)
 
     def get_channels(self):
+        if len(self.channels) == 0:
+            if self.is_rgb:
+                return [{'label': ''}]
+            else:
+                return [{'label': ''}] * self.get_nchannels()
         return self.channels
 
     def get_data(self, level=0):
         raise NotImplementedError()
 
-    def calc_scales(self):
+    def fix_metadata(self):
         for shape in self.shapes:
             scale1 = []
             for dim in 'xy':

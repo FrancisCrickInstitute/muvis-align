@@ -2,6 +2,7 @@ import dask.array as da
 import dask.array
 import numpy as np
 import tifffile
+from tifffile import PHOTOMETRIC
 
 from src.DaskSource import DaskSource
 from src.image.color_conversion import int_to_rgba
@@ -15,14 +16,18 @@ class TiffDaskSource(DaskSource):
         super().__init__(filename)
         tiff = tifffile.TiffFile(filename)
         pages = tiff.pages
+        page0 = pages[0]
         if hasattr(tiff, 'series'):
             pages = tiff.series
-            if hasattr(pages[0], 'levels'):
-                pages = pages[0].levels
+            if hasattr(page0, 'levels'):
+                pages = page0.levels
         self.shapes = [page.shape for page in pages]
         self.shape = self.shapes[0]
-        self.dtype = pages[0].dtype.type
-        self.dimension_order = pages[0].axes.lower()
+        self.dtype = page0.dtype.type
+        self.dimension_order = page0.axes.lower()
+        photometric = page0.keyframe.photometric
+        nchannels = self.get_nchannels()
+        self.is_rgb = (photometric in (PHOTOMETRIC.RGB, PHOTOMETRIC.PALETTE) and nchannels in (3, 4))
 
         pixel_size = {}
         position = {}
@@ -97,7 +102,7 @@ class TiffDaskSource(DaskSource):
         self.position = position
         self.rotation = rotation
         self.channels = channels
-        self.calc_scales()
+        self.fix_metadata()
 
     def get_data(self, level=0):
         lazy_array = dask.delayed(tifffile.imread)(self.filename, level=level)

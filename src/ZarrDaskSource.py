@@ -58,7 +58,7 @@ class ZarrDaskSource(DaskSource):
         self.positions = positions
         self.rotation = 0
         self.channels = channels
-        self.calc_scales()
+        self.fix_metadata()
 
     def get_data(self, level=0):
         return da.from_zarr(os.path.join(self.filename, self.paths[level]))
