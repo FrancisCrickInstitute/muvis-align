@@ -12,7 +12,7 @@ general:
   output:
     clear: False
     overwrite: False
-    format: ome.tiff, ome.zarr
+    format: ome.zarr
     tile_size: [4096, 4096]
     compression: LZW
     npyramid_add: 4
