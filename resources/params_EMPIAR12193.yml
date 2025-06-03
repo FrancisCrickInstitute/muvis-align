@@ -1,7 +1,7 @@
 general:
   show_original: False
   metadata_summary: False
-  chunk_size: [1024, 1024]
+  chunk_size: [4096, 4096]
   break_on_error: True
   logging:
     filename: log/muvis-align-empiar12193.log
@@ -14,7 +14,7 @@ general:
     overwrite: False
     format: ome.zarr
     tile_size: [4096, 4096]
-    compression: LZW
+    compression:
     npyramid_add: 4
     pyramid_downsample: 2
     thumbnail: ome.tiff

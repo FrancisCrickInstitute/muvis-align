@@ -283,7 +283,7 @@ class MVSRegistration:
                 translation[0] = -translation[0]
                 translation[1] = -translation[1]
             if len(translation) >= 3:
-                z_position = translation[2]
+                z_position = translation['z']
             else:
                 z_position = 0
             if last_z_position is not None and z_position != last_z_position:
@@ -350,7 +350,9 @@ class MVSRegistration:
                 transform_key=self.source_transform_key,
                 c_coords=channel_labels
             )
-            sims.append(sim.chunk(convert_xyz_to_dict(chunk_size)))
+            if len(sim.chunksizes.get('x')) == 1 and len(sim.chunksizes.get('y')) == 1:
+                sim = sim.chunk(convert_xyz_to_dict(chunk_size))
+            sims.append(sim)
             scales2.append([scale[dim] for dim in 'xyz'])
             translations2.append([translation[dim] for dim in 'xyz'])
         return sims, scales2, translations2, rotations
@@ -574,7 +576,6 @@ class MVSRegistration:
         if transform_key is None:
             transform_key = self.reg_transform_key
         operation = params['operation']
-        chunk_size = self.params_general.get('chunk_size', [1024, 1024])
         extra_metadata = params.get('extra_metadata', {})
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
@@ -589,10 +590,6 @@ class MVSRegistration:
 
         sim0 = sims[0]
         source_type = sim0.dtype
-        output_chunksize = convert_xyz_to_dict(chunk_size)
-        for dim in sim0.dims:
-            if dim not in output_chunksize:
-                output_chunksize[dim] = 1
 
         if is_stack:
             output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
@@ -605,15 +602,11 @@ class MVSRegistration:
             data_size = np.prod(list(output_stack_properties['shape'].values())) * source_type.itemsize
             logging.info(f'Fusing Z stack {print_hbytes(data_size)}')
 
-            if 'z' not in output_chunksize:
-                output_chunksize['z'] = 1
-
             # fuse all sims together using simple average fusion
             fused_image = fusion.fuse(
                 sims,
                 transform_key=transform_key,
                 output_stack_properties=output_stack_properties,
-                output_chunksize=output_chunksize,
                 fusion_func=fusion.simple_average_fusion,
             )
         elif is_channel_overlay:
@@ -627,7 +620,6 @@ class MVSRegistration:
             channel_sims = [fusion.fuse(
                 [sim],
                 transform_key=transform_key,
-                output_chunksize=output_chunksize,
                 output_stack_properties=output_stack_properties
             ) for sim in sims]
             channel_sims = [sim.assign_coords({'c': [channels[simi]['label']]}) for simi, sim in enumerate(channel_sims)]
@@ -642,7 +634,6 @@ class MVSRegistration:
             fused_image = fusion.fuse(
                 sims,
                 transform_key=transform_key,
-                output_chunksize=output_chunksize,
             )
         return fused_image
 

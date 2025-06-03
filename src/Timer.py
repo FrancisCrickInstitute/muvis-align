@@ -29,4 +29,4 @@ class Timer(object):
                     pelapsed /= 60
                     elapsed /= 60
                     unit = 'hours'
-            print(f'Time {self.title}: {elapsed:.1f} ({pelapsed:.1f}) {unit}')
+            logging.info(f'Time {self.title}: {elapsed:.1f} ({pelapsed:.1f}) {unit}')
