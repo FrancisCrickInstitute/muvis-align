@@ -13,7 +13,7 @@ class ZarrDaskSource(DaskSource):
 
         group = zarr.open_group(self.filename, mode='r')
         self.metadata = group.attrs['multiscales'][0]
-        self.omero_metdata = group.attrs.get('omero')
+        self.omero_metdata = group.attrs.get('omero', {})
         self.paths = [dataset['path'] for dataset in self.metadata['datasets']]
 
         self.shapes = [group[path].shape for path in self.paths]

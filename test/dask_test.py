@@ -161,8 +161,8 @@ if __name__ == "__main__":
     #base_folder = 'D:/slides/12193/stitched/'
 
     filesets = [
-        [base_folder + 'S000/registered.ome.tiff', base_folder + 'S001/registered.ome.tiff', base_folder + 'S002/registered.ome.tiff'],
         [base_folder + 'S000/registered.ome.zarr', base_folder + 'S001/registered.ome.zarr', base_folder + 'S002/registered.ome.zarr'],
+        [base_folder + 'S000/registered.ome.tiff', base_folder + 'S001/registered.ome.tiff', base_folder + 'S002/registered.ome.tiff'],
     ]
 
     print('Without client')
