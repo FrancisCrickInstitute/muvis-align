@@ -128,19 +128,16 @@ def load_dask(filename, level=0):
     return dask_source.get_data(level=level)
 
 
-def task():
-    #data = np.ones(shape=(512, 1024)).astype(np.float32)
-    #filename = 'test.ome.tiff'
-    #save_ome_tiff(filename, data, npyramid_add=4)
+def task(filenames):
+    if isinstance(filenames, str):
+        filenames = glob.glob(filenames)
 
-    filenames = 'D:/slides/12193/stitched/S???/registered.ome.tiff'
-    #filenames = 'D:/slides/12193/stitched/S???/registered.ome.zarr'
     chunk_size = [1024, 1024]
 
     sims = []
     transform_key = 'transform_key'
     with Timer('reading', auto_unit=False):
-        for filename in glob.glob(filenames):
+        for filename in filenames:
             print(f'reading {filename}')
             dask_data = load_dask(filename)
             sim = si_utils.get_sim_from_array(dask_data, transform_key=transform_key)
@@ -156,8 +153,30 @@ def task():
 
 
 if __name__ == "__main__":
-    #with Client(processes=False) as client:
-    #    print(client)
-        #with performance_report(filename="report.html"):
-    task()
-    print('done')
+    #data = np.ones(shape=(512, 1024)).astype(np.float32)
+    #filename = 'test.ome.tiff'
+    #save_ome_tiff(filename, data, npyramid_add=4)
+
+    base_folder = '/nemo/project/proj-ccp-vem/datasets/12193/stitched/'
+    #base_folder = 'D:/slides/12193/stitched/'
+
+    filesets = [
+        [base_folder + 'S000/registered.ome.tiff', base_folder + 'S001/registered.ome.tiff', base_folder + 'S002/registered.ome.tiff'],
+        [base_folder + 'S000/registered.ome.zarr', base_folder + 'S001/registered.ome.zarr', base_folder + 'S002/registered.ome.zarr'],
+    ]
+
+    print('Without client')
+    for filenames in filesets:
+        print('Fileset:', filenames)
+        task(filenames)
+        print()
+
+    print('With client')
+    with Client(processes=False) as client:
+        print(client)
+        with performance_report(filename="report.html"):
+            for filenames in filesets:
+                print('Fileset:', filenames)
+                task(filenames)
+                print()
+    print('Done')
