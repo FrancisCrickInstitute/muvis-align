@@ -523,7 +523,7 @@ class MVSRegistration:
                 plot_summary=self.mpl_ui,
                 return_dict=True,
 
-                scheduler = 'single-threaded'   # TODO *** only for z-stack!
+                #scheduler = 'single-threaded'   # TODO *** only for z-stack!
             )
             # copy transforms from register sims to unmodified sims
             for reg_msim, index in zip(register_msims, indices):
