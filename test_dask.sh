@@ -10,4 +10,4 @@ ml purge
 ml Anaconda3
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 conda activate muvis-env
-python test/dask_test.py
+python dask_test.py
