@@ -8,6 +8,7 @@ import numpy as np
 import os
 import re
 from scipy.spatial.transform import Rotation
+from sklearn.neighbors import KDTree
 #from tifffile import xml2dict
 #import yaml
 
@@ -402,6 +403,21 @@ def normalise_rotated_positions(positions0, rotations0, size, center):
         positions.append(position)
         rotations.append(rotation)
     return positions, rotations
+
+
+def get_nn_distance(points0):
+    points = list(set(map(tuple, points0)))     # get unique points
+    if len(points) >= 2:
+        tree = KDTree(points, leaf_size=2)
+        dist, ind = tree.query(points, k=2)
+        nn_distance = np.median(dist[:, 1])
+    else:
+        nn_distance = 1
+    return nn_distance
+
+
+def get_mean_nn_distance(points1, points2):
+    return np.mean([get_nn_distance(points1), get_nn_distance(points2)])
 
 
 def get_orthogonal_pairs(origins, image_size_um):

@@ -4,45 +4,41 @@
 import logging
 import numpy as np
 from multiview_stitcher import param_utils
-from skimage.feature import match_descriptors, SIFT
+from skimage.feature import match_descriptors, SIFT, ORB
 from skimage.measure import ransac
 from skimage.transform import rescale, AffineTransform
-from sklearn.neighbors import KDTree
 from spatial_image import SpatialImage
 
-from src.image.util import int2float_image, validate_transform, get_sim_physical_size
+from src.image.util import *
 from src.metrics import calc_match_metrics
 from src.registration_methods.RegistrationMethod import RegistrationMethod
 
 
 class RegistrationMethodSkFeatures(RegistrationMethod):
-    def detect_features(self, data0):
-        data = data0.astype(self.source_type)
+    def __init__(self, source_type):
+        super().__init__(source_type)
+        self.feature_model = ORB()
+        #self.feature_model = SIFT(c_dog=0.1 / 3)
+        self.feature_store = {}
 
-        data = int2float_image(data)
+    def detect_features(self, data0):
+        data = self.convert_data_to_float(data0)
         scale = min(1000 / np.linalg.norm(data.shape), 1)
         data = rescale(data, scale)
 
-        #feature_model = ORB()
-        feature_model = SIFT(c_dog=0.1 / 3)
-        feature_model.detect_and_extract(data)
-        points = np.flip(feature_model.keypoints, axis=-1) / scale     # rescale and convert to (z)yx
-        desc = feature_model.descriptors
+        self.feature_model.detect_and_extract(data)
+        points = np.flip(self.feature_model.keypoints, axis=-1) / scale     # rescale and convert to (z)yx
+        desc = self.feature_model.descriptors
 
-        if len(points) >= 2:
-            tree = KDTree(points, leaf_size=2)
-            dist, ind = tree.query(points, k=2)
-            nn_distance = np.median(dist[:, 1])
-        else:
-            nn_distance = 1
+        show_image(draw_keypoints(data, np.flip(self.feature_model.keypoints, axis=-1)))
 
-        return points, desc, nn_distance
+        return points, desc
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
         min_samples = 5
-        fixed_points, fixed_desc, nn_distance1 = self.detect_features(fixed_data)
-        moving_points, moving_desc, nn_distance2 = self.detect_features(moving_data)
-        threshold = np.mean([nn_distance1, nn_distance2])
+        fixed_points, fixed_desc = self.detect_features(fixed_data)
+        moving_points, moving_desc = self.detect_features(moving_data)
+        threshold = get_mean_nn_distance(fixed_points, moving_points)
 
         matches = match_descriptors(fixed_desc, moving_desc, cross_check=True, max_ratio=0.92)
 
@@ -53,6 +49,11 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             moving_points2 = np.array([moving_points[match[1]] for match in matches])
             transform, inliers = ransac((fixed_points2, moving_points2), AffineTransform, min_samples=min_samples,
                                                residual_threshold=threshold, max_trials=1000)
+
+            show_image(draw_keypoint_matches(fixed_data.astype(self.source_type), fixed_points,
+                                             moving_data.astype(self.source_type), moving_points,
+                                             matches, inliers))
+
             if transform is not None and not np.any(np.isnan(transform)):
                 transform = np.array(transform)
                 fixed_points3 = [point for point, is_inlier in zip(fixed_points2, inliers) if is_inlier]

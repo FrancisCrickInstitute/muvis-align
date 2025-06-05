@@ -1,10 +1,15 @@
 from abc import ABC, abstractmethod
+import numpy as np
 from spatial_image import SpatialImage
 
 
 class RegistrationMethod(ABC):
     def __init__(self, source_type):
         self.source_type = source_type
+
+    def convert_data_to_float(self, data):
+        maxval = 2 ** (8 * self.source_type.itemsize) - 1
+        return data / np.float32(maxval)
 
     @abstractmethod
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:

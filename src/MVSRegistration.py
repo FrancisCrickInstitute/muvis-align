@@ -522,8 +522,6 @@ class MVSRegistration:
 
                 plot_summary=self.mpl_ui,
                 return_dict=True,
-
-                #scheduler = 'single-threaded'   # TODO *** only for z-stack!
             )
             # copy transforms from register sims to unmodified sims
             for reg_msim, index in zip(register_msims, indices):
@@ -673,7 +671,7 @@ class MVSRegistration:
         for pair in pairs:
             try:
                 # experimental; in case fail to extract overlap images
-                overlap_sims = self.get_overlap_images((sims[pair[0]], sims[pair[1]]))
+                overlap_sims = self.get_overlap_images((sims[pair[0]], sims[pair[1]]), self.reg_transform_key)
                 nccs[pair] = calc_ncc(overlap_sims[0], overlap_sims[1])
                 ssims[pair] = calc_ssim(overlap_sims[0], overlap_sims[1])
                 #frcs[pair] = calc_frc(overlap_sims[0], overlap_sims[1])
@@ -682,7 +680,7 @@ class MVSRegistration:
                 #logging.warning(f'Failed to calculate resolution metric')
         return {'ncc': nccs, 'ssim': ssims}
 
-    def get_overlap_images(self, sims):
+    def get_overlap_images(self, sims, transform_key):
         # functionality copied from registration.register_pair_of_msims()
         spatial_dims = si_utils.get_spatial_dims_from_sim(sims[0])
         overlap_tolerance = {dim: 0.0 for dim in spatial_dims}
@@ -697,7 +695,7 @@ class MVSRegistration:
         lowers, uppers = get_overlap_bboxes(
             overlap_sims[0],
             overlap_sims[1],
-            input_transform_key=self.reg_transform_key,
+            input_transform_key=transform_key,
             output_transform_key=None,
             overlap_tolerance=overlap_tolerance,
         )
