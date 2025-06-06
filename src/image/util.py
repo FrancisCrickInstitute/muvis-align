@@ -286,7 +286,7 @@ def draw_keypoints(image, points, color=(255, 0, 0)):
     return out_image
 
 
-def draw_keypoint_matches(image1, points1, image2, points2, matches, inliers=None,
+def draw_keypoint_matches(image1, points1, image2, points2, matches=None, inliers=None,
                           color=(255, 0, 0), inlier_color=(0, 255, 0), radius = 15, thickness = 2):
     # based on https://gist.github.com/woolpeeker/d7e1821e1b5c556b32aafe10b7a1b7e8
     image1 = uint8_image(image1)
@@ -298,18 +298,27 @@ def draw_keypoint_matches(image1, points1, image2, points2, matches, inliers=Non
     out_image[0:image1.shape[0], 0:image1.shape[1]] = color_image(image1)
     out_image[0:image2.shape[0], image1.shape[1]:image1.shape[1] + image2.shape[1]] = color_image(image2)
 
-    # Draw lines between matches.  Make sure to offset kp coords in second image appropriately.
-    for index, match in enumerate(matches):
-        if inliers is not None and inliers[index]:
-            line_color = inlier_color
-        else:
-            line_color = color
-        # So the keypoint locs are stored as a tuple of floats.  cv2.line() wants locs as a tuple of ints.
-        end1 = tuple(np.round(points1[match[0]]).astype(int))
-        end2 = tuple(np.round(points2[match[1]]).astype(int) + np.array([image1.shape[1], 0]))
-        cv.line(out_image, end1, end2, line_color, thickness)
-        cv.circle(out_image, end1, radius, line_color, thickness)
-        cv.circle(out_image, end2, radius, line_color, thickness)
+    if matches is not None:
+        # Draw lines between matches.  Make sure to offset kp coords in second image appropriately.
+        for index, match in enumerate(matches):
+            if inliers is not None and inliers[index]:
+                line_color = inlier_color
+            else:
+                line_color = color
+            # So the keypoint locs are stored as a tuple of floats.  cv2.line() wants locs as a tuple of ints.
+            end1 = tuple(np.round(points1[match[0]]).astype(int))
+            end2 = tuple(np.round(points2[match[1]]).astype(int) + np.array([image1.shape[1], 0]))
+            cv.line(out_image, end1, end2, line_color, thickness)
+            cv.circle(out_image, end1, radius, line_color, thickness)
+            cv.circle(out_image, end2, radius, line_color, thickness)
+    else:
+        # Draw all points if no matches are provided.
+        for point in points1:
+            point = tuple(np.round(point).astype(int))
+            cv.circle(out_image, point, radius, color, thickness)
+        for point in points2:
+            point = tuple(np.round(point).astype(int) + np.array([image1.shape[1], 0]))
+            cv.circle(out_image, point, radius, color, thickness)
     return out_image
 
 

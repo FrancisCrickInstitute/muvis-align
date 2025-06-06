@@ -9,9 +9,10 @@ from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMe
 
 
 def test_feature_registration(params, operation):
+    target_scale = 16
     filenames = glob.glob(operation['input'])
     reg = MVSRegistration(params['general'])
-    sims, _, _, _ = reg.init_sims(filenames, operation, target_scale=16)
+    sims, _, _, _ = reg.init_sims(filenames, operation, target_scale=target_scale)
     norm_sims, _ = reg.preprocess(sims, operation)
     sim0 = norm_sims[0]
     reg_method = RegMethod(sim0.dtype)
@@ -22,7 +23,7 @@ def test_feature_registration(params, operation):
     for pair in pairs:
         overlap_sims = reg.get_overlap_images((norm_sims[pair[0]], norm_sims[pair[1]]), reg.source_transform_key)
         result = reg_method.registration(*overlap_sims)
-        print(result)
+        #print(result)
 
 
 if __name__ == "__main__":

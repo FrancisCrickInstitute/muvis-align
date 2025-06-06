@@ -1,4 +1,5 @@
 # https://scikit-image.org/docs/stable/api/skimage.feature.html
+# https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_orb.html
 # https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_brief.html
 
 import logging
@@ -9,6 +10,7 @@ from skimage.measure import ransac
 from skimage.transform import rescale, AffineTransform
 from spatial_image import SpatialImage
 
+from src.image.ome_tiff_helper import save_tiff
 from src.image.util import *
 from src.metrics import calc_match_metrics
 from src.registration_methods.RegistrationMethod import RegistrationMethod
@@ -17,20 +19,32 @@ from src.registration_methods.RegistrationMethod import RegistrationMethod
 class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source_type):
         super().__init__(source_type)
-        self.feature_model = ORB()
         #self.feature_model = SIFT(c_dog=0.1 / 3)
-        self.feature_store = {}
+        self.feature_model = ORB(n_keypoints=5000)
+        #self.feature_model = BRIEF()    # no keypoint detection, only descriptor extraction
+
+        self.label = 'matches_ORB_'
+        self.counter = 0
 
     def detect_features(self, data0):
+        target_size = 500
         data = self.convert_data_to_float(data0)
-        scale = min(1000 / np.linalg.norm(data.shape), 1)
+        scale = min(target_size / np.linalg.norm(data.shape[:2]) * np.sqrt(2), 1)
         data = rescale(data, scale)
+
+        #keypoints = corner_peaks(corner_harris(data), threshold_rel=0.05)
+        #points = np.flip(keypoints, axis=-1) / scale
+        #self.feature_model.extract(data, keypoints)
 
         self.feature_model.detect_and_extract(data)
         points = np.flip(self.feature_model.keypoints, axis=-1) / scale     # rescale and convert to (z)yx
         desc = self.feature_model.descriptors
 
-        show_image(draw_keypoints(data, np.flip(self.feature_model.keypoints, axis=-1)))
+        inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
+        points = points[inliers]
+        desc = desc[inliers]
+
+        #show_image(draw_keypoints(data, np.flip(self.feature_model.keypoints, axis=-1)))
 
         return points, desc
 
@@ -38,7 +52,8 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         min_samples = 5
         fixed_points, fixed_desc = self.detect_features(fixed_data)
         moving_points, moving_desc = self.detect_features(moving_data)
-        threshold = get_mean_nn_distance(fixed_points, moving_points)
+        threshold = get_mean_nn_distance(fixed_points, moving_points) * 10
+        #logging.info(fixed_data.attrs.get('label', '') + ' - ' + str(moving_data.attrs.get('label', '')))
 
         matches = match_descriptors(fixed_desc, moving_desc, cross_check=True, max_ratio=0.92)
 
@@ -50,11 +65,14 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             transform, inliers = ransac((fixed_points2, moving_points2), AffineTransform, min_samples=min_samples,
                                                residual_threshold=threshold, max_trials=1000)
 
-            show_image(draw_keypoint_matches(fixed_data.astype(self.source_type), fixed_points,
-                                             moving_data.astype(self.source_type), moving_points,
-                                             matches, inliers))
+            save_tiff(self.label + str(self.counter) + '.tiff',
+                      draw_keypoint_matches(fixed_data.astype(self.source_type), fixed_points,
+                                            moving_data.astype(self.source_type), moving_points,
+                                            matches, inliers))
+            self.counter += 1
 
             if transform is not None and not np.any(np.isnan(transform)):
+                print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation))
                 transform = np.array(transform)
                 fixed_points3 = [point for point, is_inlier in zip(fixed_points2, inliers) if is_inlier]
                 moving_points3 = [point for point, is_inlier in zip(moving_points2, inliers) if is_inlier]
@@ -62,7 +80,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 #quality = np.mean(inliers)
                 quality = metrics['nmatches'] / min(len(fixed_points2), len(moving_points2))
 
-        if not validate_transform(transform, get_sim_physical_size(fixed_data, invert=True)):
+        size = [fixed_data.sizes['x'], fixed_data.sizes['y']]
+        if 'z' in fixed_data.sizes:
+            size += [fixed_data.sizes['z']]
+        if not validate_transform(transform, size):
             logging.error('Unable to find feature-based registration')
             transform = np.eye(3)
 

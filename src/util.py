@@ -420,6 +420,15 @@ def get_mean_nn_distance(points1, points2):
     return np.mean([get_nn_distance(points1), get_nn_distance(points2)])
 
 
+def filter_edge_points(points, bounds, threshold=0.2):
+    center = np.array(bounds) / 2
+    dist_center = np.abs(points / center - 1)
+    position_weights = 1 - np.mean(dist_center, axis=-1)
+    order_weights = 1 - np.array(range(len(points))) / len(points) / 2
+    weights = position_weights * order_weights
+    return weights > threshold
+
+
 def get_orthogonal_pairs(origins, image_size_um):
     """
     Get pairs of orthogonal neighbors from a list of tiles.
