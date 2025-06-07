@@ -423,10 +423,21 @@ def get_mean_nn_distance(points1, points2):
 def filter_edge_points(points, bounds, threshold=0.2):
     center = np.array(bounds) / 2
     dist_center = np.abs(points / center - 1)
-    position_weights = 1 - np.mean(dist_center, axis=-1)
+    position_weights = np.clip((1 - np.max(dist_center, axis=-1)) * 10, 0, 1)
     order_weights = 1 - np.array(range(len(points))) / len(points) / 2
     weights = position_weights * order_weights
     return weights > threshold
+
+
+def draw_edge_filter(bounds):
+    out_image = np.zeros(np.flip(bounds))
+    y, x = np.where(out_image == 0)
+    points = np.transpose([x, y])
+
+    center = np.array(bounds) / 2
+    dist_center = np.abs(points / center - 1)
+    position_weights = np.clip((1 - np.max(dist_center, axis=-1)) * 10, 0, 1)
+    return position_weights.reshape(np.flip(bounds))
 
 
 def get_orthogonal_pairs(origins, image_size_um):
