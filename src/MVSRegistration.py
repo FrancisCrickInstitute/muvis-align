@@ -105,7 +105,7 @@ class MVSRegistration:
             original_positions_filename = output + 'positions_original.pdf'
 
             with Timer('plot positions', self.logging_time):
-                vis_utils.plot_positions(sims.copy(), transform_key=self.source_transform_key,
+                vis_utils.plot_positions(sims, transform_key=self.source_transform_key,
                                          use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
                                          show_plot=self.mpl_ui, output_filename=original_positions_filename)
 
@@ -192,7 +192,7 @@ class MVSRegistration:
 
         registered_positions_filename = output + 'positions_registered.pdf'
         with Timer('plot positions', self.logging_time):
-            vis_utils.plot_positions(sims.copy(), transform_key=self.reg_transform_key,
+            vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
                                      use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
                                      show_plot=self.mpl_ui, output_filename=registered_positions_filename)
 
@@ -228,7 +228,7 @@ class MVSRegistration:
         extra_metadata = params.get('extra_metadata', {})
         z_scale = extra_metadata.get('scale', {}).get('z')
 
-        sources = [create_dask_source(file) for file in filenames]
+        sources = [create_dask_source(file, source_metadata) for file in filenames]
         source0 = sources[0]
         images = []
         sims = []
@@ -252,28 +252,6 @@ class MVSRegistration:
             scale = source.get_pixel_size()
             translation = source.get_position()
             rotation = source.get_rotation()
-            if isinstance(source_metadata, dict):
-                filename_numeric = find_all_numbers(filename)
-                filename_dict = {key: int(value) for key, value in split_numeric_dict(filename).items()}
-                context = {'filename_numeric': filename_numeric, 'fn': filename_numeric} | filename_dict
-                if 'position' in source_metadata:
-                    translation0 = source_metadata['position']
-                    if 'x' in translation0:
-                        translation['x'] = eval_context(translation0, 'x', 0, context)
-                    if 'y' in translation0:
-                        translation['y'] = eval_context(translation0, 'y', 0, context)
-                    if 'z' in translation0:
-                        translation['z'] = eval_context(translation0, 'z', 0, context)
-                if 'scale' in source_metadata:
-                    scale0 = source_metadata['scale']
-                    if 'x' in scale0:
-                        scale['x'] = eval_context(scale0, 'x', 1, context)
-                    if 'y' in scale0:
-                        scale['y'] = eval_context(scale0, 'y', 1, context)
-                    if 'z' in scale0:
-                        scale['z'] = eval_context(scale0, 'z', 1, context)
-                if 'rotation' in source_metadata:
-                    rotation = source_metadata['rotation']
 
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
@@ -353,8 +331,8 @@ class MVSRegistration:
             if len(sim.chunksizes.get('x')) == 1 and len(sim.chunksizes.get('y')) == 1:
                 sim = sim.chunk(convert_xyz_to_dict(chunk_size))
             sims.append(sim)
-            scales2.append([scale[dim] for dim in 'xyz'])
-            translations2.append([translation[dim] for dim in 'xyz'])
+            scales2.append(dict_to_list(scale))
+            translations2.append(dict_to_list(translation))
         return sims, scales2, translations2, rotations
 
     def validate_overlap(self, sims, labels, is_stack=False, expect_large_overlap=False):

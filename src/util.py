@@ -9,8 +9,6 @@ import os
 import re
 from scipy.spatial.transform import Rotation
 from sklearn.neighbors import KDTree
-#from tifffile import xml2dict
-#import yaml
 
 
 def get_default(x, default):
@@ -24,6 +22,10 @@ def ensure_list(x) -> list:
         return x
     else:
         return [x]
+
+
+def dict_to_list(dct, keys = 'xyz'):
+    return [dct[key] for key in keys if key in dct]
 
 
 def reorder(items: list, old_order: str, new_order: str, default_value: int = 0) -> list:
@@ -346,7 +348,7 @@ def create_transform0(center=(0, 0), angle=0, scale=1, translate=(0, 0)):
 
 def create_transform(center, angle, matrix_size=3):
     if isinstance(center, dict):
-        center = [center[dim] for dim in 'xyz']
+        center = dict_to_list(center)
     if len(center) == 2:
         center = np.array(list(center) + [0])
     if angle is None:

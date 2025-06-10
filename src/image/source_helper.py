@@ -7,11 +7,9 @@ import tifffile
 from tifffile import TiffFile
 import zarr
 
-from src.OmeZarrSource import OmeZarrSource
 from src.TiffDaskSource import TiffDaskSource
 from src.ZarrDaskSource import ZarrDaskSource
-from src.TiffSource import TiffSource
-from src.util import get_filetitle, get_orthogonal_pairs
+from src.util import get_filetitle, get_orthogonal_pairs, dict_to_list
 
 
 def create_dask_data(filename, level=0):
@@ -36,29 +34,18 @@ def create_dask_data(filename, level=0):
     return dask_data
 
 
-def create_source(filename):
+def create_dask_source(filename, source_metadata=None):
     ext = os.path.splitext(filename)[1].lstrip('.').lower()
     if ext.startswith('tif'):
-        source = TiffSource(filename)
+        dask_source = TiffDaskSource(filename, source_metadata)
     elif ext.startswith('zar'):
-        source = OmeZarrSource(filename)
-    else:
-        raise ValueError(f'Unsupported file type: {ext}')
-    return source
-
-
-def create_dask_source(filename):
-    ext = os.path.splitext(filename)[1].lstrip('.').lower()
-    if ext.startswith('tif'):
-        dask_source = TiffDaskSource(filename)
-    elif ext.startswith('zar'):
-        dask_source = ZarrDaskSource(filename)
+        dask_source = ZarrDaskSource(filename, source_metadata)
     else:
         raise ValueError(f'Unsupported file type: {ext}')
     return dask_source
 
 
-def get_images_metadata(filenames):
+def get_images_metadata(filenames, source_metadata=None):
     summary = 'Filename\tPixel size\tSize\tPosition\tRotation\n'
     sizes = []
     centers = []
@@ -67,11 +54,11 @@ def get_images_metadata(filenames):
     max_positions = []
     pixel_sizes = []
     for filename in filenames:
-        source = create_source(filename)
-        pixel_size = source.get_pixel_size_micrometer()
-        size = source.get_physical_size_micrometer()
+        source = create_dask_source(filename, source_metadata)
+        pixel_size = dict_to_list(source.get_pixel_size())
+        size = dict_to_list(source.get_physical_size())
         sizes.append(size)
-        position = source.get_position_micrometer()
+        position = dict_to_list(source.get_position())
         rotation = source.get_rotation()
         rotations.append(rotation)
 

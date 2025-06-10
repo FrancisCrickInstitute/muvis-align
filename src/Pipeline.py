@@ -1,5 +1,3 @@
-import datetime
-from distributed import Client, performance_report
 import logging
 import numpy as np
 import os
@@ -63,19 +61,10 @@ class Pipeline(Thread):
 
     def run(self):
         break_on_error = self.params_general.get('break_on_error', False)
-
-        #with Client(processes=False) as client:
-        #    if self.verbose:
-        #        print(client)
-
         for operation_params in tqdm(self.params['operations']):
             error = False
-            timestamp_filename = (os.path.splitext(self.log_filename)[0]
-                                  + '_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
             input_path = operation_params['input']
             logging.info(f'Input: {input_path}')
-            #with performance_report(filename=timestamp_filename + "_report.html"):
-
             try:
                 self.run_operation(operation_params)
             except Exception as e:
@@ -136,7 +125,7 @@ class Pipeline(Thread):
         global_center = None
         if metadata_summary or use_global_metadata:
             for fileset, fileset_label in zip(filesets, fileset_labels):
-                metadata = get_images_metadata(fileset)
+                metadata = get_images_metadata(fileset, params.get('source_metadata'))
                 if metadata_summary:
                     logging.info(f'File set: {fileset_label} metadata:\n' + metadata['summary'])
                 metadatas.append(metadata)

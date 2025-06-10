@@ -10,17 +10,15 @@ from src.util import ensure_list
 
 
 class TiffDaskSource(DaskSource):
-    default_physical_unit = 'µm'
-
-    def __init__(self, filename):
-        super().__init__(filename)
-        tiff = tifffile.TiffFile(filename)
-        pages = tiff.pages
+    def init_metadata(self):
+        tiff = tifffile.TiffFile(self.filename)
+        pages = []
+        if tiff.series and not tiff.is_mmstack:
+            for level in tiff.series[0].levels:
+                pages.append(level.pages[0])
+        if len(pages) == 0:
+            pages = tiff.pages
         page0 = pages[0]
-        if hasattr(tiff, 'series'):
-            pages = tiff.series
-            if hasattr(page0, 'levels'):
-                pages = page0.levels
         self.shapes = [page.shape for page in pages]
         self.shape = self.shapes[0]
         self.dtype = page0.dtype.type
@@ -102,9 +100,8 @@ class TiffDaskSource(DaskSource):
         self.position = position
         self.rotation = rotation
         self.channels = channels
-        self.fix_metadata()
 
     def get_data(self, level=0):
         lazy_array = dask.delayed(tifffile.imread)(self.filename, level=level)
-        dask_data = dask.array.from_delayed(lazy_array, shape=self.shape, dtype=self.dtype)
+        dask_data = dask.array.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
         return dask_data

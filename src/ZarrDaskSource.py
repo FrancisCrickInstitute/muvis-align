@@ -7,10 +7,7 @@ from src.image.color_conversion import int_to_rgba, hexrgb_to_rgba
 
 
 class ZarrDaskSource(DaskSource):
-    def __init__(self, filename):
-        super().__init__(filename)
-        self.filename = filename
-
+    def init_metadata(self):
         group = zarr.open_group(self.filename, mode='r')
         self.metadata = group.attrs['multiscales'][0]
         self.omero_metdata = group.attrs.get('omero', {})
@@ -58,7 +55,6 @@ class ZarrDaskSource(DaskSource):
         self.positions = positions
         self.rotation = 0
         self.channels = channels
-        self.fix_metadata()
 
     def get_data(self, level=0):
         return da.from_zarr(os.path.join(self.filename, self.paths[level]))

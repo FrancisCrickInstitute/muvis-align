@@ -20,10 +20,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source_type):
         super().__init__(source_type)
         #self.feature_model = SIFT(c_dog=0.1 / 3)
-        self.feature_model = ORB(n_keypoints=5000)
+        self.feature_model = ORB(n_keypoints=5000, downscale=np.sqrt(2))
         #self.feature_model = BRIEF()    # no keypoint detection, only descriptor extraction
 
-        self.label = 'matches_ORB_'
+        self.label = 'matches_ORB_scale_'
         self.counter = 0
 
     def detect_features(self, data0):
@@ -53,6 +53,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         fixed_points, fixed_desc = self.detect_features(fixed_data)
         moving_points, moving_desc = self.detect_features(moving_data)
         threshold = get_mean_nn_distance(fixed_points, moving_points) * 10
+        #threshold = 50
         #logging.info(fixed_data.attrs.get('label', '') + ' - ' + str(moving_data.attrs.get('label', '')))
 
         matches = match_descriptors(fixed_desc, moving_desc, cross_check=True, max_ratio=0.92)
