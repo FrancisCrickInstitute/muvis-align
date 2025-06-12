@@ -17,7 +17,7 @@ general:
     compression:
     npyramid_add: 4
     pyramid_downsample: 2
-    thumbnail: ome.tiff
+    thumbnail: ome.tiff, ome.zarr
 
 operations:
   - operation: register match S
