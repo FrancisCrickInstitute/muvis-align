@@ -422,10 +422,10 @@ def get_mean_nn_distance(points1, points2):
     return np.mean([get_nn_distance(points1), get_nn_distance(points2)])
 
 
-def filter_edge_points(points, bounds, threshold=0.2):
+def filter_edge_points(points, bounds, filter_factor=0.1, threshold=0.5):
     center = np.array(bounds) / 2
     dist_center = np.abs(points / center - 1)
-    position_weights = np.clip((1 - np.max(dist_center, axis=-1)) * 10, 0, 1)
+    position_weights = np.clip((1 - np.max(dist_center, axis=-1)) / filter_factor, 0, 1)
     order_weights = 1 - np.array(range(len(points))) / len(points) / 2
     weights = position_weights * order_weights
     return weights > threshold

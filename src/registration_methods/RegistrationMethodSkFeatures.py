@@ -5,90 +5,94 @@
 import logging
 import numpy as np
 from multiview_stitcher import param_utils
-from skimage.feature import match_descriptors, SIFT, ORB
+from skimage.feature import match_descriptors, ORB
+from skimage.filters import gaussian
 from skimage.measure import ransac
-from skimage.transform import rescale, AffineTransform
+from skimage.transform import EuclideanTransform
 from spatial_image import SpatialImage
 
-from src.image.ome_tiff_helper import save_tiff
 from src.image.util import *
-from src.metrics import calc_match_metrics
 from src.registration_methods.RegistrationMethod import RegistrationMethod
 
 
 class RegistrationMethodSkFeatures(RegistrationMethod):
-    def __init__(self, source_type):
-        super().__init__(source_type)
-        #self.feature_model = SIFT(c_dog=0.1 / 3)
-        self.feature_model = ORB(n_keypoints=5000, downscale=np.sqrt(2))
-        #self.feature_model = BRIEF()    # no keypoint detection, only descriptor extraction
+    def __init__(self, source_type, params):
+        super().__init__(source_type, params)
 
-        self.label = 'matches_ORB_scale_'
+        downscale = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
+        self.feature_model = ORB(n_keypoints=5000, downscale=downscale)
+        self.gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+
+        self.label = 'matches_slice_'
         self.counter = 0
 
     def detect_features(self, data0):
-        target_size = 500
         data = self.convert_data_to_float(data0)
-        scale = min(target_size / np.linalg.norm(data.shape[:2]) * np.sqrt(2), 1)
-        data = rescale(data, scale)
-
-        #keypoints = corner_peaks(corner_harris(data), threshold_rel=0.05)
-        #points = np.flip(keypoints, axis=-1) / scale
-        #self.feature_model.extract(data, keypoints)
+        data = gaussian(data, sigma=self.gaussian_sigma)
 
         self.feature_model.detect_and_extract(data)
-        points = np.flip(self.feature_model.keypoints, axis=-1) / scale     # rescale and convert to (z)yx
+        points = self.feature_model.keypoints
         desc = self.feature_model.descriptors
+        if len(desc) == 0:
+            print('No features detected!')
 
-        inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
-        points = points[inliers]
-        desc = desc[inliers]
+        #inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
+        #points = points[inliers]
+        #desc = desc[inliers]
 
         #show_image(draw_keypoints(data, np.flip(self.feature_model.keypoints, axis=-1)))
 
         return points, desc
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
-        min_samples = 5
+        transform = np.eye(3)
+        quality = 0
+        ok = False
+
+        lowe_ratio = 0.92
+        mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(2) for data in [fixed_data, moving_data]])
+        inlier_threshold = mean_size * 0.05
+        min_matches = 5
+
         fixed_points, fixed_desc = self.detect_features(fixed_data)
         moving_points, moving_desc = self.detect_features(moving_data)
-        threshold = get_mean_nn_distance(fixed_points, moving_points) * 10
-        #threshold = 50
-        #logging.info(fixed_data.attrs.get('label', '') + ' - ' + str(moving_data.attrs.get('label', '')))
 
-        matches = match_descriptors(fixed_desc, moving_desc, cross_check=True, max_ratio=0.92)
+        if len(fixed_desc) > 0 and len(moving_desc) > 0:
+            matches = match_descriptors(fixed_desc, moving_desc, cross_check=True, max_ratio=lowe_ratio)
+            if len(matches) < min_matches:
+                matches = match_descriptors(fixed_desc, moving_desc)
+                print('Retrying matching without cross-check')
 
-        transform = None
-        quality = 0
-        if len(matches) >= min_samples:
-            fixed_points2 = np.array([fixed_points[match[0]] for match in matches])
-            moving_points2 = np.array([moving_points[match[1]] for match in matches])
-            transform, inliers = ransac((fixed_points2, moving_points2), AffineTransform, min_samples=min_samples,
-                                               residual_threshold=threshold, max_trials=1000)
+            if len(matches) >= min_matches:
+                fixed_points2 = np.array([fixed_points[match[0]] for match in matches])
+                moving_points2 = np.array([moving_points[match[1]] for match in matches])
+                transform, inliers = ransac((fixed_points2, moving_points2), EuclideanTransform,
+                                            min_samples=min_matches,
+                                            residual_threshold=inlier_threshold,
+                                            max_trials=1000)
+                quality = np.mean(inliers)
 
-            save_tiff(self.label + str(self.counter) + '.tiff',
-                      draw_keypoint_matches(fixed_data.astype(self.source_type), fixed_points,
-                                            moving_data.astype(self.source_type), moving_points,
-                                            matches, inliers))
-            self.counter += 1
+                #draw_keypoints_matches(fixed_data.astype(self.source_type), fixed_points,
+                #                       moving_data.astype(self.source_type), moving_points,
+                #                       matches, inliers,
+                #                       show_plot=False, output_filename=self.label + str(self.counter) + '.tiff')
+                #self.counter += 1
 
-            if transform is not None and not np.any(np.isnan(transform)):
-                print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation))
-                transform = np.array(transform)
-                fixed_points3 = [point for point, is_inlier in zip(fixed_points2, inliers) if is_inlier]
-                moving_points3 = [point for point, is_inlier in zip(moving_points2, inliers) if is_inlier]
-                metrics = calc_match_metrics(fixed_points3, moving_points3, transform, threshold)
-                #quality = np.mean(inliers)
-                quality = metrics['nmatches'] / min(len(fixed_points2), len(moving_points2))
+                if transform is not None and not np.any(np.isnan(transform)):
+                    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),
+                          'quality', quality)
 
-        size = [fixed_data.sizes['x'], fixed_data.sizes['y']]
-        if 'z' in fixed_data.sizes:
-            size += [fixed_data.sizes['z']]
-        if not validate_transform(transform, size):
+            size = []
+            if 'z' in fixed_data.sizes:
+                size += [fixed_data.sizes['z']]
+            size += [fixed_data.sizes['y'], fixed_data.sizes['x']]  # order yx (inversed xy)
+            ok = validate_transform(transform, size)
+
+        if not ok:
             logging.error('Unable to find feature-based registration')
             transform = np.eye(3)
 
         return {
-            "affine_matrix": param_utils.invert_coordinate_order(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
+            "affine_matrix": np.array(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
             "quality": quality  # float between 0 and 1 (if not available, set to 1.0)
         }

@@ -284,8 +284,8 @@ def draw_keypoints(image, points, color=(255, 0, 0)):
     return out_image
 
 
-def draw_keypoint_matches(image1, points1, image2, points2, matches=None, inliers=None,
-                          color=(255, 0, 0), inlier_color=(0, 255, 0), radius = 15, thickness = 2):
+def draw_keypoints_matches_cv(image1, points1, image2, points2, matches=None, inliers=None,
+                              color=(255, 0, 0), inlier_color=(0, 255, 0), radius = 15, thickness = 2):
     # based on https://gist.github.com/woolpeeker/d7e1821e1b5c556b32aafe10b7a1b7e8
     image1 = uint8_image(image1)
     image2 = uint8_image(image2)
@@ -318,6 +318,56 @@ def draw_keypoint_matches(image1, points1, image2, points2, matches=None, inlier
             point = tuple(np.round(point).astype(int) + np.array([image1.shape[1], 0]))
             cv.circle(out_image, point, radius, color, thickness)
     return out_image
+
+
+def draw_keypoints_matches(image1, points1, image2, points2, matches=None, inliers=None,
+                           points_color='black', match_color='red', inlier_color='lime',
+                           show_plot=True, output_filename=None):
+    fig, ax = plt.subplots(figsize=(16, 8))
+    shape = np.max([image.shape for image in [image1, image2]], axis=0)
+    if shape[0] < shape[1]:
+        merge_axis = 0
+        offset2 = [shape[0], 0]
+    else:
+        merge_axis = 1
+        offset2 = [0, shape[1]]
+    image = np.concatenate([
+        np.pad(image1, ((0, shape[0] - image1.shape[0]), (0, shape[1] - image1.shape[1]))),
+        np.pad(image2, ((0, shape[0] - image2.shape[0]), (0, shape[1] - image2.shape[1])))
+    ], axis=merge_axis)
+    ax.imshow(image, cmap='gray')
+
+    ax.scatter(
+        points1[:, 1],
+        points1[:, 0],
+        facecolors='none',
+        edgecolors=points_color,
+    )
+    ax.scatter(
+        points2[:, 1] + offset2[1],
+        points2[:, 0] + offset2[0],
+        facecolors='none',
+        edgecolors=points_color,
+    )
+
+    for i, match in enumerate(matches):
+        color = match_color
+        if inliers is not None and inliers[i]:
+            color = inlier_color
+        index1, index2 = match
+        ax.plot(
+            (points1[index1, 1], points2[index2, 1] + offset2[1]),
+            (points1[index1, 0], points2[index2, 0] + offset2[0]),
+            '-', linewidth=1, alpha=0.5, color=color,
+        )
+
+    plt.tight_layout()
+    if output_filename is not None:
+        plt.savefig(output_filename)
+    if show_plot:
+        plt.show()
+
+    return fig, ax
 
 
 def create_compression_filter(compression: list) -> tuple:
@@ -636,6 +686,7 @@ def get_data_mapping(data, transform_key=None, transform=None, translation0=None
 def validate_transform(transform, size, max_scale=1.2):
     if transform is None:
         return False
+    transform = np.array(transform)
     if np.any(np.isnan(transform)):
         return False
     if np.any(np.isinf(transform)):

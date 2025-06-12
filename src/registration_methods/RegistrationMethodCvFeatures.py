@@ -2,12 +2,12 @@ import cv2 as cv
 import logging
 import numpy as np
 from multiview_stitcher import param_utils
-from sklearn.neighbors import KDTree
 from spatial_image import SpatialImage
 
 from src.image.util import uint8_image, get_sim_physical_size, validate_transform
 from src.metrics import calc_match_metrics
 from src.registration_methods.RegistrationMethod import RegistrationMethod
+from src.util import get_mean_nn_distance
 
 
 class RegistrationMethodCvFeatures(RegistrationMethod):
@@ -21,20 +21,12 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
         #feature_model = cv.ORB_create(patchSize=8, edgeThreshold=8)
         keypoints, desc = feature_model.detectAndCompute(data, None)
         points = [np.array(keypoint.pt) / scale for keypoint in keypoints]
-
-        if len(points) >= 2:
-            tree = KDTree(points, leaf_size=2)
-            dist, ind = tree.query(points, k=2)
-            nn_distance = np.median(dist[:, 1])
-        else:
-            nn_distance = 1
-
-        return points, desc, nn_distance
+        return points, desc
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
-        fixed_points, fixed_desc, nn_distance1 = self.detect_features(fixed_data.data)
-        moving_points, moving_desc, nn_distance2 = self.detect_features(moving_data.data)
-        threshold = np.mean([nn_distance1, nn_distance2])
+        fixed_points, fixed_desc = self.detect_features(fixed_data.data)
+        moving_points, moving_desc = self.detect_features(moving_data.data)
+        threshold = get_mean_nn_distance(fixed_points, moving_points)
 
         matcher = cv.BFMatcher()
         #matches0 = matcher.match(fixed_desc, moving_desc)

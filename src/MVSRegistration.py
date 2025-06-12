@@ -412,7 +412,11 @@ class MVSRegistration:
         source_type = sim0.dtype
 
         operation = params['operation']
-        method = params.get('method', '').lower()
+        reg_params = params.get('method')
+        if isinstance(reg_params, dict):
+            reg_method = reg_params.get('name', '').lower()
+        else:
+            reg_method = reg_params.lower()
         use_rotation = params.get('use_rotation', False)
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
 
@@ -437,19 +441,19 @@ class MVSRegistration:
         else:
             pairs = None
 
-        if 'cpd' in method:
+        if 'cpd' in reg_method:
             from src.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
-            registration_method = RegistrationMethodCPD(source_type)
+            registration_method = RegistrationMethodCPD(source_type, reg_params)
             pairwise_reg_func = registration_method.registration
-        elif 'feature' in method:
-            if 'cv' in method:
+        elif 'feature' in reg_method:
+            if 'cv' in reg_method:
                 from src.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
-                registration_method = RegistrationMethodCvFeatures(source_type)
+                registration_method = RegistrationMethodCvFeatures(source_type, reg_params)
             else:
                 from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
-                registration_method = RegistrationMethodSkFeatures(source_type)
+                registration_method = RegistrationMethodSkFeatures(source_type, reg_params)
             pairwise_reg_func = registration_method.registration
-        elif 'ant' in method:
+        elif 'ant' in reg_method:
             pairwise_reg_func = registration.registration_ANTsPy
         else:
             pairwise_reg_func = registration.phase_correlation_registration
@@ -460,7 +464,7 @@ class MVSRegistration:
         #pairwise_reg_function = registration_metrics.registration
         # TODO: extract metrics from registration_metrics
 
-        logging.info(f'Registration method: {method}')
+        logging.info(f'Registration method: {reg_method}')
 
         if use_rotation:
             pairwise_reg_func_kwargs = {
@@ -635,7 +639,7 @@ class MVSRegistration:
                                             transform_key=transform_key)
         fused_image = self.fuse(sims, params, transform_key=transform_key).squeeze()
         save_image(output_filename, output_params.get('thumbnail'), fused_image, channels=channels,
-                   transform_key=self.reg_transform_key, params=output_params)
+                   transform_key=transform_key, params=output_params)
 
     def calc_overlap_metrics(self, results):
         nccs = {}
