@@ -78,9 +78,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 #                       show_plot=False, output_filename=self.label + str(self.counter) + '.tiff')
                 #self.counter += 1
 
-                if transform is not None and not np.any(np.isnan(transform)):
-                    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),
-                          'quality', quality)
+                #if transform is not None and not np.any(np.isnan(transform)):
+                #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),
+                #          'quality', quality)
 
             size = []
             if 'z' in fixed_data.sizes:
