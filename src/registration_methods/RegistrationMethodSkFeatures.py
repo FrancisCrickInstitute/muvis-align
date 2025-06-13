@@ -43,9 +43,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         except RuntimeError as e:
             logging.error(e)
 
-        if len(points) == 0:
+        if len(points) < 20:
             # TODO: if #points is too low: alternative feature detection?
-            pass
+            logging.warning(f'Low number of features: {len(points)}')
 
         #inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
         #points = points[inliers]
