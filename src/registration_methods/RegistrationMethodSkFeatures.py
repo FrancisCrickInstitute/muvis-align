@@ -19,8 +19,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source_type, params):
         super().__init__(source_type, params)
 
-        downscale = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
-        self.feature_model = ORB(n_keypoints=5000, downscale=downscale)
+        self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
 
         self.label = 'matches_slice_'
@@ -35,9 +34,11 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         data = gaussian(data, sigma=self.gaussian_sigma)
 
         try:
-            self.feature_model.detect_and_extract(data)
-            points = self.feature_model.keypoints
-            desc = self.feature_model.descriptors
+            # not thread-safe - create instance that is not re-used in other thread
+            feature_model = ORB(n_keypoints=5000, downscale=self.downscale_factor)
+            feature_model.detect_and_extract(data)
+            points = feature_model.keypoints
+            desc = feature_model.descriptors
             if len(points) == 0:
                 logging.error('No features detected!')
         except RuntimeError as e:
