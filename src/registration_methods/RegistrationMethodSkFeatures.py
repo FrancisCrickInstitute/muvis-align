@@ -96,8 +96,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                             max_offset=max_offset)
 
             if quality == 0:
-                print('Matching failed')
-
+                # for debugging:
                 draw_keypoints_matches(fixed_data2, fixed_points,
                                        moving_data2, moving_points,
                                        matches, inliers,
