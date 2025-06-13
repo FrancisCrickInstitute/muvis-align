@@ -20,7 +20,7 @@ import zarr
 from src.Timer import Timer
 from src.image.source_helper import create_source, create_dask_source
 from src.image.util import normalise
-from src.util import convert_xyz_to_dict
+from src.util import xyz_to_dict
 
 
 def save_ome_tiff(filename, data, npyramid_add=0):
@@ -141,7 +141,7 @@ def task(filenames):
             print(f'reading {filename}')
             dask_data = load_dask(filename)
             sim = si_utils.get_sim_from_array(dask_data, transform_key=transform_key)
-            sim = sim.chunk(convert_xyz_to_dict(chunk_size))
+            sim = sim.chunk(xyz_to_dict(chunk_size))
             sims.append(sim)
 
     with Timer('normalise', auto_unit=False):

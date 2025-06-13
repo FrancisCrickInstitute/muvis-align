@@ -45,9 +45,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         return points, desc
 
     def match(self, fixed_points, fixed_desc, moving_points, moving_desc,
-              min_matches, cross_check, lowe_ratio, inlier_threshold):
+              min_matches, cross_check, lowe_ratio, inlier_threshold, max_offset):
         transform = None
         quality = 0
+        inliers = None
 
         matches = match_descriptors(fixed_desc, moving_desc, cross_check=cross_check, max_ratio=lowe_ratio)
         if len(matches) >= min_matches:
@@ -57,38 +58,34 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                         min_samples=min_matches,
                                         residual_threshold=inlier_threshold,
                                         max_trials=1000)
-            quality = np.mean(inliers)
-        return transform, quality
+            if validate_transform(transform, max_offset):
+                quality = np.mean(inliers)
+        return transform, quality, matches, inliers
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
         transform = np.eye(3)
         quality = 0
-        ok = False
 
         lowe_ratio = 0.92
         mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(2) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * 0.05
         min_matches = 5
-
-        size = []
-        if 'z' in fixed_data.sizes:
-            size += [fixed_data.sizes['z']]
-        size += [fixed_data.sizes['y'], fixed_data.sizes['x']]  # order yx (inversed xy)
+        max_offset = dict_to_xyz(fixed_data.sizes, 'zyx')
 
         fixed_points, fixed_desc = self.detect_features(fixed_data)
         moving_points, moving_desc = self.detect_features(moving_data)
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
-            transform, quality = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
+            transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
                                             min_matches=min_matches, cross_check=True,
-                                            lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold)
-            ok = (quality > 0 and validate_transform(transform, size))
-            if not ok:
+                                            lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
+                                            max_offset=max_offset)
+            if quality == 0:
                 print('Retrying matching without cross-check')
-                transform, quality = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
+                transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
                                                 min_matches=min_matches, cross_check=False,
-                                                lowe_ratio=1, inlier_threshold=inlier_threshold)
-
+                                                lowe_ratio=1, inlier_threshold=inlier_threshold,
+                                                max_offset=max_offset)
 
             #draw_keypoints_matches(fixed_data.astype(self.source_type), fixed_points,
             #                       moving_data.astype(self.source_type), moving_points,
@@ -99,8 +96,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             #if transform is not None and not np.any(np.isnan(transform)):
             #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),
             #          'quality', quality)
-
-        if not ok:
+        if quality == 0:
             logging.error('Unable to find feature-based registration')
             transform = np.eye(3)
 

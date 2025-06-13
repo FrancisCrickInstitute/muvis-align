@@ -63,7 +63,7 @@ def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_orde
         dimension_order = 'z' + dimension_order
 
     if not isinstance(chunks, dict):
-        chunks = convert_xyz_to_dict(chunks, dimension_order)
+        chunks = xyz_to_dict(chunks, dimension_order)
 
     z_position = 0
     offset = [0, 0]
@@ -80,8 +80,8 @@ def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_orde
         sim = si_utils.get_sim_from_array(
             pattern_image,
             dims=list(dimension_order),
-            scale=convert_xyz_to_dict(pixel_size),
-            translation=convert_xyz_to_dict(position),
+            scale=xyz_to_dict(pixel_size),
+            translation=xyz_to_dict(position),
             transform_key=transform_key
         )
         sims.append(sim.chunk(chunks))
@@ -93,12 +93,12 @@ def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_orde
 
 def init_sim(data, chunks=(1024, 1024), dimension_order='yx', position=None, pixel_size=None, transform_key='stage_metadata'):
     if not isinstance(chunks, dict):
-        chunks = convert_xyz_to_dict(chunks)
+        chunks = xyz_to_dict(chunks)
     sim = si_utils.get_sim_from_array(
         data,
         dims=list(dimension_order),
-        scale=convert_xyz_to_dict(pixel_size),
-        translation=convert_xyz_to_dict(position),
+        scale=xyz_to_dict(pixel_size),
+        translation=xyz_to_dict(position),
         transform_key=transform_key
     )
     return sim.chunk(chunks)
@@ -415,8 +415,8 @@ def test_create_stack(path, n):
         sim = si_utils.get_sim_from_array(
             source.get_source_dask()[0],
             dims=list(dimension_order),
-            scale=convert_xyz_to_dict(source.get_pixel_size_micrometer()),
-            translation=convert_xyz_to_dict(source.get_position_micrometer()),
+            scale=xyz_to_dict(source.get_pixel_size_micrometer()),
+            translation=xyz_to_dict(source.get_position_micrometer()),
             transform_key=transform_key
         )
         sims.append(sim)

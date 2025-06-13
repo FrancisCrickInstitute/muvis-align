@@ -24,10 +24,6 @@ def ensure_list(x) -> list:
         return [x]
 
 
-def dict_to_list(dct, keys = 'xyz'):
-    return [dct[key] for key in keys if key in dct]
-
-
 def reorder(items: list, old_order: str, new_order: str, default_value: int = 0) -> list:
     new_items = []
     for label in new_order:
@@ -348,7 +344,7 @@ def create_transform0(center=(0, 0), angle=0, scale=1, translate=(0, 0)):
 
 def create_transform(center, angle, matrix_size=3):
     if isinstance(center, dict):
-        center = dict_to_list(center)
+        center = dict_to_xyz(center)
     if len(center) == 2:
         center = np.array(list(center) + [0])
     if angle is None:
@@ -386,9 +382,13 @@ def points_to_3d(points):
     return [list(point) + [0] for point in points]
 
 
-def convert_xyz_to_dict(xyz, axes='xyz'):
+def xyz_to_dict(xyz, axes='xyz'):
     dct = {dim: value for dim, value in zip(axes, xyz)}
     return dct
+
+
+def dict_to_xyz(dct, keys='xyz'):
+    return [dct[key] for key in keys if key in dct]
 
 
 def normalise_rotated_positions(positions0, rotations0, size, center):

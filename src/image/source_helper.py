@@ -9,7 +9,7 @@ import zarr
 
 from src.TiffDaskSource import TiffDaskSource
 from src.ZarrDaskSource import ZarrDaskSource
-from src.util import get_filetitle, get_orthogonal_pairs, dict_to_list
+from src.util import get_filetitle, get_orthogonal_pairs, dict_to_xyz
 
 
 def create_dask_data(filename, level=0):
@@ -55,10 +55,10 @@ def get_images_metadata(filenames, source_metadata=None):
     pixel_sizes = []
     for filename in filenames:
         source = create_dask_source(filename, source_metadata)
-        pixel_size = dict_to_list(source.get_pixel_size())
-        size = dict_to_list(source.get_physical_size())
+        pixel_size = dict_to_xyz(source.get_pixel_size())
+        size = dict_to_xyz(source.get_physical_size())
         sizes.append(size)
-        position = dict_to_list(source.get_position())
+        position = dict_to_xyz(source.get_position())
         rotation = source.get_rotation()
         rotations.append(rotation)
 

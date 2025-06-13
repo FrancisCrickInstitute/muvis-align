@@ -683,7 +683,7 @@ def get_data_mapping(data, transform_key=None, transform=None, translation0=None
     return translation, rotation
 
 
-def validate_transform(transform, size, max_scale=1.2):
+def validate_transform(transform, max_offset, max_scale=1.2):
     if transform is None:
         return False
     transform = np.array(transform)
@@ -696,6 +696,6 @@ def validate_transform(transform, size, max_scale=1.2):
     translation, _, scale = get_properties_from_transform(transform)
     if scale < 1 / max_scale or scale > max_scale:
         return False
-    if np.any(np.abs(translation[:len(size)]) >= size):
+    if np.any(np.abs(translation[:len(max_offset)]) >= max_offset):
         return False
     return True

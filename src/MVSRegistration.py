@@ -329,10 +329,10 @@ class MVSRegistration:
                 c_coords=channel_labels
             )
             if len(sim.chunksizes.get('x')) == 1 and len(sim.chunksizes.get('y')) == 1:
-                sim = sim.chunk(convert_xyz_to_dict(chunk_size))
+                sim = sim.chunk(xyz_to_dict(chunk_size))
             sims.append(sim)
-            scales2.append(dict_to_list(scale))
-            translations2.append(dict_to_list(translation))
+            scales2.append(dict_to_xyz(scale))
+            translations2.append(dict_to_xyz(translation))
         return sims, scales2, translations2, rotations
 
     def validate_overlap(self, sims, labels, is_stack=False, expect_large_overlap=False):
