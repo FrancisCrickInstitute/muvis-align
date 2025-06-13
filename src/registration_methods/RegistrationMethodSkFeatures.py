@@ -27,14 +27,25 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         self.counter = 0
 
     def detect_features(self, data0):
+        points = []
+        desc = []
+
         data = self.convert_data_to_float(data0)
+        data = norm_image_variance(data)
         data = gaussian(data, sigma=self.gaussian_sigma)
 
-        self.feature_model.detect_and_extract(data)
-        points = self.feature_model.keypoints
-        desc = self.feature_model.descriptors
+        try:
+            self.feature_model.detect_and_extract(data)
+            points = self.feature_model.keypoints
+            desc = self.feature_model.descriptors
+            if len(desc) == 0:
+                logging.error('No features detected!')
+        except RuntimeError as e:
+            logging.error(e)
+
         if len(desc) == 0:
-            print('No features detected!')
+            # TODO: alternative feature detection?
+            pass
 
         #inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
         #points = points[inliers]
@@ -42,7 +53,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         #show_image(draw_keypoints(data, np.flip(self.feature_model.keypoints, axis=-1)))
 
-        return points, desc
+        return points, desc, data
 
     def match(self, fixed_points, fixed_desc, moving_points, moving_desc,
               min_matches, cross_check, lowe_ratio, inlier_threshold, max_offset):
@@ -72,26 +83,39 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         min_matches = 5
         max_offset = dict_to_xyz(fixed_data.sizes, 'zyx')
 
-        fixed_points, fixed_desc = self.detect_features(fixed_data)
-        moving_points, moving_desc = self.detect_features(moving_data)
+        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data)
+        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data)
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
                                             min_matches=min_matches, cross_check=True,
                                             lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                             max_offset=max_offset)
+
+            #draw_keypoints_matches(fixed_data2, fixed_points,
+            #                       moving_data2, moving_points,
+            #                       matches, inliers,
+            #                       show_plot=False, output_filename=self.label + str(self.counter) + '.tiff')
+
             if quality == 0:
                 print('Retrying matching without cross-check')
+
+                draw_keypoints_matches(fixed_data2, fixed_points,
+                                       moving_data2, moving_points,
+                                       matches, inliers,
+                                       show_plot=False, output_filename=self.label + str(self.counter) + 'a.tiff')
+
                 transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
                                                 min_matches=min_matches, cross_check=False,
                                                 lowe_ratio=1, inlier_threshold=inlier_threshold,
                                                 max_offset=max_offset)
 
-            #draw_keypoints_matches(fixed_data.astype(self.source_type), fixed_points,
-            #                       moving_data.astype(self.source_type), moving_points,
-            #                       matches, inliers,
-            #                       show_plot=False, output_filename=self.label + str(self.counter) + '.tiff')
-            #self.counter += 1
+                draw_keypoints_matches(fixed_data.astype(self.source_type), fixed_points,
+                                       moving_data.astype(self.source_type), moving_points,
+                                       matches, inliers,
+                                       show_plot=False, output_filename=self.label + str(self.counter) + 'b.tiff')
+
+            self.counter += 1
 
             #if transform is not None and not np.any(np.isnan(transform)):
             #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),

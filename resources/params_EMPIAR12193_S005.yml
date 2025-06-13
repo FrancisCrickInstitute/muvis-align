@@ -1,0 +1,33 @@
+general:
+  show_original: False
+  metadata_summary: False
+  chunk_size: [4096, 4096]
+  break_on_error: True
+  logging:
+    filename: log/muvis-align-empiar12193.log
+    format: '%(asctime)s %(levelname)s: %(message)s'
+    dask: True
+    time: True
+    verbose: True
+  output:
+    clear: False
+    overwrite: True
+    format: ome.zarr
+    tile_size: [4096, 4096]
+    compression:
+    npyramid_add: 4
+    pyramid_downsample: 2
+    thumbnail: ome.tiff
+
+operations:
+  - operation: register match S
+    #input: /nemo/project/proj-ccp-vem/datasets/12193/data/S???/*.tiff
+    input: D:/slides/12193/data/S005/*.tiff
+    source_metadata: {'scale': {'x': 0.004, 'y': 0.004}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24'}}
+    #normalisation: global # normalise on overlap level in custom registration function
+    use_orthogonal_pairs: True
+    method:
+      name: features #phase_correlation
+      gaussian_sigma: 5
+      downscale_factor: 2
+    output: ../../stitched/S005/

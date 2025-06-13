@@ -12,9 +12,6 @@ from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMe
 def test_feature_registration(params, operation):
     target_scale = 0
     input_path = operation['input']
-    if operation['operation'].endswith('S'):
-        # debugging: simulate matching
-        input_path = input_path.replace('/S???/', '/S000/')
     filenames = glob.glob(input_path)
     if len(filenames) == 0:
         raise FileNotFoundError(f"No files found for pattern: {input_path}")
@@ -34,7 +31,7 @@ def test_feature_registration(params, operation):
 
 
 if __name__ == "__main__":
-    params = 'resources/params_EMPIAR12193.yml'
+    params = 'resources/params_EMPIAR12193_S005.yml'
     with open(params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
 
