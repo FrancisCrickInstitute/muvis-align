@@ -31,7 +31,7 @@ def test_feature_registration(params, operation):
 
 
 if __name__ == "__main__":
-    params = 'resources/params_EMPIAR12193_S005.yml'
+    params = 'resources/params_EMPIAR12193_test.yml'
     with open(params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
 

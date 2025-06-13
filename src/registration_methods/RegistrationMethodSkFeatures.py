@@ -38,13 +38,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             self.feature_model.detect_and_extract(data)
             points = self.feature_model.keypoints
             desc = self.feature_model.descriptors
-            if len(desc) == 0:
+            if len(points) == 0:
                 logging.error('No features detected!')
         except RuntimeError as e:
             logging.error(e)
 
-        if len(desc) == 0:
-            # TODO: alternative feature detection?
+        if len(points) == 0:
+            # TODO: if #points is too low: alternative feature detection?
             pass
 
         #inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
@@ -74,6 +74,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         return transform, quality, matches, inliers
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
+        counter = self.counter
+        self.counter += 1
+
         transform = np.eye(3)
         quality = 0
 
@@ -92,30 +95,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                             lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                             max_offset=max_offset)
 
-            #draw_keypoints_matches(fixed_data2, fixed_points,
-            #                       moving_data2, moving_points,
-            #                       matches, inliers,
-            #                       show_plot=False, output_filename=self.label + str(self.counter) + '.tiff')
-
             if quality == 0:
-                print('Retrying matching without cross-check')
+                print('Matching failed')
 
                 draw_keypoints_matches(fixed_data2, fixed_points,
                                        moving_data2, moving_points,
                                        matches, inliers,
-                                       show_plot=False, output_filename=self.label + str(self.counter) + 'a.tiff')
-
-                transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
-                                                min_matches=min_matches, cross_check=False,
-                                                lowe_ratio=1, inlier_threshold=inlier_threshold,
-                                                max_offset=max_offset)
-
-                draw_keypoints_matches(fixed_data.astype(self.source_type), fixed_points,
-                                       moving_data.astype(self.source_type), moving_points,
-                                       matches, inliers,
-                                       show_plot=False, output_filename=self.label + str(self.counter) + 'b.tiff')
-
-            self.counter += 1
+                                       show_plot=False, output_filename=self.label + str(counter) + '.tiff')
 
             #if transform is not None and not np.any(np.isnan(transform)):
             #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),

@@ -28,8 +28,8 @@ operations:
     use_orthogonal_pairs: True
     method:
       name: features #phase_correlation
-      gaussian_sigma: 5
-      downscale_factor: 2
+      gaussian_sigma: 4
+      downscale_factor: 1.414
     output: ../../stitched/S{S}/
 
   - operation: stack
@@ -41,6 +41,6 @@ operations:
     use_rotation: True
     method:
       name: features #phase_correlation
-      gaussian_sigma: 5
-      downscale_factor: 2
+      gaussian_sigma: 4
+      downscale_factor: 1.414
     output: ../../aligned/
