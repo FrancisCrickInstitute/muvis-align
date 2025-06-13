@@ -16,6 +16,8 @@ def test_feature_registration(params, operation):
         # debugging: simulate matching
         input_path = input_path.replace('/S???/', '/S000/')
     filenames = glob.glob(input_path)
+    if len(filenames) == 0:
+        raise FileNotFoundError(f"No files found for pattern: {input_path}")
     reg = MVSRegistration(params['general'])
     sims, _, _, _ = reg.init_sims(filenames, operation, target_scale=target_scale)
     norm_sims, _ = reg.preprocess(sims, operation)
@@ -28,7 +30,7 @@ def test_feature_registration(params, operation):
     for pair in pairs:
         overlap_sims = reg.get_overlap_images((norm_sims[pair[0]], norm_sims[pair[1]]), reg.source_transform_key)
         result = reg_method.registration(*overlap_sims)
-        #print(result)
+        print(result)
 
 
 if __name__ == "__main__":
