@@ -96,12 +96,12 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                             lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                             max_offset=max_offset)
 
-            if quality == 0:
-                # for debugging:
-                draw_keypoints_matches(fixed_data2, fixed_points,
-                                       moving_data2, moving_points,
-                                       matches, inliers,
-                                       show_plot=False, output_filename=self.label + str(counter) + '.tiff')
+            #if quality == 0:
+            #    # for debugging:
+            #    draw_keypoints_matches(fixed_data2, fixed_points,
+            #                           moving_data2, moving_points,
+            #                           matches, inliers,
+            #                           show_plot=False, output_filename=self.label + str(counter) + '.tiff')
 
             #if transform is not None and not np.any(np.isnan(transform)):
             #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),
