@@ -4,6 +4,7 @@
 
 import dask
 import dask.array as da
+from dask.diagnostics import Profiler, ResourceProfiler
 from dask.distributed import Client
 from distributed import performance_report
 import glob
@@ -18,7 +19,7 @@ from tifffile import TiffFile, TiffWriter, imread
 import zarr
 
 from src.Timer import Timer
-from src.image.source_helper import create_source, create_dask_source
+from src.image.source_helper import create_dask_source
 from src.image.util import normalise
 from src.util import xyz_to_dict
 
@@ -111,8 +112,8 @@ def dask_ome_zarr_py(filename, level=0):
 
 
 def dask_ome_zarr_source(filename):
-    source = create_source(filename)
-    return source.get_source_dask()[0]
+    source = create_dask_source(filename)
+    return source.get_data(0)
 
 
 def load_dask0(filename):
@@ -157,12 +158,12 @@ if __name__ == "__main__":
     #filename = 'test.ome.tiff'
     #save_ome_tiff(filename, data, npyramid_add=4)
 
-    base_folder = '/nemo/project/proj-ccp-vem/datasets/12193/stitched/'
-    #base_folder = 'D:/slides/12193/stitched/'
+    #base_folder = '/nemo/project/proj-ccp-vem/datasets/12193/stitched/'
+    base_folder = 'D:/slides/12193/stitched/'
 
     filesets = [
         [base_folder + 'S000/registered.ome.zarr', base_folder + 'S001/registered.ome.zarr', base_folder + 'S002/registered.ome.zarr'],
-        [base_folder + 'S000/registered.ome.tiff', base_folder + 'S001/registered.ome.tiff', base_folder + 'S002/registered.ome.tiff'],
+        #[base_folder + 'S000/registered.ome.tiff', base_folder + 'S001/registered.ome.tiff', base_folder + 'S002/registered.ome.tiff'],
     ]
 
     print('Without client')
@@ -171,7 +172,16 @@ if __name__ == "__main__":
         task(filenames)
         print()
 
-    print('With client')
+    print('Without client & profiling')
+    with Profiler() as prof, ResourceProfiler(dt=1) as rprof:
+        for filenames in filesets:
+            print('Fileset:', filenames)
+            task(filenames)
+            print()
+    prof.visualize(filename='profile.html', save=True, show=False)
+    rprof.visualize(filename='resource_profile.html', save=True, show=False)
+
+    print('With client & performance profiling')
     with Client(processes=False) as client:
         print(client)
         with performance_report(filename="report.html"):

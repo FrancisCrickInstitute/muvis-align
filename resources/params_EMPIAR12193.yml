@@ -18,6 +18,7 @@ general:
     npyramid_add: 4
     pyramid_downsample: 2
     thumbnail: ome.tiff, ome.zarr
+    thumbnail_scale: 32
 
 operations:
   - operation: register match S

@@ -622,10 +622,11 @@ class MVSRegistration:
         extra_metadata = params.get('extra_metadata', {})
         channels = extra_metadata.get('channels', [])
         output_params = self.params_general['output']
+        thumbnail_scale = output_params.get('thumbnail_scale', 16)
         sims = self.init_sims(filenames, params,
                               global_center=global_center,
                               global_rotation=global_rotation,
-                              target_scale=16)[0]
+                              target_scale=thumbnail_scale)[0]
 
         if nom_sims is not None:
             if sims[0].sizes['x'] >= nom_sims[0].sizes['x']:
