@@ -2,6 +2,7 @@
 # https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_orb.html
 # https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_brief.html
 
+from datetime import datetime
 import logging
 import numpy as np
 from multiview_stitcher import param_utils
@@ -21,9 +22,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+        self.max_trails = params.get('max_trials', 10000)
+        self.ransac_iterations = params.get('ransac_iterations', 10)
 
         self.label = 'matches_slice_'
-        self.counter = 0
 
     def detect_features(self, data0):
         points = []
@@ -66,25 +68,45 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         if len(matches) >= min_matches:
             fixed_points2 = np.array([fixed_points[match[0]] for match in matches])
             moving_points2 = np.array([moving_points[match[1]] for match in matches])
-            transform, inliers = ransac((fixed_points2, moving_points2), EuclideanTransform,
-                                        min_samples=min_matches,
-                                        residual_threshold=inlier_threshold,
-                                        max_trials=1000)
-            if validate_transform(transform, max_offset):
-                quality = np.mean(inliers)
+
+            transforms = []
+            inliers_list = []
+            translations = []
+            tot_weight = 0
+            tot_translation = None
+            for i in range(self.ransac_iterations):
+                transform, inliers = ransac((fixed_points2, moving_points2), EuclideanTransform,
+                                            min_samples=min_matches,
+                                            residual_threshold=inlier_threshold,
+                                            max_trials=self.max_trails)
+                if validate_transform(transform, max_offset):
+                    weight = np.mean(inliers)
+                    weighted_translation = transform.translation * weight
+                    tot_weight += weight
+                    if tot_translation is None:
+                        tot_translation = weighted_translation
+                    else:
+                        tot_translation += weighted_translation
+                    translations.append(transform.translation)
+                    transforms.append(transform)
+                    inliers_list.append(inliers)
+
+            mean_translation = tot_translation / tot_weight
+            best_index = np.argmin(np.linalg.norm(translations - mean_translation, axis=1))
+            transform = transforms[best_index]
+            inliers = inliers_list[best_index]
+            quality = np.mean(inliers)
+
         return transform, quality, matches, inliers
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
-        counter = self.counter
-        self.counter += 1
-
         transform = np.eye(3)
         quality = 0
 
         lowe_ratio = 0.92
         mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(2) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * 0.05
-        min_matches = 5
+        min_matches = 10
         max_offset = dict_to_xyz(fixed_data.sizes, 'zyx')
 
         fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data)
@@ -92,16 +114,19 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
-                                            min_matches=min_matches, cross_check=True,
-                                            lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
-                                            max_offset=max_offset)
-
-            #if quality == 0:
-            #    # for debugging:
-            #    draw_keypoints_matches(fixed_data2, fixed_points,
-            #                           moving_data2, moving_points,
-            #                           matches, inliers,
-            #                           show_plot=False, output_filename=self.label + str(counter) + '.tiff')
+                                                              min_matches=min_matches, cross_check=True,
+                                                              lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
+                                                              max_offset=max_offset)
+            # for debugging:
+            output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3] + '.tiff'
+            draw_keypoints_matches_sk(fixed_data2, fixed_points,
+                                      moving_data2, moving_points,
+                                      matches[inliers],
+                                      show_plot=False, output_filename=output_filename)
+            #draw_keypoints_matches(fixed_data2, fixed_points,
+            #                       moving_data2, moving_points,
+            #                       matches, inliers,
+            #                       show_plot=False, output_filename=output_filename)
 
             #if transform is not None and not np.any(np.isnan(transform)):
             #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),

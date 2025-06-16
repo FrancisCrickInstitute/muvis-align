@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 from scipy.ndimage import gaussian_filter
+from skimage.feature import plot_matched_features
 from skimage.transform import downscale_local_mean
 from xarray import DataTree
 
@@ -320,17 +321,37 @@ def draw_keypoints_matches_cv(image1, points1, image2, points2, matches=None, in
     return out_image
 
 
+def draw_keypoints_matches_sk(image1, points1, image2, points2, matches=None,
+                              show_plot=True, output_filename=None):
+    fig, ax = plt.subplots(figsize=(16, 8))
+    plot_matched_features(
+        image1,
+        image2,
+        keypoints0=points1,
+        keypoints1=points2,
+        matches=matches,
+        ax=ax,
+        only_matches=True,
+    )
+    plt.tight_layout()
+    if output_filename is not None:
+        plt.savefig(output_filename)
+    if show_plot:
+        plt.show()
+
+
 def draw_keypoints_matches(image1, points1, image2, points2, matches=None, inliers=None,
                            points_color='black', match_color='red', inlier_color='lime',
                            show_plot=True, output_filename=None):
     fig, ax = plt.subplots(figsize=(16, 8))
     shape = np.max([image.shape for image in [image1, image2]], axis=0)
-    if shape[0] < shape[1]:
+    shape_y, shape_x = shape[:2]
+    if shape_x > 2 * shape_y:
         merge_axis = 0
-        offset2 = [shape[0], 0]
+        offset2 = [shape_y, 0]
     else:
         merge_axis = 1
-        offset2 = [0, shape[1]]
+        offset2 = [0, shape_x]
     image = np.concatenate([
         np.pad(image1, ((0, shape[0] - image1.shape[0]), (0, shape[1] - image1.shape[1]))),
         np.pad(image2, ((0, shape[0] - image2.shape[0]), (0, shape[1] - image2.shape[1])))
