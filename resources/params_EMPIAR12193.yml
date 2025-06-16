@@ -33,7 +33,7 @@ operations:
     output: ../../stitched/S{S}/
 
   - operation: stack
-    input: /nemo/project/proj-ccp-vem/datasets/12193/stitched/S???/*.ome.zarr
+    input: /nemo/project/proj-ccp-vem/datasets/12193/stitched/S???/registered.ome.zarr
     #input: D:/slides/12193/stitched/S???/registered.ome.zarr
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
