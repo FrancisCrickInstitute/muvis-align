@@ -91,11 +91,12 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                     transforms.append(transform)
                     inliers_list.append(inliers)
 
-            mean_translation = tot_translation / tot_weight
-            best_index = np.argmin(np.linalg.norm(translations - mean_translation, axis=1))
-            transform = transforms[best_index]
-            inliers = inliers_list[best_index]
-            quality = np.mean(inliers)
+            if tot_weight > 0:
+                mean_translation = tot_translation / tot_weight
+                best_index = np.argmin(np.linalg.norm(translations - mean_translation, axis=1))
+                transform = transforms[best_index]
+                inliers = inliers_list[best_index]
+                quality = np.mean(inliers)
 
         return transform, quality, matches, inliers
 
@@ -118,11 +119,11 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                                               lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                                               max_offset=max_offset)
             # for debugging:
-            output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3] + '.tiff'
-            draw_keypoints_matches_sk(fixed_data2, fixed_points,
-                                      moving_data2, moving_points,
-                                      matches[inliers],
-                                      show_plot=False, output_filename=output_filename)
+            #output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3] + '.tiff'
+            #draw_keypoints_matches_sk(fixed_data2, fixed_points,
+            #                          moving_data2, moving_points,
+            #                          matches[inliers],
+            #                          show_plot=False, output_filename=output_filename)
             #draw_keypoints_matches(fixed_data2, fixed_points,
             #                       moving_data2, moving_points,
             #                       matches, inliers,
