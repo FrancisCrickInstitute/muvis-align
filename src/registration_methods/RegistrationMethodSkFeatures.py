@@ -12,6 +12,7 @@ from skimage.measure import ransac
 from skimage.transform import EuclideanTransform
 from spatial_image import SpatialImage
 
+from src.image.ome_tiff_helper import save_tiff
 from src.image.util import *
 from src.registration_methods.RegistrationMethod import RegistrationMethod
 
@@ -118,21 +119,19 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                                               min_matches=min_matches, cross_check=True,
                                                               lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                                               max_offset=max_offset)
+        if quality == 0:
             # for debugging:
-            #output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3] + '.tiff'
-            #draw_keypoints_matches_sk(fixed_data2, fixed_points,
-            #                          moving_data2, moving_points,
-            #                          matches[inliers],
-            #                          show_plot=False, output_filename=output_filename)
+            output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            save_tiff(output_filename + '_f.tiff', fixed_data)
+            save_tiff(output_filename + '_m.tiff', moving_data)
+            draw_keypoints_matches_sk(fixed_data2.astype(self.source_type), fixed_points,
+                                      moving_data2.astype(self.source_type), moving_points,
+                                      matches[inliers],
+                                      show_plot=False, output_filename=output_filename + '.tiff')
             #draw_keypoints_matches(fixed_data2, fixed_points,
             #                       moving_data2, moving_points,
             #                       matches, inliers,
             #                       show_plot=False, output_filename=output_filename)
-
-            #if transform is not None and not np.any(np.isnan(transform)):
-            #    print('translation', transform.translation, 'rotation', np.rad2deg(transform.rotation),
-            #          'quality', quality)
-        if quality == 0:
             logging.error('Unable to find feature-based registration')
             transform = np.eye(3)
 
