@@ -122,10 +122,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         if quality == 0:
             # for debugging:
             output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            save_tiff(output_filename + '_f.tiff', fixed_data)
-            save_tiff(output_filename + '_m.tiff', moving_data)
-            draw_keypoints_matches_sk(fixed_data2.astype(self.source_type), fixed_points,
-                                      moving_data2.astype(self.source_type), moving_points,
+            save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
+            save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
+            draw_keypoints_matches_sk(fixed_data2, fixed_points,
+                                      moving_data2, moving_points,
                                       matches[inliers],
                                       show_plot=False, output_filename=output_filename + '.tiff')
             #draw_keypoints_matches(fixed_data2, fixed_points,
