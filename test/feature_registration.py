@@ -5,14 +5,23 @@ import numpy as np
 import yaml
 
 from src.MVSRegistration import MVSRegistration
+from src.image.source_helper import create_dask_source
 from src.image.util import *
 from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures as RegMethod
 
 
-def test_feature_registration(params, operation):
-    target_scale = 0
+def test_feature_registration():
+    params = 'resources/params_EMPIAR12193.yml'
+    with open(params, 'r', encoding='utf8') as file:
+        params = yaml.safe_load(file)
+
+    logging.basicConfig(level=logging.INFO)
+
+    operation = params['operations'][1]
+
+    target_scale = 4
     input_path = operation['input']
-    filenames = glob.glob(input_path)
+    filenames = glob.glob(input_path)[:2]
     if len(filenames) == 0:
         raise FileNotFoundError(f"No files found for pattern: {input_path}")
     reg = MVSRegistration(params['general'])
@@ -30,13 +39,29 @@ def test_feature_registration(params, operation):
         print(result)
 
 
+def test_feature_registration_simple():
+    folder = 'D:/slides/12193/aligned_hpc/'
+    filenames = [
+        folder + 'matches_slice_20250617_045526_216_f.tiff',
+        folder + 'matches_slice_20250617_045526_216_m.tiff'
+    ]
+    reg_params = {
+        'downscale_factor': 1.414,
+        'gaussian_sigma': 6,
+        'max_trials': 5000,
+        'ransac_iterations': 10,
+        'inlier_threshold_factor': 0.05
+    }
+
+    images = [create_dask_source(filename).get_data() for filename in filenames]
+    image0 = images[0]
+
+    reg_method = RegMethod(image0, reg_params)
+    result = reg_method.registration(*images)
+    print(result)
+
+
 if __name__ == "__main__":
-    params = 'resources/params_EMPIAR12193_test.yml'
-    with open(params, 'r', encoding='utf8') as file:
-        params = yaml.safe_load(file)
 
-    logging.basicConfig(level=logging.INFO)
-
-    operation = params['operations'][0]
-
-    test_feature_registration(params, operation)
+    #test_feature_registration()
+    test_feature_registration_simple()

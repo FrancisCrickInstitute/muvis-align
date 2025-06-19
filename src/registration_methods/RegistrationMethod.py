@@ -4,8 +4,9 @@ from spatial_image import SpatialImage
 
 
 class RegistrationMethod(ABC):
-    def __init__(self, source_type, params):
-        self.source_type = source_type
+    def __init__(self, source, params):
+        self.source_type = source.dtype
+        self.source_max_size = np.max(source.shape)
         self.params = params
 
     def convert_data_to_float(self, data):

@@ -409,7 +409,6 @@ class MVSRegistration:
     def register(self, sims, register_sims, indices, params):
         sim0 = sims[0]
         ndims = si_utils.get_ndim_from_sim(sim0)
-        source_type = sim0.dtype
 
         operation = params['operation']
         reg_params = params.get('method')
@@ -443,15 +442,15 @@ class MVSRegistration:
 
         if 'cpd' in reg_method:
             from src.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
-            registration_method = RegistrationMethodCPD(source_type, reg_params)
+            registration_method = RegistrationMethodCPD(sim0, reg_params)
             pairwise_reg_func = registration_method.registration
         elif 'feature' in reg_method:
             if 'cv' in reg_method:
                 from src.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
-                registration_method = RegistrationMethodCvFeatures(source_type, reg_params)
+                registration_method = RegistrationMethodCvFeatures(sim0, reg_params)
             else:
                 from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
-                registration_method = RegistrationMethodSkFeatures(source_type, reg_params)
+                registration_method = RegistrationMethodSkFeatures(sim0, reg_params)
             pairwise_reg_func = registration_method.registration
         elif 'ant' in reg_method:
             pairwise_reg_func = registration.registration_ANTsPy
@@ -460,7 +459,7 @@ class MVSRegistration:
 
         # Pass registration through metrics method
         #from src.registration_methods.RegistrationMetrics import RegistrationMetrics
-        #registration_metrics = RegistrationMetrics(source_type, pairwise_reg_function)
+        #registration_metrics = RegistrationMetrics(sim0, pairwise_reg_function)
         #pairwise_reg_function = registration_metrics.registration
         # TODO: extract metrics from registration_metrics
 
