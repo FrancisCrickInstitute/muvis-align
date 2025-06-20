@@ -18,24 +18,25 @@ from src.registration_methods.RegistrationMethod import RegistrationMethod
 
 
 class RegistrationMethodSkFeatures(RegistrationMethod):
-    def __init__(self, source_type, params):
-        super().__init__(source_type, params)
+    def __init__(self, source, params):
+        super().__init__(source, params)
 
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
-        self.gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+        self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
         self.max_trails = params.get('max_trials', 10000)
         self.ransac_iterations = params.get('ransac_iterations', 10)
         self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)
 
         self.label = 'matches_slice_'
 
-    def detect_features(self, data0):
+    def detect_features(self, data0, gaussian_sigma=None):
         points = []
         desc = []
 
         data = self.convert_data_to_float(data0)
         data = norm_image_variance(data)
-        data = gaussian(data, sigma=self.gaussian_sigma)
+        if gaussian_sigma:
+            data = gaussian(data, sigma=gaussian_sigma)
 
         try:
             # not thread-safe - create instance that is not re-used in other thread
@@ -61,7 +62,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         return points, desc, data
 
     def match(self, fixed_points, fixed_desc, moving_points, moving_desc,
-              min_matches, cross_check, lowe_ratio, inlier_threshold, max_offset):
+              min_matches, cross_check, lowe_ratio, inlier_threshold, mean_size_dist):
         transform = None
         quality = 0
         inliers = None
@@ -81,8 +82,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                             min_samples=min_matches,
                                             residual_threshold=inlier_threshold,
                                             max_trials=self.max_trails)
-                #if validate_transform(transform, max_offset):
-                if np.sum(inliers) > 0:
+                if validate_transform(transform):
                     weight = np.mean(inliers)
                     weighted_translation = transform.translation * weight
                     tot_weight += weight
@@ -94,17 +94,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                     transforms.append(transform)
                     inliers_list.append(inliers)
 
-            print(np.std(translations, axis=0))
-
             if tot_weight > 0:
                 mean_translation = tot_translation / tot_weight
                 best_index = np.argmin(np.linalg.norm(translations - mean_translation, axis=1))
                 transform = transforms[best_index]
                 inliers = inliers_list[best_index]
-                quality = np.mean(inliers)
-
-            print(min(len(fixed_points), len(moving_points)), len(matches), np.sum(inliers), f'{quality:.3f}')
-            print(transform.translation, np.rad2deg(transform.rotation))
+                #quality = np.mean(inliers)
+                quality = 1 - np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist
 
         return transform, quality, matches, inliers
 
@@ -113,22 +109,22 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         quality = 0
 
         lowe_ratio = 0.92
-        mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(2) for data in [fixed_data, moving_data]])
+        full_size_dist = np.linalg.norm(self.full_size)
+        mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
+        scale = mean_size_dist / full_size_dist
+        gaussian_sigma = self.full_size_gaussian_sigma * (scale ** (1/3))
+        mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(self.ndims) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * self.inlier_threshold_factor
         min_matches = 10
-        if hasattr(fixed_data, 'sizes'):
-            max_offset = dict_to_xyz(fixed_data.sizes, 'zyx')
-        else:
-            max_offset = fixed_data.shape
 
-        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data)
-        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data)
+        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data, gaussian_sigma)
+        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data, gaussian_sigma)
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
                                                               min_matches=min_matches, cross_check=True,
                                                               lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
-                                                              max_offset=max_offset)
+                                                              mean_size_dist=mean_size_dist)
         if quality == 0:
             # for debugging:
             output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]

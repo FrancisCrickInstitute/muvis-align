@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from multiview_stitcher import spatial_image_utils as si_utils
 import numpy as np
 from spatial_image import SpatialImage
 
@@ -6,7 +7,12 @@ from spatial_image import SpatialImage
 class RegistrationMethod(ABC):
     def __init__(self, source, params):
         self.source_type = source.dtype
-        self.source_max_size = np.max(source.shape)
+        if hasattr(source, 'dims'):
+            self.full_size = si_utils.get_shape_from_sim(source, asarray=True)
+            self.ndims = len([size for size in self.full_size if size > 1])
+        else:
+            self.full_size = [size for size in source.shape if size > 4]    # try to filter channel dimension
+            self.ndims = len(self.full_size)
         self.params = params
 
     def convert_data_to_float(self, data):

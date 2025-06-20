@@ -51,7 +51,7 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
                 #quality = np.mean(inliers)
                 quality = metrics['match_rate']
 
-        if not validate_transform(transform, get_sim_physical_size(fixed_data, invert=True)):
+        if not validate_transform(transform):
             logging.error('Unable to find feature-based registration')
             transform = np.eye(3)
 
