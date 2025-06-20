@@ -65,7 +65,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
               min_matches, cross_check, lowe_ratio, inlier_threshold, mean_size_dist):
         transform = None
         quality = 0
-        inliers = None
+        inliers = []
 
         matches = match_descriptors(fixed_desc, moving_desc, cross_check=cross_check, max_ratio=lowe_ratio)
         if len(matches) >= min_matches:
@@ -101,6 +101,8 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 inliers = inliers_list[best_index]
                 #quality = np.mean(inliers)
                 quality = 1 - np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist
+            # correct for failed ransac registration attempts
+            quality *= len(inliers_list) / self.ransac_iterations
 
         return transform, quality, matches, inliers
 
@@ -125,15 +127,16 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                                               min_matches=min_matches, cross_check=True,
                                                               lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                                               mean_size_dist=mean_size_dist)
-        if quality == 0:
+        if quality == 0 or np.sum(inliers) == 0:
             # for debugging:
             output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
             save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
             save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
-            draw_keypoints_matches_sk(fixed_data2, fixed_points,
-                                      moving_data2, moving_points,
-                                      matches[inliers],
-                                      show_plot=False, output_filename=output_filename + '_i.tiff')
+            if np.sum(inliers) > 0:
+                draw_keypoints_matches_sk(fixed_data2, fixed_points,
+                                          moving_data2, moving_points,
+                                          matches[inliers],
+                                          show_plot=False, output_filename=output_filename + '_i.tiff')
             draw_keypoints_matches(fixed_data2, fixed_points,
                                    moving_data2, moving_points,
                                    matches, inliers,
