@@ -129,18 +129,18 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                                               mean_size_dist=mean_size_dist)
         if quality == 0 or np.sum(inliers) == 0:
             # for debugging:
-            output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-            save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
-            save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
-            if np.sum(inliers) > 0:
-                draw_keypoints_matches_sk(fixed_data2, fixed_points,
-                                          moving_data2, moving_points,
-                                          matches[inliers],
-                                          show_plot=False, output_filename=output_filename + '_i.tiff')
-            draw_keypoints_matches(fixed_data2, fixed_points,
-                                   moving_data2, moving_points,
-                                   matches, inliers,
-                                   show_plot=False, output_filename=output_filename + '.tiff')
+            #output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            #save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
+            #save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
+            #if np.sum(inliers) > 0:
+            #    draw_keypoints_matches_sk(fixed_data2, fixed_points,
+            #                              moving_data2, moving_points,
+            #                              matches[inliers],
+            #                              show_plot=False, output_filename=output_filename + '_i.tiff')
+            #draw_keypoints_matches(fixed_data2, fixed_points,
+            #                       moving_data2, moving_points,
+            #                       matches, inliers,
+            #                       show_plot=False, output_filename=output_filename + '.tiff')
             logging.error('Unable to find feature-based registration')
             transform = np.eye(3)
 
