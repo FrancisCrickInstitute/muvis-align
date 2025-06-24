@@ -6,7 +6,7 @@ from src.Pipeline import Pipeline
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f'multiview-stitcher')
-    parser.add_argument('--params',
+    parser.add_argument('params',
                         help='The parameters file',
                         default='resources/params.yml')
 
