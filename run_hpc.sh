@@ -10,4 +10,4 @@ ml purge
 ml Anaconda3
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 conda activate muvis-env
-python run.py
+python run.py $1

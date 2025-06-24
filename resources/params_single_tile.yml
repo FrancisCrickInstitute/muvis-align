@@ -22,7 +22,6 @@ operations:
     normalisation: global
     filter_foreground: False
     use_orthogonal_pairs: True
-    use_rotation: False
     channel: 0
     method: phase_correlation
     output: test/

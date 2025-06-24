@@ -49,7 +49,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         except RuntimeError as e:
             logging.error(e)
 
-        if len(points) < 20:
+        if len(points) < 50:
             # TODO: if #points is too low: alternative feature detection?
             logging.warning(f'Low number of features: {len(points)}')
 
@@ -82,7 +82,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                             min_samples=min_matches,
                                             residual_threshold=inlier_threshold,
                                             max_trials=self.max_trails)
-                if validate_transform(transform):
+                if inliers is None:
+                    inliers = []
+                if len(inliers) > 0 and validate_transform(transform):
                     weight = np.mean(inliers)
                     weighted_translation = transform.translation * weight
                     tot_weight += weight
@@ -107,8 +109,11 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         return transform, quality, matches, inliers
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
-        transform = np.eye(3)
+        eye_transform = np.eye(self.ndims + 1)
+        transform = eye_transform
         quality = 0
+        matches = []
+        inliers = []
 
         lowe_ratio = 0.92
         full_size_dist = np.linalg.norm(self.full_size)
@@ -127,7 +132,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                                               min_matches=min_matches, cross_check=True,
                                                               lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
                                                               mean_size_dist=mean_size_dist)
+        else:
+            print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}')
         if quality == 0 or np.sum(inliers) == 0:
+            print('#matches:', len(matches), '#inliers:', np.sum(inliers), 'quality:', quality)
             # for debugging:
             #output_filename = self.label + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
             #save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
@@ -142,7 +150,8 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             #                       matches, inliers,
             #                       show_plot=False, output_filename=output_filename + '.tiff')
             logging.error('Unable to find feature-based registration')
-            transform = np.eye(3)
+            transform = eye_transform
+            quality = 0.2   # don't drop completely
 
         return {
             "affine_matrix": np.array(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)

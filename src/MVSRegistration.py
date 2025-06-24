@@ -416,7 +416,6 @@ class MVSRegistration:
             reg_method = reg_params.get('name', '').lower()
         else:
             reg_method = reg_params.lower()
-        use_rotation = params.get('use_rotation', False)
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
 
         is_stack = ('stack' in operation)
@@ -428,6 +427,8 @@ class MVSRegistration:
         else:
             reg_channel_index = None
 
+        pairwise_reg_func_kwargs = None
+        groupwise_resolution_kwargs = None
         if is_stack:
             # register in 2d; pairwise consecutive views
             register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
@@ -454,18 +455,7 @@ class MVSRegistration:
             pairwise_reg_func = registration_method.registration
         elif 'ant' in reg_method:
             pairwise_reg_func = registration.registration_ANTsPy
-        else:
-            pairwise_reg_func = registration.phase_correlation_registration
-
-        # Pass registration through metrics method
-        #from src.registration_methods.RegistrationMetrics import RegistrationMetrics
-        #registration_metrics = RegistrationMetrics(sim0, pairwise_reg_function)
-        #pairwise_reg_function = registration_metrics.registration
-        # TODO: extract metrics from registration_metrics
-
-        logging.info(f'Registration method: {reg_method}')
-
-        if use_rotation:
+            # args for ANTsPy registration: used internally by ANYsPy algorithm
             pairwise_reg_func_kwargs = {
                 'transform_types': ['Rigid'],
                 "aff_random_sampling_rate": 0.5,
@@ -478,8 +468,15 @@ class MVSRegistration:
                 'transform': 'rigid',  # options include 'translation', 'rigid', 'affine'
             }
         else:
-            pairwise_reg_func_kwargs = None
-            groupwise_resolution_kwargs = None
+            pairwise_reg_func = registration.phase_correlation_registration
+
+        # Pass registration through metrics method
+        #from src.registration_methods.RegistrationMetrics import RegistrationMetrics
+        #registration_metrics = RegistrationMetrics(sim0, pairwise_reg_function)
+        #pairwise_reg_function = registration_metrics.registration
+        # TODO: extract metrics from registration_metrics
+
+        logging.info(f'Registration method: {reg_method}')
 
         try:
             logging.info('Registering...')

@@ -373,7 +373,7 @@ def draw_keypoints_matches(image1, points1, image2, points2, matches=None, inlie
 
     for i, match in enumerate(matches):
         color = match_color
-        if inliers is not None and inliers[i]:
+        if i < len(inliers) and inliers[i]:
             color = inlier_color
         index1, index2 = match
         ax.plot(
