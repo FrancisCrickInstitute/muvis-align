@@ -103,7 +103,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 best_index = np.argmin(np.linalg.norm(translations - mean_translation, axis=1))
                 transform = transforms[best_index]
                 inliers = inliers_list[best_index]
-                quality *= 1 - (np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist) ** 3  # ^3 to increase sensitivity
+                quality *= 1 - np.clip(np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist, 0, 1) ** 3  # ^3 to increase sensitivity
                 #print('norm translation', mean_translation / mean_size_dist, 'norm SD', np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist)
             #print('%inliers', np.mean(inliers), '#good ransac iterations', len(inliers_list))
 
@@ -153,7 +153,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         if quality == 0 or np.sum(inliers) == 0:
             logging.error('Unable to find feature-based registration')
             transform = eye_transform
-            quality = 0.1001   # don't drop completely
+            #quality = 0.1001   # don't drop completely
 
         return {
             "affine_matrix": np.array(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
