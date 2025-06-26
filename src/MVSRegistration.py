@@ -427,8 +427,10 @@ class MVSRegistration:
         else:
             reg_channel_index = None
 
+        groupwise_resolution_kwargs = {
+            'transform': params.get('transform_type')  # options include 'translation', 'rigid', 'affine'
+        }
         pairwise_reg_func_kwargs = None
-        groupwise_resolution_kwargs = None
         if is_stack:
             # register in 2d; pairwise consecutive views
             register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
@@ -463,10 +465,6 @@ class MVSRegistration:
                 "aff_smoothing_sigmas": (4, 2, 1, 0),
                 "aff_shrink_factors": (16, 8, 2, 1),
             }
-            # these are the parameters for the groupwise registration (global optimization)
-            groupwise_resolution_kwargs = {
-                'transform': 'rigid',  # options include 'translation', 'rigid', 'affine'
-            }
         else:
             pairwise_reg_func = registration.phase_correlation_registration
 
@@ -495,7 +493,7 @@ class MVSRegistration:
                 pairwise_reg_func_kwargs=pairwise_reg_func_kwargs,
                 groupwise_resolution_kwargs=groupwise_resolution_kwargs,
 
-                groupwise_resolution_method='shortest_paths',   # default: 'global_optimization'
+                #groupwise_resolution_method='shortest_paths',   # default: 'global_optimization'
 
                 post_registration_do_quality_filter=True,
                 post_registration_quality_threshold=0.1,

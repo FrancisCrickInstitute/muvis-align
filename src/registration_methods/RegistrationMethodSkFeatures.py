@@ -23,6 +23,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.nkeypoints = params.get('nkeypoints', 5000)
+        self.cross_check = params.get('cross_check', True)
         self.lowe_ratio = params.get('lowe_ratio', 0.92)
         self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)
         self.min_matches = params.get('min_matches', 10)
@@ -129,7 +130,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
-                                                              min_matches=self.min_matches, cross_check=True,
+                                                              min_matches=self.min_matches, cross_check=self.cross_check,
                                                               lowe_ratio=self.lowe_ratio, inlier_threshold=inlier_threshold,
                                                               mean_size_dist=mean_size_dist)
         #print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}'
