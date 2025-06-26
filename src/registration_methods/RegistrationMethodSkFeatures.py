@@ -20,13 +20,14 @@ from src.registration_methods.RegistrationMethod import RegistrationMethod
 class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source, params):
         super().__init__(source, params)
-
-        self.nkeypoints = params.get('nkeypoints', 5000)
-        self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+        self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
+        self.nkeypoints = params.get('nkeypoints', 5000)
+        self.lowe_ratio = params.get('lowe_ratio', 0.92)
+        self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)
+        self.min_matches = params.get('min_matches', 10)
         self.max_trails = params.get('max_trials', 10000)
         self.ransac_iterations = params.get('ransac_iterations', 10)
-        self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)
 
     def detect_features(self, data0, gaussian_sigma=None):
         points = []
@@ -116,22 +117,20 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         matches = []
         inliers = []
 
-        lowe_ratio = 0.92
         full_size_dist = np.linalg.norm(self.full_size)
         mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
         scale = mean_size_dist / full_size_dist
         gaussian_sigma = self.full_size_gaussian_sigma * (scale ** (1/3))
         mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(self.ndims) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * self.inlier_threshold_factor
-        min_matches = 10
 
         fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data, gaussian_sigma)
         moving_points, moving_desc, moving_data2 = self.detect_features(moving_data, gaussian_sigma)
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
-                                                              min_matches=min_matches, cross_check=True,
-                                                              lowe_ratio=lowe_ratio, inlier_threshold=inlier_threshold,
+                                                              min_matches=self.min_matches, cross_check=True,
+                                                              lowe_ratio=self.lowe_ratio, inlier_threshold=inlier_threshold,
                                                               mean_size_dist=mean_size_dist)
         #print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}'
         #      f' #matches: {len(matches)} #inliers: {np.sum(inliers):.0f} quality: {quality:.3f}')
@@ -153,7 +152,6 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         if quality == 0 or np.sum(inliers) == 0:
             logging.error('Unable to find feature-based registration')
             transform = eye_transform
-            #quality = 0.1001   # don't drop completely
 
         return {
             "affine_matrix": np.array(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)

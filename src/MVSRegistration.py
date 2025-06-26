@@ -495,6 +495,8 @@ class MVSRegistration:
                 pairwise_reg_func_kwargs=pairwise_reg_func_kwargs,
                 groupwise_resolution_kwargs=groupwise_resolution_kwargs,
 
+                groupwise_resolution_method='shortest_paths',   # default: 'global_optimization'
+
                 post_registration_do_quality_filter=True,
                 post_registration_quality_threshold=0.1,
 
