@@ -324,6 +324,11 @@ def draw_keypoints_matches_cv(image1, points1, image2, points2, matches=None, in
 def draw_keypoints_matches_sk(image1, points1, image2, points2, matches=None,
                               show_plot=True, output_filename=None):
     fig, ax = plt.subplots(figsize=(16, 8))
+    shape_y, shape_x = image1.shape[:2]
+    if shape_x > 2 * shape_y:
+        alignment = 'vertical'
+    else:
+        alignment = 'horizontal'
     plot_matched_features(
         image1,
         image2,
@@ -331,6 +336,7 @@ def draw_keypoints_matches_sk(image1, points1, image2, points2, matches=None,
         keypoints1=points2,
         matches=matches,
         ax=ax,
+        alignment=alignment,
         only_matches=True,
     )
     plt.tight_layout()

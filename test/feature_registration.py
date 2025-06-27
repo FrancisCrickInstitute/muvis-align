@@ -40,17 +40,17 @@ def test_feature_registration():
 
 
 def test_feature_registration_simple():
-    folder = 'D:/slides/12193/aligned_hpc/'
+    folder = 'D:/slides/12193/data_overlaps/'
     filenames = [
-        folder + 'matches_slice_20250617_045526_216_f.tiff',
-        folder + 'matches_slice_20250617_045526_216_m.tiff'
+        folder + 'slice_37.tiff',
+        folder + 'slice_46.tiff'
     ]
     reg_params = {
-        'downscale_factor': 1.414,
         'gaussian_sigma': 6,
-        'max_trials': 5000,
+        'downscale_factor': 1.414,
+        'inlier_threshold_factor': 0.05,
+        'max_trials': 10000,
         'ransac_iterations': 10,
-        'inlier_threshold_factor': 0.05
     }
 
     images = [create_dask_source(filename).get_data() for filename in filenames]
