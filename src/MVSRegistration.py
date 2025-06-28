@@ -447,7 +447,7 @@ class MVSRegistration:
             from src.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
             registration_method = RegistrationMethodCPD(sim0, reg_params)
             pairwise_reg_func = registration_method.registration
-        elif 'feature' in reg_method:
+        elif 'feature' in reg_method or 'orb' in reg_method or 'sift' in reg_method:
             if 'cv' in reg_method:
                 from src.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
                 registration_method = RegistrationMethodCvFeatures(sim0, reg_params)

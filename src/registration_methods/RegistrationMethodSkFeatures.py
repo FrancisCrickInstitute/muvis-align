@@ -4,9 +4,9 @@
 
 from datetime import datetime
 import logging
-import numpy as np
 from multiview_stitcher import param_utils
-from skimage.feature import match_descriptors, ORB
+import numpy as np
+from skimage.feature import match_descriptors, SIFT, ORB
 from skimage.filters import gaussian
 from skimage.measure import ransac
 from skimage.transform import EuclideanTransform
@@ -20,6 +20,7 @@ from src.registration_methods.RegistrationMethod import RegistrationMethod
 class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source, params):
         super().__init__(source, params)
+        self.method = params.get('name', 'sift').lower()
         self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.nkeypoints = params.get('nkeypoints', 5000)
@@ -41,10 +42,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         try:
             # not thread-safe - create instance that is not re-used in other thread
-            feature_model = ORB(n_keypoints=self.nkeypoints, downscale=self.downscale_factor)
+            if 'orb' in self.method:
+                feature_model = ORB(n_keypoints=self.nkeypoints, downscale=self.downscale_factor)
+            else:
+                feature_model = SIFT()
             feature_model.detect_and_extract(data)
-            points = feature_model.keypoints
-            desc = feature_model.descriptors
+            points = feature_model.keypoints[:self.nkeypoints]
+            desc = feature_model.descriptors[:self.nkeypoints]
             if len(points) == 0:
                 logging.error('No features detected!')
         except RuntimeError as e:
