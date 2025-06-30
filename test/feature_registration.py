@@ -5,6 +5,7 @@ import numpy as np
 import yaml
 
 from src.MVSRegistration import MVSRegistration
+from src.Timer import Timer
 from src.image.source_helper import create_dask_source
 from src.image.util import *
 from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures as RegMethod
@@ -14,8 +15,6 @@ def test_feature_registration():
     params = 'resources/params_EMPIAR12193.yml'
     with open(params, 'r', encoding='utf8') as file:
         params = yaml.safe_load(file)
-
-    logging.basicConfig(level=logging.INFO)
 
     operation = params['operations'][1]
 
@@ -42,11 +41,12 @@ def test_feature_registration():
 def test_feature_registration_simple():
     folder = 'D:/slides/12193/data_overlaps/'
     filenames = [
-        folder + 'slice_37.tiff',
-        folder + 'slice_46.tiff'
+        folder + 'tile_37.tiff',
+        folder + 'tile_46.tiff'
     ]
     reg_params = {
-        'gaussian_sigma': 6,
+        'name': 'orb',
+        'gaussian_sigma': 4,
         'downscale_factor': 1.414,
         'inlier_threshold_factor': 0.05,
         'max_trials': 10000,
@@ -62,6 +62,7 @@ def test_feature_registration_simple():
 
 
 if __name__ == "__main__":
-
-    #test_feature_registration()
-    test_feature_registration_simple()
+    logging.basicConfig(level=logging.INFO)
+    with Timer('Registration', auto_unit=False):
+        #test_feature_registration()
+        test_feature_registration_simple()
