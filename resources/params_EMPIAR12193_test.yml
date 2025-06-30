@@ -29,7 +29,7 @@ operations:
     use_orthogonal_pairs: True
     transform_type: translation
     method:
-      name: sift
+      name: orb
       gaussian_sigma: 3
       inlier_threshold_factor: 0.05
       max_trials: 10000
