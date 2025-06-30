@@ -27,7 +27,7 @@ operations:
     #source_metadata: {'scale': {'x': 0.004, 'y': 0.004}, 'position': {'y':'fn[-3]*23.5362 - fn[-2]*0.8874', 'x':'fn[-2]*23.2897 + fn[-3]*0.7001'}}
     #normalisation: global # normalise in custom registration function instead
     use_orthogonal_pairs: True
-    transform_type: translation
+    transform_type: affine  #translation
     method:
       name: sift
       gaussian_sigma: 4
