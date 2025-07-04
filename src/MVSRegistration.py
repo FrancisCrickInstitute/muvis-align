@@ -91,6 +91,10 @@ class MVSRegistration:
             sims, scales, positions, rotations = self.init_sims(filenames, params,
                                                                 global_center=global_center,
                                                                 global_rotation=global_rotation)
+
+        with Timer('pre-process', self.logging_time):
+            sims, register_sims, indices = self.preprocess(sims, params)
+
         data = []
         for label, sim, scale in zip(file_labels, sims, scales):
             position, rotation = get_data_mapping(sim, transform_key=self.source_transform_key)
@@ -153,9 +157,6 @@ class MVSRegistration:
                     transform = mapping
                 si_utils.set_sim_affine(sim, transform, transform_key=self.reg_transform_key)
         else:
-            with Timer('pre-process', self.logging_time):
-                register_sims, indices = self.preprocess(sims, params)
-
             with Timer('register', self.logging_time):
                 results = self.register(sims, register_sims, indices, params)
 
@@ -340,8 +341,6 @@ class MVSRegistration:
         n = len(sims)
         positions = [si_utils.get_origin_from_sim(sim, asarray=True) for sim in sims]
         sizes = [np.linalg.norm(get_sim_physical_size(sim)) for sim in sims]
-        if self.verbose:
-            print('Overlap:')
         for i in range(n):
             norm_dists = []
             if is_stack:
@@ -358,8 +357,6 @@ class MVSRegistration:
                     norm_dists.append(norm_dist)
             if len(norm_dists) > 0:
                 norm_dist = min(norm_dists)
-                if self.verbose:
-                    print(f'{labels[i]} norm distance: {norm_dist:.3f}')
                 if norm_dist >= 1:
                     logging.warning(f'{labels[i]} has no overlap')
                     overlaps.append(False)
@@ -375,8 +372,10 @@ class MVSRegistration:
         normalisation = params.get('normalisation', '')
         filter_foreground = params.get('filter_foreground', False)
 
-        if flatfield_quantiles is not None or filter_foreground:
+        if filter_foreground:
             foreground_map = calc_foreground_map(sims)
+        else:
+            foreground_map = None
         if flatfield_quantiles is not None:
             sims = flatfield_correction(sims, self.source_transform_key, flatfield_quantiles,
                                         foreground_map=foreground_map)
@@ -404,7 +403,7 @@ class MVSRegistration:
             indices = np.where(foreground_map)[0]
         else:
             indices = range(len(sims))
-        return new_sims, indices
+        return sims, new_sims, indices
 
     def register(self, sims, register_sims, indices, params):
         sim0 = sims[0]

@@ -3,14 +3,14 @@ import numpy as np
 import os
 
 from src.image.ome_tiff_helper import load_tiff, save_tiff
-from src.image.util import float2int_image, int2float_image, create_quantile_images
+from src.image.util import *
 
 
 def flatfield_correction(sims, transform_key, quantiles, foreground_map=None, cache_location=None):
     quantile_images = []
     if cache_location is not None:
         for quantile in quantiles:
-            filename = cache_location + f'quantile{quantile}.tiff'
+            filename = get_quantile_filename(cache_location, quantile)
             if os.path.exists(filename):
                 quantile_images.append(load_tiff(filename))
 
@@ -18,10 +18,16 @@ def flatfield_correction(sims, transform_key, quantiles, foreground_map=None, ca
         quantile_images = calc_flatfield_images(sims, quantiles, foreground_map)
         if cache_location is not None:
             for quantile, quantile_image in zip(quantiles, quantile_images):
-                filename = cache_location + f'quantile{quantile}.tiff'
+                filename = get_quantile_filename(cache_location, quantile)
                 save_tiff(filename, quantile_image)
 
     return apply_flatfield_correction(sims, transform_key, quantiles, quantile_images)
+
+
+def get_quantile_filename(cache_location, quantile):
+    filename = os.path.join(cache_location, 'quantile_' + f'{quantile}'.replace('.', '_') + '.tiff')
+    return filename
+
 
 def calc_flatfield_images(sims, quantiles, foreground_map=None):
     if foreground_map is not None:
@@ -39,7 +45,7 @@ def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
     dark = 0
     bright = 1
     for quantile, quantile_image in zip(quantiles, quantile_images):
-        if quantile < 0.5:
+        if quantile <= 0.5:
             dark = quantile_image
         else:
             bright = quantile_image
@@ -63,5 +69,9 @@ def image_flatfield_correction(image0, dark=0, bright=1, clip=True):
     mean_bright_dark = np.mean(bright - dark, (0, 1))
     image = (image0 - dark) * mean_bright_dark / (bright - dark)
     if clip:
-        image = image.clip(0, 1)
+        image = image.clip(0, 1)    # np.clip(image) is not dask-compatible, use image.clip() instead
+    else:
+        image -= np.min(image)
+        if np.max(image) > 1:
+            image /= np.max(image)
     return image

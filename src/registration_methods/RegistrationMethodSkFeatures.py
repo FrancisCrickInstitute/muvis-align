@@ -28,7 +28,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         self.lowe_ratio = params.get('lowe_ratio', 0.92)
         self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)
         self.min_matches = params.get('min_matches', 10)
-        self.max_trails = params.get('max_trials', 10000)
+        self.max_trails = params.get('max_trials', 100)
         self.ransac_iterations = params.get('ransac_iterations', 10)
 
     def detect_features(self, data0, gaussian_sigma=None):
@@ -141,7 +141,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         #      f' #matches: {len(matches)} #inliers: {np.sum(inliers):.0f} quality: {quality:.3f}')
 
         # for debugging:
-        #output_filename = 'matches_slice_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+        #output_filename = 'matches_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
         #save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
         #save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
         #if np.sum(inliers) > 0:
