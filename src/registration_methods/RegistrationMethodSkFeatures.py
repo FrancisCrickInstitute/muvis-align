@@ -169,8 +169,6 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             logging.error('Unable to find feature-based registration')
             transform = eye_transform
 
-        print('***transform:', np.array(transform))
-
         return {
             "affine_matrix": np.array(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
             "quality": quality  # float between 0 and 1 (if not available, set to 1.0)

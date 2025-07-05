@@ -12,7 +12,6 @@ from multiview_stitcher.registration import get_overlap_bboxes
 import numpy as np
 import os.path
 import shutil
-from tqdm import tqdm
 import xarray as xr
 
 from src.Timer import Timer
@@ -229,6 +228,7 @@ class MVSRegistration:
         extra_metadata = params.get('extra_metadata', {})
         z_scale = extra_metadata.get('scale', {}).get('z')
 
+        logging.info('Initialising sims...')
         sources = [create_dask_source(file, source_metadata) for file in filenames]
         source0 = sources[0]
         images = []
@@ -249,7 +249,7 @@ class MVSRegistration:
         last_z_position = None
         different_z_positions = False
         delta_zs = []
-        for filename, source in tqdm(zip(filenames, sources), total=len(filenames), disable=not self.verbose, desc='Initialising sims'):
+        for filename, source in zip(filenames, sources):
             scale = source.get_pixel_size()
             translation = source.get_position()
             rotation = source.get_rotation()
@@ -377,6 +377,7 @@ class MVSRegistration:
         else:
             foreground_map = None
         if flatfield_quantiles is not None:
+            logging.info('Flat-field correction...')
             sims = flatfield_correction(sims, self.source_transform_key, flatfield_quantiles,
                                         foreground_map=foreground_map)
 
