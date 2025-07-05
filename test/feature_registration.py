@@ -45,8 +45,8 @@ def test_feature_registration_simple():
         folder + 'tile_46.tiff'
     ]
     reg_params = {
-        'name': 'orb',
-        'gaussian_sigma': 4,
+        'name': 'sift',
+        'gaussian_sigma': 3.5,
         'downscale_factor': 1.414,
         'inlier_threshold_factor': 0.05,
         'max_trials': 10000,

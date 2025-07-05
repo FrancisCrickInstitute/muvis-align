@@ -368,14 +368,65 @@ def apply_transform(points, transform):
     return new_points
 
 
-def get_rotation_from_transform(transform):
-    rotation = np.rad2deg(np.arctan2(transform[0][1], transform[0][0]))
-    return rotation
+def validate_transform(transform, max_rotation=None):
+    if transform is None:
+        return False
+    transform = np.array(transform)
+    if np.any(np.isnan(transform)):
+        return False
+    if np.any(np.isinf(transform)):
+        return False
+    if np.linalg.det(transform) == 0:
+        return False
+    if  max_rotation is not None and abs(normalise_rotation(get_rotation_from_transform(transform))) > max_rotation:
+        return False
+    return True
 
 
 def get_scale_from_transform(transform):
     scale = np.mean(np.linalg.norm(transform, axis=0)[:-1])
     return scale
+
+
+def get_translation_from_transform(transform):
+    ndim = len(transform) - 1
+    #translation = transform[:ndim, ndim]
+    translation = apply_transform([[0] * ndim], transform)[0]
+    return translation
+
+
+def get_center_from_transform(transform):
+    # from opencv:
+    # t0 = (1-alpha) * cx - beta * cy
+    # t1 = beta * cx + (1-alpha) * cy
+    # where
+    # alpha = cos(angle) * scale
+    # beta = sin(angle) * scale
+    # isolate cx and cy:
+    t0, t1 = transform[:2, 2]
+    scale = 1
+    angle = np.arctan2(transform[0][1], transform[0][0])
+    alpha = np.cos(angle) * scale
+    beta = np.sin(angle) * scale
+    cx = (t1 + t0 * (1 - alpha) / beta) / (beta + (1 - alpha) ** 2 / beta)
+    cy = ((1 - alpha) * cx - t0) / beta
+    return cx, cy
+
+
+def get_rotation_from_transform(transform):
+    rotation = np.rad2deg(np.arctan2(transform[0][1], transform[0][0]))
+    return rotation
+
+
+def normalise_rotation(rotation):
+    """
+    Normalise rotation to be in the range [-180, 180].
+    """
+    while rotation < -180:
+        rotation += 360
+    while rotation > 180:
+        rotation -= 360
+    return rotation
 
 
 def points_to_3d(points):

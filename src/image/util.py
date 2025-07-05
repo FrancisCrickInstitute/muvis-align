@@ -708,16 +708,3 @@ def get_data_mapping(data, transform_key=None, transform=None, translation0=None
         rotation += rotation1
 
     return translation, rotation
-
-
-def validate_transform(transform):
-    if transform is None:
-        return False
-    transform = np.array(transform)
-    if np.any(np.isnan(transform)):
-        return False
-    if np.any(np.isinf(transform)):
-        return False
-    if np.linalg.det(transform) == 0:
-        return False
-    return True

@@ -9,7 +9,7 @@ import numpy as np
 from skimage.feature import match_descriptors, SIFT, ORB
 from skimage.filters import gaussian
 from skimage.measure import ransac
-from skimage.transform import EuclideanTransform
+from skimage.transform import AffineTransform, EuclideanTransform
 from spatial_image import SpatialImage
 
 from src.image.ome_tiff_helper import save_tiff
@@ -30,6 +30,17 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         self.min_matches = params.get('min_matches', 10)
         self.max_trails = params.get('max_trials', 100)
         self.ransac_iterations = params.get('ransac_iterations', 10)
+
+        transform_type = params.get('transform_type', '').lower()
+        if transform_type == 'affine':
+            self.transform_type = AffineTransform
+        else:
+            self.transform_type = EuclideanTransform
+
+        if transform_type in ['translation', 'translate']:
+            self.max_rotation = 10  # rotation should be ~0; check <10 degrees
+        else:
+            self.max_rotation = None
 
     def detect_features(self, data0, gaussian_sigma=None):
         points = []
@@ -83,13 +94,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             tot_weight = 0
             tot_translation = None
             for i in range(self.ransac_iterations):
-                transform, inliers = ransac((fixed_points2, moving_points2), EuclideanTransform,
+                transform, inliers = ransac((fixed_points2, moving_points2), self.transform_type,
                                             min_samples=min_matches,
                                             residual_threshold=inlier_threshold,
                                             max_trials=self.max_trails)
                 if inliers is None:
                     inliers = []
-                if len(inliers) > 0 and validate_transform(transform):
+                if len(inliers) > 0 and validate_transform(transform, max_rotation=self.max_rotation):
                     weight = np.mean(inliers)
                     weighted_translation = transform.translation * weight
                     tot_weight += weight

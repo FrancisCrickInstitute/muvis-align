@@ -29,7 +29,7 @@ operations:
     #normalisation: global # normalise in custom registration function instead
     flatfield_quantiles: [0.5]
     use_orthogonal_pairs: True
-    transform_type: affine  #translation
+    transform_type: translation   # affine
     method:
       name: sift
       gaussian_sigma: 4
