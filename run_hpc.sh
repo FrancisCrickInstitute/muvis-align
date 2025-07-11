@@ -3,7 +3,7 @@
 #SBATCH --part=ncpu
 #SBATCH --cpus-per-task=16
 #SBATCH --time=7-00:00          # Runtime in D-HH:MM, minimum of 10 minutes
-#SBATCH --mem=64G   # Memory pool for all cores (see also --mem-per-cpu)
+#SBATCH --mem=640G   # Memory pool for all cores (see also --mem-per-cpu)
 
 export PYTHONUNBUFFERED=TRUE
 ml purge
