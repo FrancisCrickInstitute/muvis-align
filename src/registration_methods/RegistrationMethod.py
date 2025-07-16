@@ -5,7 +5,7 @@ from spatial_image import SpatialImage
 
 
 class RegistrationMethod(ABC):
-    def __init__(self, source, params):
+    def __init__(self, source, params, debug=False):
         self.source_type = source.dtype
         if hasattr(source, 'dims'):
             self.full_size = si_utils.get_shape_from_sim(source, asarray=True)
@@ -14,6 +14,7 @@ class RegistrationMethod(ABC):
             self.full_size = [size for size in source.shape if size > 4]    # try to filter channel dimension
             self.ndims = len(self.full_size)
         self.params = params
+        self.debug = debug
 
     def convert_data_to_float(self, data):
         maxval = 2 ** (8 * self.source_type.itemsize) - 1

@@ -419,6 +419,7 @@ class MVSRegistration:
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
 
         is_stack = ('stack' in operation)
+        debug = self.params_general.get('debug', False)
 
         reg_channel = params.get('channel', 0)
         if isinstance(reg_channel, int):
@@ -445,15 +446,15 @@ class MVSRegistration:
 
         if 'cpd' in reg_method:
             from src.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
-            registration_method = RegistrationMethodCPD(sim0, reg_params)
+            registration_method = RegistrationMethodCPD(sim0, reg_params, debug)
             pairwise_reg_func = registration_method.registration
         elif 'feature' in reg_method or 'orb' in reg_method or 'sift' in reg_method:
             if 'cv' in reg_method:
                 from src.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
-                registration_method = RegistrationMethodCvFeatures(sim0, reg_params)
+                registration_method = RegistrationMethodCvFeatures(sim0, reg_params, debug)
             else:
                 from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
-                registration_method = RegistrationMethodSkFeatures(sim0, reg_params)
+                registration_method = RegistrationMethodSkFeatures(sim0, reg_params, debug)
             pairwise_reg_func = registration_method.registration
         elif 'ant' in reg_method:
             pairwise_reg_func = registration.registration_ANTsPy

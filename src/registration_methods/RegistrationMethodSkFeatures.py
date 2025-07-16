@@ -18,8 +18,8 @@ from src.registration_methods.RegistrationMethod import RegistrationMethod
 
 
 class RegistrationMethodSkFeatures(RegistrationMethod):
-    def __init__(self, source, params):
-        super().__init__(source, params)
+    def __init__(self, source, params, debug=False):
+        super().__init__(source, params, debug=debug)
         self.method = params.get('name', 'sift').lower()
         self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
@@ -121,8 +121,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 transform = transforms[best_index]
                 inliers = inliers_list[best_index]
                 quality *= 1 - np.clip(np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist, 0, 1) ** 3  # ^3 to increase sensitivity
-                #print('norm translation', mean_translation / mean_size_dist, 'norm SD', np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist)
-            #print('%inliers', np.mean(inliers), '#good ransac iterations', len(inliers_list))
+                if self.debug:
+                    print('norm translation', mean_translation / mean_size_dist, 'norm SD', np.linalg.norm(np.std(translations, axis=0)) / mean_size_dist)
+            if self.debug:
+                print('%inliers', np.mean(inliers), '#good ransac iterations', len(inliers_list))
 
         return transform, quality, matches, inliers
 
@@ -148,22 +150,24 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                                               min_matches=self.min_matches, cross_check=self.cross_check,
                                                               lowe_ratio=self.lowe_ratio, inlier_threshold=inlier_threshold,
                                                               mean_size_dist=mean_size_dist)
-        #print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}'
-        #      f' #matches: {len(matches)} #inliers: {np.sum(inliers):.0f} quality: {quality:.3f}')
+        if self.debug:
+            print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}'
+                  f' #matches: {len(matches)} #inliers: {np.sum(inliers):.0f} quality: {quality:.3f}')
 
-        # for debugging:
-        #output_filename = 'matches_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-        #save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
-        #save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
-        #if np.sum(inliers) > 0:
-        #    draw_keypoints_matches_sk(fixed_data2, fixed_points,
-        #                              moving_data2, moving_points,
-        #                              matches[inliers],
-        #                              show_plot=False, output_filename=output_filename + '_i.tiff')
-        #draw_keypoints_matches(fixed_data2, fixed_points,
-        #                       moving_data2, moving_points,
-        #                       matches, inliers,
-        #                       show_plot=False, output_filename=output_filename + '.tiff')
+            output_filename = 'matches_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            save_tiff(output_filename + '_f.tiff', fixed_data.astype(self.source_type))
+            save_tiff(output_filename + '_m.tiff', moving_data.astype(self.source_type))
+
+            if np.sum(inliers) > 0:
+                draw_keypoints_matches_sk(fixed_data2, fixed_points,
+                                          moving_data2, moving_points,
+                                          matches[inliers],
+                                          show_plot=False, output_filename=output_filename + '_i.tiff')
+
+            draw_keypoints_matches(fixed_data2, fixed_points,
+                                   moving_data2, moving_points,
+                                   matches, inliers,
+                                   show_plot=False, output_filename=output_filename + '.tiff')
 
         if quality == 0 or np.sum(inliers) == 0:
             logging.error('Unable to find feature-based registration')
