@@ -46,7 +46,7 @@ def test_feature_registration_simple():
     ]
     reg_params = {
         'name': 'sift',
-        'gaussian_sigma': 3.5,
+        'gaussian_sigma': 4,
         'downscale_factor': 1.414,
         'inlier_threshold_factor': 0.05,
         'max_trials': 10000,
@@ -56,7 +56,7 @@ def test_feature_registration_simple():
     images = [create_dask_source(filename).get_data() for filename in filenames]
     image0 = images[0]
 
-    reg_method = RegMethod(image0, reg_params)
+    reg_method = RegMethod(image0, reg_params, debug=True)
     result = reg_method.registration(*images)
     print(result)
 

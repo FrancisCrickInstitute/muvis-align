@@ -58,8 +58,14 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             else:
                 feature_model = SIFT()
             feature_model.detect_and_extract(data)
-            points = feature_model.keypoints[:self.nkeypoints]
-            desc = feature_model.descriptors[:self.nkeypoints]
+            points = feature_model.keypoints
+            desc = feature_model.descriptors
+            if len(points) > self.nkeypoints:
+                if self.debug:
+                    print('#keypoints0', len(points))
+                indices = np.random.choice(len(points), self.nkeypoints, replace=False)
+                points = points[indices]
+                desc = desc[indices]
             if len(points) == 0:
                 logging.error('No features detected!')
         except RuntimeError as e:
