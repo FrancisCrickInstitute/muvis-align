@@ -33,7 +33,8 @@ operations:
     transform_type: rigid
     method:
       name: orb
-      gaussian_sigma: 10
+      nkeypoints: 10000
+      gaussian_sigma: 20
       inlier_threshold_factor: 0.05
       max_trials: 10000
       ransac_iterations: 10
