@@ -46,7 +46,7 @@ operations:
     #normalisation: individual  # normalise in custom registration function instead
     transform_type: rigid
     method:
-      name: sift
+      name: orb
       gaussian_sigma: 8
       inlier_threshold_factor: 0.05
       max_trials: 10000
