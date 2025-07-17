@@ -32,7 +32,7 @@ operations:
     #normalisation: individual  # normalise in custom registration function instead
     transform_type: rigid
     method:
-      name: orb
+      name: sift
       nkeypoints: 10000
       gaussian_sigma: 20
       inlier_threshold_factor: 0.05
