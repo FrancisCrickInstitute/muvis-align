@@ -47,7 +47,7 @@ operations:
     transform_type: rigid
     method:
       name: sift
-      gaussian_sigma: 6
+      gaussian_sigma: 8
       inlier_threshold_factor: 0.05
       max_trials: 10000
       ransac_iterations: 10
