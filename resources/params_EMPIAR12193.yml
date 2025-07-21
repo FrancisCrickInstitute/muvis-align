@@ -44,7 +44,7 @@ operations:
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
     #normalisation: individual  # normalise in custom registration function instead
-    transform_type: rigid
+    transform_type: affine
     method:
       name: sift
       nkeypoints: 10000
