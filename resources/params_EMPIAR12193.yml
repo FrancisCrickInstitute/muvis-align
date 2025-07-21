@@ -44,7 +44,7 @@ operations:
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
     #normalisation: individual  # normalise in custom registration function instead
-    transform_type: affine
+    transform_type: rigid
     method:
       name: sift
       nkeypoints: 10000
@@ -52,4 +52,4 @@ operations:
       inlier_threshold_factor: 0.05
       max_trials: 10000
       ransac_iterations: 10
-    output: ../../aligned_affine/
+    output: ../../aligned/
