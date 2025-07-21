@@ -11,7 +11,7 @@ general:
     verbose: True
   output:
     clear: False
-    overwrite: True
+    overwrite: False
     format: ome.zarr
     tile_size: [4096, 4096]
     compression:
