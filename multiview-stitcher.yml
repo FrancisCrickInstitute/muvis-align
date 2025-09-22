@@ -3,20 +3,20 @@ channels:
  - conda-forge
  - defaults
 dependencies:
- - python=3.12.3
- - numpy>=1.18
+ - python=3.12
+ - numpy
  - dask[array, dataframe, image]
  - zarr
  - xarray>=2024.10.0
  - tifffile>=2022.7.28
  - networkx
  - scikit-image>=0.21.0
- - ome-zarr>=0.10.2
+ - ome-zarr>=0.12
  - scipy>=1.11.4
  - tqdm
  - matplotlib
  - pip
  - pip:
-   - spatial_image==1.1.0
-   - multiscale_spatial_image==2.0.2
-   - ngff-zarr==0.12.2
+   - spatial_image
+   - multiscale_spatial_image
+   - ngff-zarr

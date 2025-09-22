@@ -9,7 +9,10 @@ from src.image.color_conversion import int_to_rgba, hexrgb_to_rgba
 class ZarrDaskSource(DaskSource):
     def init_metadata(self):
         group = zarr.open_group(self.filename, mode='r')
-        self.metadata = group.attrs['multiscales'][0]
+        if 'ome' in group.attrs:
+            self.metadata = group.attrs['ome']['multiscales'][0]
+        else:
+            self.metadata = group.attrs['multiscales'][0]
         self.omero_metdata = group.attrs.get('omero', {})
         self.paths = [dataset['path'] for dataset in self.metadata['datasets']]
 

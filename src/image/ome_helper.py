@@ -1,5 +1,4 @@
 from ome_zarr.scale import Scaler
-from tqdm import tqdm
 
 from src.constants import zarr_extension, tiff_extension
 from src.image.ome_ngff_helper import save_ome_ngff

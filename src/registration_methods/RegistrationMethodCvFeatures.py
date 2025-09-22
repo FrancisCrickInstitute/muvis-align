@@ -4,7 +4,7 @@ import numpy as np
 from multiview_stitcher import param_utils
 from spatial_image import SpatialImage
 
-from src.image.util import uint8_image, get_sim_physical_size, validate_transform
+from src.image.util import uint8_image, validate_transform
 from src.metrics import calc_match_metrics
 from src.registration_methods.RegistrationMethod import RegistrationMethod
 from src.util import get_mean_nn_distance

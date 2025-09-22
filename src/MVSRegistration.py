@@ -51,6 +51,8 @@ class MVSRegistration:
         operation = params['operation']
         overlap_threshold = params.get('overlap_threshold', 0.5)
         source_metadata = params.get('source_metadata', {})
+        save_images = params.get('save_images', True)
+        target_scale = params.get('scale')
         extra_metadata = params.get('extra_metadata', {})
         channels = extra_metadata.get('channels', [])
         normalise_orientation = 'norm' in source_metadata
@@ -89,7 +91,8 @@ class MVSRegistration:
         with Timer('init sims', self.logging_time):
             sims, scales, positions, rotations = self.init_sims(filenames, params,
                                                                 global_center=global_center,
-                                                                global_rotation=global_rotation)
+                                                                global_rotation=global_rotation,
+                                                                target_scale=target_scale)
 
         with Timer('pre-process', self.logging_time):
             sims, register_sims, indices = self.preprocess(sims, params)
@@ -116,21 +119,22 @@ class MVSRegistration:
                 shapes = [get_sim_shape_2d(sim, transform_key=self.source_transform_key) for sim in sims]
                 self.update_napari_signal.emit(f'{fileset_label} original', shapes, file_labels)
 
-            if output_params.get('thumbnail'):
-                with Timer('create thumbnail', self.logging_time):
-                    self.save_thumbnail(output + 'thumb_original', params, filenames,
-                                        global_center=global_center,
-                                        global_rotation=global_rotation,
-                                        nom_sims=sims,
-                                        transform_key=self.source_transform_key)
+            if save_images:
+                if output_params.get('thumbnail'):
+                    with Timer('create thumbnail', self.logging_time):
+                        self.save_thumbnail(output + 'thumb_original', params, filenames,
+                                            global_center=global_center,
+                                            global_rotation=global_rotation,
+                                            nom_sims=sims,
+                                            transform_key=self.source_transform_key)
 
-            original_fused = self.fuse(sims, params, transform_key=self.source_transform_key)
+                original_fused = self.fuse(sims, params, transform_key=self.source_transform_key)
 
-            original_fused_filename = output + 'original'
-            save_image(original_fused_filename, output_params.get('format'), original_fused, channels=channels,
-                       transform_key=self.source_transform_key, params=output_params)
+                original_fused_filename = output + 'original'
+                save_image(original_fused_filename, output_params.get('format'), original_fused, channels=channels,
+                           transform_key=self.source_transform_key, params=output_params)
 
-        if len(filenames) == 1:
+        if len(filenames) == 1 and save_images:
             logging.warning('Skipping registration (single image)')
             save_image(registered_fused_filename, output_params.get('format'), sims[0], channels=channels,
                        translation0=positions[0], params=output_params)
@@ -200,21 +204,22 @@ class MVSRegistration:
             shapes = [get_sim_shape_2d(sim, transform_key=self.reg_transform_key) for sim in sims]
             self.update_napari_signal.emit(f'{fileset_label} registered', shapes, file_labels)
 
-        if output_params.get('thumbnail'):
-            with Timer('create thumbnail', self.logging_time):
-                self.save_thumbnail(output + 'thumb', params, filenames,
-                                    global_center=global_center,
-                                    global_rotation=global_rotation,
-                                    nom_sims=sims,
-                                    transform_key=self.reg_transform_key)
+        if save_images:
+            if output_params.get('thumbnail'):
+                with Timer('create thumbnail', self.logging_time):
+                    self.save_thumbnail(output + 'thumb', params, filenames,
+                                        global_center=global_center,
+                                        global_rotation=global_rotation,
+                                        nom_sims=sims,
+                                        transform_key=self.reg_transform_key)
 
-        with Timer('fuse image', self.logging_time):
-            fused_image = self.fuse(sims, params)
+            with Timer('fuse image', self.logging_time):
+                fused_image = self.fuse(sims, params)
 
-        logging.info('Saving fused image...')
-        with Timer('save fused image', self.logging_time):
-            save_image(registered_fused_filename, output_params.get('format'), fused_image, channels=channels,
-                       transform_key=self.reg_transform_key, translation0=positions[0], params=output_params)
+            logging.info('Saving fused image...')
+            with Timer('save fused image', self.logging_time):
+                save_image(registered_fused_filename, output_params.get('format'), fused_image, channels=channels,
+                           transform_key=self.reg_transform_key, translation0=positions[0], params=output_params)
 
         if is_transition:
             self.save_video(output, sims, fused_image, params)

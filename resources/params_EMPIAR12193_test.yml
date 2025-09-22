@@ -22,11 +22,12 @@ general:
 
 operations:
   - operation: stack
-    input:
-      - /nemo/project/proj-ccp-vem/datasets/12193/stitched/S000/registered.ome.zarr
-      - /nemo/project/proj-ccp-vem/datasets/12193/stitched/S001/registered.ome.zarr
-      - /nemo/project/proj-ccp-vem/datasets/12193/stitched/S002/registered.ome.zarr
+    #input:
+    #  - /nemo/project/proj-ccp-vem/datasets/12193/stitched/S000/registered.ome.zarr
+    #  - /nemo/project/proj-ccp-vem/datasets/12193/stitched/S001/registered.ome.zarr
+    #  - /nemo/project/proj-ccp-vem/datasets/12193/stitched/S002/registered.ome.zarr
     #input: D:/slides/12193/stitched_hpc/S???/registered.ome.zarr
+    input: D:/slides/12193/stitched_subset/S???/registered.ome.zarr
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
     #normalisation: individual  # normalise in custom registration function instead
