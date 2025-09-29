@@ -2,7 +2,7 @@ import dask.array as da
 import os.path
 import zarr
 
-from src.DaskSource import DaskSource
+from src.image.DaskSource import DaskSource
 from src.image.color_conversion import int_to_rgba, hexrgb_to_rgba
 
 

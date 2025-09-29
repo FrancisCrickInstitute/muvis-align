@@ -4,7 +4,7 @@ import numpy as np
 import tifffile
 from tifffile import PHOTOMETRIC
 
-from src.DaskSource import DaskSource
+from src.image.DaskSource import DaskSource
 from src.image.color_conversion import int_to_rgba
 from src.util import ensure_list
 

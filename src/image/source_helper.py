@@ -7,8 +7,8 @@ import tifffile
 from tifffile import TiffFile
 import zarr
 
-from src.TiffDaskSource import TiffDaskSource
-from src.ZarrDaskSource import ZarrDaskSource
+from src.image.TiffDaskSource import TiffDaskSource
+from src.image.ZarrDaskSource import ZarrDaskSource
 from src.util import get_filetitle, get_orthogonal_pairs, dict_to_xyz
 
 

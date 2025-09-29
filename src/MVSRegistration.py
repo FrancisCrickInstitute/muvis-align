@@ -5,17 +5,15 @@ from contextlib import nullcontext
 from dask.diagnostics import ProgressBar
 import logging
 import multiview_stitcher
-from multiview_stitcher import registration, msi_utils, vis_utils
-from multiview_stitcher import spatial_image_utils as si_utils
+from multiview_stitcher import registration, vis_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes
-import numpy as np
 import os.path
 import shutil
 import xarray as xr
 
 from src.Timer import Timer
-from src.Video import Video
+from src.image.Video import Video
 from src.image.flatfield import flatfield_correction
 from src.image.ome_helper import save_image, exists_output_image
 from src.image.ome_tiff_helper import save_tiff
