@@ -76,6 +76,7 @@ class MVSRegistration:
         output_pattern = params['output'].format_map(parts)
         output = os.path.join(input_dir, output_pattern)    # preserve trailing slash: do not use os.path.normpath()
         registered_fused_filename = output + 'registered'
+        mappings_filename = os.path.join(output, params.get('mappings', 'mappings.json'))
 
         output_dir = os.path.dirname(output)
         if not overwrite and exists_output_image(registered_fused_filename, output_params.get('format')):
@@ -143,7 +144,6 @@ class MVSRegistration:
         if overall_overlap < overlap_threshold:
             raise ValueError(f'Not enough overlap: {overall_overlap * 100:.1f}%')
 
-        mappings_filename = output + 'mappings.json'
         if not overwrite and os.path.exists(mappings_filename):
             logging.info('Loading registration mappings...')
             # load registration mappings

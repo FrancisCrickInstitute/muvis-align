@@ -708,3 +708,13 @@ def get_data_mapping(data, transform_key=None, transform=None, translation0=None
         rotation += rotation1
 
     return translation, rotation
+
+
+def combine_transforms(transforms):
+    combined_transform = None
+    for transform in transforms:
+        if combined_transform is None:
+            combined_transform = transform
+        else:
+            combined_transform = np.dot(transform, combined_transform)
+    return combined_transform
