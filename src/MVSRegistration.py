@@ -241,7 +241,7 @@ class MVSRegistration:
         rotations = []
 
         is_stack = ('stack' in operation)
-        is_3d = (source0.get_size().get('z', 1) > 1)
+        is_3d = (source0.get_size().get('z', 1) > 1 or '3d' in operation)
         pyramid_level = 0
 
         output_order = 'zyx' if is_stack or is_3d else 'yx'
@@ -564,13 +564,14 @@ class MVSRegistration:
                 z_scale = 1
 
         is_stack = ('stack' in operation)
+        is_3d = ('3d' in operation)
         is_channel_overlay = (len(channels) > 1)
 
         sim0 = sims[0]
         source_type = sim0.dtype
 
+        output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
         if is_stack:
-            output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
             # set z shape which is wrongly calculated by calc_stack_properties_from_view_properties_and_params
             # because it does not take into account the correct input z spacing because of stacks of one z plane
             output_stack_properties['shape']['z'] = len(sims)
@@ -589,7 +590,6 @@ class MVSRegistration:
             )
         elif is_channel_overlay:
             # convert to multichannel images
-            output_stack_properties = calc_output_properties(sims, transform_key)
             if self.verbose:
                 logging.info(f'Output stack: {output_stack_properties}')
             data_size = np.prod(list(output_stack_properties['shape'].values())) * len(sims) * source_type.itemsize
@@ -603,7 +603,10 @@ class MVSRegistration:
             channel_sims = [sim.assign_coords({'c': [channels[simi]['label']]}) for simi, sim in enumerate(channel_sims)]
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
-            output_stack_properties = calc_output_properties(sims, transform_key)
+            if is_3d:
+                z_positions = [si_utils.get_origin_from_sim(sim)['z'] for sim in sims]
+                nz = int(round((max(z_positions) - min(z_positions)) / z_scale)) + 1
+                output_stack_properties['shape']['z'] = nz
             if self.verbose:
                 logging.info(f'Output stack: {output_stack_properties}')
             data_size = np.prod(list(output_stack_properties['shape'].values())) * source_type.itemsize
@@ -612,6 +615,8 @@ class MVSRegistration:
             fused_image = fusion.fuse(
                 sims,
                 transform_key=transform_key,
+                output_stack_properties=output_stack_properties,
+                fusion_func=fusion.simple_average_fusion,
             )
         return fused_image
 

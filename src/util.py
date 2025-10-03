@@ -182,7 +182,7 @@ def get_unique_file_labels(filenames: list) -> list:
     label_indices = set()
     last_parts = None
     for filename in filenames:
-        parts = split_numeric(get_filetitle(filename))
+        parts = split_numeric(filename)
         if len(parts) == 0:
             parts = split_numeric(filename)
             if len(parts) == 0:
