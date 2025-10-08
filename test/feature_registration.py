@@ -24,7 +24,7 @@ def test_feature_registration():
     if len(filenames) == 0:
         raise FileNotFoundError(f"No files found for pattern: {input_path}")
     reg = MVSRegistration(params['general'])
-    sims, _, _, _ = reg.init_sims(filenames, operation, target_scale=target_scale)
+    sims, _, _, _ = reg.init_sims(filenames, filenames, operation, target_scale=target_scale)
     sims, norm_sims, _ = reg.preprocess(sims, operation)
     sim0 = norm_sims[0]
     reg_method = RegMethod(sim0.dtype, operation['method'])

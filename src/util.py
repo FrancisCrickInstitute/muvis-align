@@ -537,23 +537,19 @@ def retuple(chunks, shape):
     return *shape[:dims_to_add], *chunks
 
 
-#def import_metadata(filename, fields=None):
-#    # return dict[id] = {values}
-#    ext = os.path.splitext(filename)[1].lower()
-#    with open(filename, encoding='utf8') as file:
-#        if ext == '.csv':
-#            metadata = csv.reader(file)
-#        elif ext in ['.json', '.ome.json']:
-#            metadata = json.load(file)
-#        elif ext == '.xml':
-#            metadata = xml2dict(file.read())
-#        elif ext in ['.yaml', '.yml']:
-#            metadata = yaml.safe_load(file)
-#        else:
-#            raise ValueError(f'Unsupported file type: {ext}')
-#        if fields is not None:
-#            metadata = [[data[field] for field in fields] for data in metadata]
-#    return metadata
+def import_metadata(content, fields=None, base_folder=None):
+    # return dict[id] = {values}
+    if isinstance(content, str):
+        ext = os.path.splitext(content)[1].lower()
+        if base_folder:
+            content = os.path.join(base_folder, content)
+        if ext == '.csv':
+            content = import_csv(content)
+        elif ext in ['.json', '.ome.json']:
+            content = import_json(content)
+    if fields is not None:
+        content = [[data[field] for field in fields] for data in content]
+    return content
 
 
 def import_json(filename):
@@ -565,6 +561,12 @@ def import_json(filename):
 def export_json(filename, data):
     with open(filename, 'w', encoding='utf8') as file:
         json.dump(data, file, indent=4)
+
+
+def import_csv(filename):
+    with open(filename, encoding='utf8') as file:
+        data = csv.reader(file)
+    return data
 
 
 def export_csv(filename, data, header=None):

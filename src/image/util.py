@@ -1,16 +1,15 @@
 import cv2 as cv
 import numpy as np
+from multiview_stitcher import msi_utils, param_utils, fusion, mv_graph
+from multiview_stitcher import spatial_image_utils as si_utils
 from scipy.ndimage import gaussian_filter
 from skimage.feature import plot_matched_features
 from skimage.transform import downscale_local_mean
 from xarray import DataTree
 
-from multiview_stitcher import msi_utils, param_utils, fusion, mv_graph
-from multiview_stitcher import spatial_image_utils as si_utils
-
-
 try:
     import matplotlib as mpl
+    mpl.use('TkAgg')
     #mpl.rcParams['backend'] = 'svg'
     mpl.rcParams['figure.dpi'] = 300
     import matplotlib.pyplot as plt
