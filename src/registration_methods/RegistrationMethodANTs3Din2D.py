@@ -7,7 +7,6 @@ from src.registration_methods.RegistrationMethod import RegistrationMethod
 class RegistrationMethodANTs3Din2D(RegistrationMethod):
     def __init__(self, source, params, debug):
         super().__init__(source, params, debug)
-        self.count=0
 
     def registration(
             self,
@@ -26,8 +25,6 @@ class RegistrationMethodANTs3Din2D(RegistrationMethod):
         Register two 3d sims by projecting them to 2d and using 2d registration.
         The z component of the resulting affine matrix is set to identity.
         """
-        print(self.count)
-        self.count+=1
 
         fixed_data = fixed_data.max('z')
         moving_data = moving_data.max('z')

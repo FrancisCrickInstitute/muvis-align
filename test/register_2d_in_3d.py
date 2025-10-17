@@ -9,7 +9,8 @@ from multiview_stitcher import spatial_image_utils as si_utils
 from multiview_stitcher import registration, param_utils, msi_utils, fusion
 
 import matplotlib
-matplotlib.use('TkAgg')
+
+#matplotlib.use('TkAgg')
 
 
 dask.config.set(scheduler='threads')
@@ -64,15 +65,30 @@ def register_3d_sims_in_2d(
 
     return reg_res_3d
 
+
+def calc_shape_pattern(y, x, offset):
+    h, w = y.shape
+    xoffset, yoffset = offset
+    image = (1 + np.cos((xoffset + x / w) * np.pi)
+             * np.cos((yoffset + y / h) * np.pi)) / 2
+    image[image < 0.01] = 1
+    return image
+
 # create simulated 2d sims
+size = (100, 100)
+#data = np.random.random((1, 100, 100))
+
 dz = 1 # currently only works for dz = 1
 dxy = 0.1
 sims = []
 for i in range(5):
+    offset = ((i + 1) * 0.1, (i + 1) * 0.1)
+    data = np.fromfunction(calc_shape_pattern, size, offset=offset, dtype=np.float32)
+    data = np.expand_dims(data, 0)
     sims.append(si_utils.get_sim_from_array(
-        np.random.randint(0, 100, (1, 10, 10)),
-        translation={'z': i * dz, 'y': 4, 'x': 5},
-        scale={'y': dxy, 'x': dxy, 'z': dz},
+        data,
+        translation={'z': i * dz, 'y': 0, 'x': 0},
+        scale={'z': dz, 'y': dxy, 'x': dxy},
         ))
 
 msims = [msi_utils.get_msim_from_sim(im) for im in sims]
@@ -83,7 +99,7 @@ params = registration.register(
     transform_key='affine_metadata',
     new_transform_key='affine_registered_in_2d',
     reg_channel_index=0,
-    overlap_tolerance={'z': 1}, # allow pairing of slices that don't initially overlap
+    overlap_tolerance={'x': 0.1, 'y': 0.1, 'z': 1}, # allow pairing of slices that don't initially overlap
     pairwise_reg_func=register_3d_sims_in_2d,
 )
 

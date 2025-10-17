@@ -40,7 +40,7 @@ def redimension_data(data, old_order, new_order, **indices):
     return new_data
 
 
-def calc_shape(y, x, offset):
+def calc_shape_pattern(y, x, offset):
     h, w = y.shape
     xoffset, yoffset = offset
     image = (1 + np.cos((xoffset + x / w) * 2 * np.pi)
@@ -72,7 +72,7 @@ def init_tiles_pattern(n=2, size=(1024, 1024), chunks=(256, 256), dimension_orde
         position = list(np.random.rand(2))
         if is_3d:
             position += [z_position]
-        shape_image = np.fromfunction(calc_shape, tuple(size), dtype=np.float32, offset=offset)
+        shape_image = np.fromfunction(calc_shape_pattern, tuple(size), dtype=np.float32, offset=offset)
         noise_image = np.random.random_sample(size)
         image = 0.9 * shape_image + 0.1 * noise_image
         pattern_image = float2int_image(image.clip(0, 1), target_dtype=dtype)

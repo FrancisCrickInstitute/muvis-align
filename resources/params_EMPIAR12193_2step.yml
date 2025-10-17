@@ -57,13 +57,13 @@ operations:
   - operation: register 3d
     #input: /nemo/project/proj-ccp-vem/datasets/12193/data/S???/*.tiff
     input: D:/slides/12193/data_subset/S???/*.tiff
-    source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 0.1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*0.1'}}
+    source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*1'}}
     extra_metadata: aligned_stitched_mappings2.json
     #flatfield_quantiles: [0.5]
     use_orthogonal_pairs: False
     transform_type: rigid
     method:
-      name: 3din2d  # sift
+      name: sift  # 3din2d
       gaussian_sigma: 2
       inlier_threshold_factor: 0.05
       max_trials: 10000
