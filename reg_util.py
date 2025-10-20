@@ -1,5 +1,4 @@
 import numpy as np
-from multiview_stitcher import param_utils
 
 from src.image.util import combine_transforms
 from src.util import dir_regex, find_all_numbers, split_numeric_dict, import_json, export_json
