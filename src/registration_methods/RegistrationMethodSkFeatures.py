@@ -149,7 +149,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             **ants_registration_kwargs,
     ):
         return {
-            "affine_matrix": np.array(1),
+            "affine_matrix": np.eye(4),
             # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
             "quality": 1  # float between 0 and 1 (if not available, set to 1.0)
         }
@@ -226,7 +226,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             transform = eye_transform
 
         if len(transform) < ndims + 1:
-            transform3d = param_utils.identity_transform(ndims)
+            transform3d = eye_transform
             transform3d[1:, 1:] = transform
             transform = transform3d
 

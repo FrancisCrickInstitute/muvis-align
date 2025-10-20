@@ -336,8 +336,6 @@ class MVSRegistration:
                     transform = np.array(transform2)
                 else:
                     transform = np.array(combine_transforms([transform, transform2]))
-            else:
-                print('transform not found for', file_label)
             sim = si_utils.get_sim_from_array(
                 image,
                 dims=list(output_order),

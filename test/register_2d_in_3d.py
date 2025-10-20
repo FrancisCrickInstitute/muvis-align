@@ -7,10 +7,13 @@ import dask
 from matplotlib import pyplot as plt
 from multiview_stitcher import spatial_image_utils as si_utils
 from multiview_stitcher import registration, param_utils, msi_utils, fusion
+from multiview_stitcher.spatial_image_utils import DEFAULT_TRANSFORM_KEY
 
 import matplotlib
 
 #matplotlib.use('TkAgg')
+
+from src.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
 
 
 dask.config.set(scheduler='threads')
@@ -94,13 +97,16 @@ for i in range(5):
 msims = [msi_utils.get_msim_from_sim(im) for im in sims]
 
 # register indicating a z overlap tolerance for pairing slices
+reg_method = RegistrationMethodSkFeatures(sims[0], {})
+registration_method = reg_method.registration
 params = registration.register(
     msims,
-    transform_key='affine_metadata',
+    transform_key=DEFAULT_TRANSFORM_KEY,
     new_transform_key='affine_registered_in_2d',
     reg_channel_index=0,
     overlap_tolerance={'x': 0.1, 'y': 0.1, 'z': 1}, # allow pairing of slices that don't initially overlap
-    pairwise_reg_func=register_3d_sims_in_2d,
+    #pairwise_reg_func=register_3d_sims_in_2d,
+    pairwise_reg_func=registration_method,
 )
 
 # calculate output stack properties for fusion
