@@ -170,13 +170,6 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         eye_transform = np.eye(ndims + 1)
         transform = eye_transform
 
-        self.count+=1
-        print(self.count)
-        return {
-            "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
-            "quality": 0  # float between 0 and 1 (if not available, set to 1.0)
-        }
-
         if np.isnan(fixed_data).all() or np.isnan(moving_data).all():
             logging.warning('No overlapping data')
             return {

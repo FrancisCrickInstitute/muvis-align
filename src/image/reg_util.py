@@ -30,8 +30,9 @@ def make_z_transforms(transforms):
 
 if __name__ == "__main__":
     # /nemo/project/proj-ccp-vem/datasets/12193
-    stitched_path = 'D:/slides/12193/stitched_hpc/S???/mappings.json'
-    aligned_path = 'D:/slides/12193/aligned_hpc/mappings.json'
+    # D:/slides/12193
+    stitched_path = '/nemo/project/proj-ccp-vem/datasets/12193/stitched/S???/mappings.json'
+    aligned_path = '/nemo/project/proj-ccp-vem/datasets/12193/aligned/mappings.json'
     output_path = 'aligned_stitched_mappings2.json'
 
     stitched_filenames = dir_regex(stitched_path)
