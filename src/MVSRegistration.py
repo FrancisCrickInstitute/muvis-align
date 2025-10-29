@@ -574,10 +574,9 @@ class MVSRegistration:
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
-        z_positions = sorted(set([si_utils.get_origin_from_sim(sim)['z'] for sim in sims]))
         if z_scale is None:
             if 'z' in sims[0].dims:
-                z_scale = np.min(np.diff(sorted(set([si_utils.get_origin_from_sim(sim)['z'] for sim in sims]))))
+                z_scale = np.min(np.diff(sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))))
         if not z_scale:
             z_scale = 1
 
@@ -622,7 +621,11 @@ class MVSRegistration:
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
             if is_3d:
-                output_stack_properties['shape']['z'] = len(z_positions)
+                z_positions = sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))
+                z_shape = len(z_positions)
+                if z_shape <= 1:
+                    z_shape = len(sims)
+                output_stack_properties['shape']['z'] = z_shape
             if self.verbose:
                 logging.info(f'Output stack: {output_stack_properties}')
             data_size = np.prod(list(output_stack_properties['shape'].values())) * source_type.itemsize
