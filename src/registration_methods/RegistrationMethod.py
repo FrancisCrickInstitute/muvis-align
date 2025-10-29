@@ -15,6 +15,7 @@ class RegistrationMethod(ABC):
             self.ndims = len(self.full_size)
         self.params = params
         self.debug = debug
+        self.count = 0  # for debugging
 
     def convert_data_to_float(self, data):
         maxval = 2 ** (8 * self.source_type.itemsize) - 1

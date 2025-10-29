@@ -2,6 +2,7 @@
 # https://github.com/pydata/xarray/issues/8828
 
 from contextlib import nullcontext
+import dask
 from dask.diagnostics import ProgressBar
 import logging
 import multiview_stitcher
@@ -21,6 +22,9 @@ from src.image.source_helper import create_dask_source
 from src.image.util import *
 from src.metrics import calc_ncc, calc_ssim
 from src.util import *
+
+
+dask.config.set(scheduler='threads')
 
 
 class MVSRegistration:
@@ -515,7 +519,6 @@ class MVSRegistration:
 
                 plot_summary=self.mpl_ui,
                 return_dict=True,
-                overlap_tolerance={'z': 1},  # allow pairing of slices that don't initially overlap
             )
             # copy transforms from register sims to unmodified sims
             for reg_msim, index in zip(register_msims, indices):

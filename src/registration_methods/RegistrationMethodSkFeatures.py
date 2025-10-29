@@ -1,3 +1,4 @@
+# https://multiview-stitcher.github.io/multiview-stitcher/main/extension_api_pairwise_registration/
 # https://scikit-image.org/docs/stable/api/skimage.feature.html
 # https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_orb.html
 # https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_brief.html
@@ -134,12 +135,38 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         return transform, quality, matches, inliers
 
+    def registration_physical_space(
+            self,
+            fixed_data,
+            moving_data,
+            *,
+            fixed_origin,
+            moving_origin,
+            fixed_spacing,
+            moving_spacing,
+            initial_affine,
+            transform_types=None,
+            **ants_registration_kwargs,
+    ):
+        return {
+            "affine_matrix": np.eye(4),
+            # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
+            "quality": 1  # float between 0 and 1 (if not available, set to 1.0)
+        }
+
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
         eye_transform = np.eye(self.ndims + 1)
         transform = eye_transform
         quality = 0
         matches = []
         inliers = []
+
+        if np.isnan(fixed_data).all() or np.isnan(moving_data).all():
+            logging.warning('No overlapping data')
+            return {
+                "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
+                "quality": 0  # float between 0 and 1 (if not available, set to 1.0)
+            }
 
         full_size_dist = np.linalg.norm(self.full_size)
         mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
@@ -164,6 +191,8 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             #output_transform = landmark_initializer.Execute(transform)
             #print(output_transform)
 
+            transform = np.array(transform)
+
         if self.debug:
             print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}'
                   f' #matches: {len(matches)} #inliers: {np.sum(inliers):.0f} quality: {quality:.3f}')
@@ -187,7 +216,12 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             logging.error('Unable to find feature-based registration')
             transform = eye_transform
 
+        if len(transform) < self.ndims + 1:
+            transform3d = eye_transform
+            transform3d[1:, 1:] = transform
+            transform = transform3d
+
         return {
-            "affine_matrix": np.array(transform),  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
+            "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
             "quality": quality  # float between 0 and 1 (if not available, set to 1.0)
         }
