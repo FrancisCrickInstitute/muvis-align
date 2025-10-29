@@ -149,7 +149,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             **ants_registration_kwargs,
     ):
         return {
-            "affine_matrix": np.eye(4),
+            "affine_matrix": np.eye(self.ndims + 1),
             # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
             "quality": 1  # float between 0 and 1 (if not available, set to 1.0)
         }
@@ -160,6 +160,10 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         quality = 0
         matches = []
         inliers = []
+
+        #print(self.count)
+        #self.count+=1
+        #return {"affine_matrix": eye_transform, "quality": 1 }
 
         if np.isnan(fixed_data).all() or np.isnan(moving_data).all():
             logging.warning('No overlapping data')

@@ -69,10 +69,10 @@ class MVSRegistration:
 
         operation = params['operation']
         overlap_threshold = params.get('overlap_threshold', 0.5)
-        source_metadata = import_metadata(params.get('source_metadata', {}), base_folder=output)
+        source_metadata = import_metadata(params.get('source_metadata', {}), base_folder=params['input'])
         save_images = params.get('save_images', True)
         target_scale = params.get('scale')
-        extra_metadata = import_metadata(params.get('extra_metadata', {}), base_folder=output)
+        extra_metadata = import_metadata(params.get('extra_metadata', {}), base_folder=params['input'])
         channels = extra_metadata.get('channels', [])
         normalise_orientation = 'norm' in source_metadata
 
@@ -233,9 +233,9 @@ class MVSRegistration:
 
     def init_sims(self, target_scale=None):
         operation = self.params['operation']
-        source_metadata = import_metadata(self.params.get('source_metadata', 'source'), base_folder=self.output)
+        source_metadata = import_metadata(self.params.get('source_metadata', 'source'), base_folder=self.params['input'])
         chunk_size = self.params_general.get('chunk_size', [1024, 1024])
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.output)
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
         z_scale = extra_metadata.get('scale', {}).get('z')
 
         logging.info('Initialising sims...')
@@ -267,7 +267,7 @@ class MVSRegistration:
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
                 pyramid_scale = source.scales[pyramid_level]
-                scale = {dim: size * pyramid_scale for dim, size in scale.items()}
+                scale = {dim: size * pyramid_scale if dim in 'xy' else size for dim, size in scale.items()}
             if 'invert' in source_metadata:
                 translation[0] = -translation[0]
                 translation[1] = -translation[1]
@@ -571,7 +571,7 @@ class MVSRegistration:
         if transform_key is None:
             transform_key = self.reg_transform_key
         operation = self.params['operation']
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.output)
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
         z_positions = sorted(set([si_utils.get_origin_from_sim(sim)['z'] for sim in sims]))
@@ -637,7 +637,7 @@ class MVSRegistration:
         return fused_image
 
     def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.output)
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
         channels = extra_metadata.get('channels', [])
         output_params = self.params_general['output']
         thumbnail_scale = output_params.get('thumbnail_scale', 16)

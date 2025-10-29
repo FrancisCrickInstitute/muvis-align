@@ -54,18 +54,35 @@ operations:
 #    output: ../../aligned/
 #    save_images: False
 
-  - operation: register 3d
+#  - operation: register 3d
+#    #input: /nemo/project/proj-ccp-vem/datasets/12193/data/S???/*.tiff
+#    input: D:/slides/12193/data_subset/S???/*.tiff
+#    source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 0.1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*0.1'}}
+#    extra_metadata: aligned_stitched_mappings2.json
+#    #flatfield_quantiles: [0.5]
+#    use_orthogonal_pairs: False
+#    transform_type: rigid
+#    method:
+#      name: 3din2d  # sift
+#      gaussian_sigma: 2
+#      inlier_threshold_factor: 0.05
+#      max_trials: 10000
+#      ransac_iterations: 10
+#    output: ../../aligned2/
+
+  - operation: register
     #input: /nemo/project/proj-ccp-vem/datasets/12193/data/S???/*.tiff
-    input: D:/slides/12193/data_subset/S???/*.tiff
+    input: D:/slides/12193/data_subset2/S???/*.tiff
     source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 0.1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*0.1'}}
-    extra_metadata: aligned_stitched_mappings2.json
+    extra_metadata: ../../aligned_stitched_mappings1.json
     #flatfield_quantiles: [0.5]
-    use_orthogonal_pairs: False
+    use_orthogonal_pairs: True
     transform_type: rigid
+    scale: 4
     method:
-      name: 3din2d  # sift
+      name: sift
       gaussian_sigma: 2
       inlier_threshold_factor: 0.05
       max_trials: 10000
       ransac_iterations: 10
-    output: ../../aligned2/
+    output: ../../aligned3/
