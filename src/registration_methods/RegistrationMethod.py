@@ -9,7 +9,7 @@ class RegistrationMethod(ABC):
         self.source_type = source.dtype
         if hasattr(source, 'dims'):
             self.full_size = si_utils.get_shape_from_sim(source, asarray=True)
-            self.ndims = len([size for size in self.full_size if size > 1])
+            self.ndims = 2 + int('z' in source.dims)
         else:
             self.full_size = [size for size in source.shape if size > 4]    # try to filter channel dimension
             self.ndims = len(self.full_size)

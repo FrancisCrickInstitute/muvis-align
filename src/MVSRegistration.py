@@ -248,7 +248,8 @@ class MVSRegistration:
         rotations = []
 
         is_stack = ('stack' in operation)
-        is_3d = (source0.get_size().get('z', 1) > 1 or '3d' in operation)
+        has_z_size = (source0.get_size().get('z', 0) > 0)
+        is_3d = (has_z_size or '3d' in operation)
         pyramid_level = 0
 
         output_order = 'zyx' if is_stack or is_3d else 'yx'
@@ -435,6 +436,7 @@ class MVSRegistration:
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
 
         is_stack = ('stack' in operation)
+        is_3d = ('3d' in operation)
         debug = self.params_general.get('debug', False)
 
         reg_channel = params.get('channel', 0)
@@ -459,6 +461,11 @@ class MVSRegistration:
             logging.info(f'#pairs: {len(pairs)}')
         else:
             pairs = None
+
+        if is_3d:
+            overlap_tolerance = {'z': 1}
+        else:
+            overlap_tolerance = None
 
         if '3din2d' in reg_method:
             from src.registration_methods.RegistrationMethodANTs3Din2D import RegistrationMethodANTs3Din2D
@@ -519,6 +526,8 @@ class MVSRegistration:
 
                 plot_summary=self.mpl_ui,
                 return_dict=True,
+
+                overlap_tolerance=overlap_tolerance,
             )
             # copy transforms from register sims to unmodified sims
             for reg_msim, index in zip(register_msims, indices):

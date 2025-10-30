@@ -71,9 +71,16 @@ sims = []
 for i in range(5):
     sims.append(si_utils.get_sim_from_array(
         np.random.randint(0, 100, (1, 10, 10)),
-        translation={'z': i * dz, 'y': 4, 'x': 5},
+        translation={'z': i * dz, 'y': 0, 'x': 0},
         scale={'y': dxy, 'x': dxy, 'z': dz},
         ))
+sims.append(si_utils.get_sim_from_array(
+    np.random.randint(0, 100, (1, 10, 10)),
+    translation={'z': 0, 'y': 0, 'x': 0},
+    scale={'y': dxy, 'x': dxy, 'z': dz},
+    ))
+
+pairs = [(0, 5), (0, 1), (5, 1), (1, 2), (2, 3), (3, 4)]
 
 msims = [msi_utils.get_msim_from_sim(im) for im in sims]
 
@@ -85,6 +92,8 @@ params = registration.register(
     reg_channel_index=0,
     overlap_tolerance={'z': 1}, # allow pairing of slices that don't initially overlap
     pairwise_reg_func=register_3d_sims_in_2d,
+    pairs=pairs,
+    n_parallel_pairwise_regs=1
 )
 
 # calculate output stack properties for fusion
@@ -102,5 +111,5 @@ fused = fusion.fuse(
 plt.figure()
 fig, axs = plt.subplots(1, len(sims))
 for i in range(len(sims)):
-    axs[i].imshow(fused.data[0, 0, i])
+    axs[i].imshow(fused.data[0, 0, i-1])
 plt.show()

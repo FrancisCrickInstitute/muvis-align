@@ -47,6 +47,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         points = []
         desc = []
 
+        if 'z' in data0.dims:
+            # make data 2D
+            data0 = data0.max('z')
         data = self.convert_data_to_float(data0)
         data = norm_image_variance(data)
         if gaussian_sigma:
@@ -161,9 +164,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         matches = []
         inliers = []
 
-        #print(self.count)
+        #print(self.count, fixed_data.name, moving_data.name)
         #self.count+=1
-        #return {"affine_matrix": eye_transform, "quality": 1 }
+        #return {"affine_matrix": transform, "quality": 1}
 
         if np.isnan(fixed_data).all() or np.isnan(moving_data).all():
             logging.warning('No overlapping data')
