@@ -9,5 +9,5 @@ export PYTHONUNBUFFERED=TRUE
 ml purge
 ml Anaconda3
 source /camp/apps/eb/software/Anaconda/conda.env.sh
-conda activate muvis-env
+conda activate muvis-align-env
 python run.py $1
