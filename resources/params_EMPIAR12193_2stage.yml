@@ -12,7 +12,7 @@ general:
     verbose: True
   output:
     clear: False
-    overwrite: True
+    overwrite: False
     format: ome.zarr
     tile_size: [4096, 4096]
     compression:
@@ -73,16 +73,15 @@ operations:
   - operation: register stack3d
     #input: /nemo/project/proj-ccp-vem/datasets/12193/data/S???/*.tiff
     input:
-    #  - /nemo/project/proj-ccp-vem/datasets/12193/data/S000/*.tiff
-    #  - /nemo/project/proj-ccp-vem/datasets/12193/data/S001/*.tiff
-    #  - /nemo/project/proj-ccp-vem/datasets/12193/data/S002/*.tiff
-      - D:/slides/12193/data_subset2/S000/*.tiff
-      - D:/slides/12193/data_subset2/S001/*.tiff
-      - D:/slides/12193/data_subset2/S002/*.tiff
+      - /nemo/project/proj-ccp-vem/datasets/12193/data/S000/*.tiff
+      - /nemo/project/proj-ccp-vem/datasets/12193/data/S001/*.tiff
+      - /nemo/project/proj-ccp-vem/datasets/12193/data/S002/*.tiff
+    #  - D:/slides/12193/data_subset2/S000/*.tiff
+    #  - D:/slides/12193/data_subset2/S001/*.tiff
+    #  - D:/slides/12193/data_subset2/S002/*.tiff
     source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 0.1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*0.1'}}
     extra_metadata: ../../aligned_stitched_mappings2.json
-    #flatfield_quantiles: [0.5]
-    scale: 4
+    flatfield_quantiles: [0.5]
     use_orthogonal_pairs: True
     transform_type: rigid
     method:
