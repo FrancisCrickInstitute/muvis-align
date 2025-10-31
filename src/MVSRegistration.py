@@ -69,10 +69,10 @@ class MVSRegistration:
 
         operation = params['operation']
         overlap_threshold = params.get('overlap_threshold', 0.5)
-        source_metadata = import_metadata(params.get('source_metadata', {}), base_folder=params['input'])
+        source_metadata = import_metadata(params.get('source_metadata', {}), input_path=params['input'])
         save_images = params.get('save_images', True)
         target_scale = params.get('scale')
-        extra_metadata = import_metadata(params.get('extra_metadata', {}), base_folder=params['input'])
+        extra_metadata = import_metadata(params.get('extra_metadata', {}), input_path=params['input'])
         channels = extra_metadata.get('channels', [])
         normalise_orientation = 'norm' in source_metadata
 
@@ -82,6 +82,7 @@ class MVSRegistration:
         overwrite = output_params.get('overwrite', True)
 
         is_stack = ('stack' in operation)
+        is_3d = ('3d' in operation)
         is_transition = ('transition' in operation)
         is_channel_overlay = (len(channels) > 1)
 
@@ -150,7 +151,8 @@ class MVSRegistration:
                        translation0=positions[0], params=output_params)
             return False
 
-        overlaps = self.validate_overlap(sims, file_labels, is_stack, is_stack or is_channel_overlay)
+        is_simple_stack = is_stack and not is_3d
+        overlaps = self.validate_overlap(sims, file_labels, is_simple_stack, is_simple_stack or is_channel_overlay)
         overall_overlap = np.mean(overlaps)
         if overall_overlap < overlap_threshold:
             raise ValueError(f'Not enough overlap: {overall_overlap * 100:.1f}%')
@@ -233,9 +235,9 @@ class MVSRegistration:
 
     def init_sims(self, target_scale=None):
         operation = self.params['operation']
-        source_metadata = import_metadata(self.params.get('source_metadata', 'source'), base_folder=self.params['input'])
+        source_metadata = import_metadata(self.params.get('source_metadata', 'source'), input_path=self.params['input'])
         chunk_size = self.params_general.get('chunk_size', [1024, 1024])
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         z_scale = extra_metadata.get('scale', {}).get('z')
 
         logging.info('Initialising sims...')
@@ -360,6 +362,7 @@ class MVSRegistration:
         sizes = [np.linalg.norm(get_sim_physical_size(sim)) for sim in sims]
         for i in range(n):
             norm_dists = []
+            # check if only single z slices
             if is_stack:
                 if i + 1 < n:
                     compare_indices = [i + 1]
@@ -450,7 +453,7 @@ class MVSRegistration:
             'transform': params.get('transform_type')  # options include 'translation', 'rigid', 'affine'
         }
         pairwise_reg_func_kwargs = None
-        if is_stack:
+        if is_stack and not is_3d:
             # register in 2d; pairwise consecutive views
             register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
@@ -565,9 +568,11 @@ class MVSRegistration:
         if is_stack:
             # set 3D affine transforms from 2D registration params
             for index, sim in enumerate(sims):
-                affine_3d = param_utils.identity_transform(ndim=3)
-                affine_3d.loc[{dim: mappings[index].coords[dim] for dim in mappings[index].sel(t=0).dims}] = mappings[index].sel(t=0)
-                si_utils.set_sim_affine(sim, affine_3d, transform_key=self.reg_transform_key)
+                # check if already 3D
+                if 4 not in si_utils.get_affine_from_sim(sim, transform_key=self.reg_transform_key).shape:
+                    affine_3d = param_utils.identity_transform(ndim=3)
+                    affine_3d.loc[{dim: mappings[index].coords[dim] for dim in mappings[index].sel(t=0).dims}] = mappings[index].sel(t=0)
+                    si_utils.set_sim_affine(sim, affine_3d, transform_key=self.reg_transform_key)
 
         return {'reg_result': reg_result,
                 'mappings': mappings_dict,
@@ -580,7 +585,7 @@ class MVSRegistration:
         if transform_key is None:
             transform_key = self.reg_transform_key
         operation = self.params['operation']
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
         if z_scale is None:
@@ -589,7 +594,6 @@ class MVSRegistration:
         if not z_scale:
             z_scale = 1
 
-        is_stack = ('stack' in operation)
         is_3d = ('3d' in operation)
         is_channel_overlay = (len(channels) > 1)
 
@@ -597,24 +601,7 @@ class MVSRegistration:
         source_type = sim0.dtype
 
         output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
-        if is_stack:
-            # set z shape which is wrongly calculated by calc_stack_properties_from_view_properties_and_params
-            # because it does not take into account the correct input z spacing because of stacks of one z plane
-            output_stack_properties['shape']['z'] = len(sims)
-            if self.verbose:
-                logging.info(f'Output stack: {output_stack_properties}')
-
-            data_size = np.prod(list(output_stack_properties['shape'].values())) * source_type.itemsize
-            logging.info(f'Fusing Z stack {print_hbytes(data_size)}')
-
-            # fuse all sims together using simple average fusion
-            fused_image = fusion.fuse(
-                sims,
-                transform_key=transform_key,
-                output_stack_properties=output_stack_properties,
-                fusion_func=fusion.simple_average_fusion,
-            )
-        elif is_channel_overlay:
+        if is_channel_overlay:
             # convert to multichannel images
             if self.verbose:
                 logging.info(f'Output stack: {output_stack_properties}')
@@ -649,7 +636,7 @@ class MVSRegistration:
         return fused_image
 
     def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), base_folder=self.params['input'])
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         output_params = self.params_general['output']
         thumbnail_scale = output_params.get('thumbnail_scale', 16)

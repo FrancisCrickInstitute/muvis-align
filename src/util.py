@@ -500,11 +500,23 @@ def get_orthogonal_pairs(origins, image_size_um):
     """
     pairs = []
     angles = []
+    z_positions = [pos[0] for pos in origins]
+    is_mixed_3dstack = len(set(z_positions)) < len(z_positions)
     for i, j in np.transpose(np.triu_indices(len(origins), 1)):
         origini = np.array(origins[i])
         originj = np.array(origins[j])
-        distance = math.dist(origini, originj)
-        if distance < max(image_size_um):
+        if is_mixed_3dstack:
+            # ignore z value for distance
+            distance = math.dist(origini[-2:], originj[-2:])
+            min_distance = max(image_size_um[-2:])
+            is_same_z = (origini[0] == originj[0])
+            if not is_same_z:
+                # for tiles in different z stack, require greater overlap
+                min_distance *= 0.8
+        else:
+            distance = math.dist(origini, originj)
+            min_distance = max(image_size_um)
+        if distance < min_distance:
             pairs.append((i, j))
             vector = origini - originj
             angle = math.degrees(math.atan2(vector[1], vector[0]))
@@ -537,12 +549,14 @@ def retuple(chunks, shape):
     return *shape[:dims_to_add], *chunks
 
 
-def import_metadata(content, fields=None, base_folder=None):
+def import_metadata(content, fields=None, input_path=None):
     # return dict[id] = {values}
     if isinstance(content, str):
         ext = os.path.splitext(content)[1].lower()
-        if base_folder:
-            content = os.path.join(base_folder, content)
+        if input_path:
+            if isinstance(input_path, list):
+                input_path = input_path[0]
+            content = os.path.join(os.path.dirname(input_path), content)
         if ext == '.csv':
             content = import_csv(content)
         elif ext in ['.json', '.ome.json']:
