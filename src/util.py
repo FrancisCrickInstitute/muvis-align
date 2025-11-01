@@ -556,7 +556,7 @@ def import_metadata(content, fields=None, input_path=None):
         if input_path:
             if isinstance(input_path, list):
                 input_path = input_path[0]
-            content = os.path.join(os.path.dirname(input_path), content)
+            content = os.path.normpath(os.path.join(os.path.dirname(input_path), content))
         if ext == '.csv':
             content = import_csv(content)
         elif ext in ['.json', '.ome.json']:
