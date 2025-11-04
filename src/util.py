@@ -501,7 +501,8 @@ def get_orthogonal_pairs(origins, image_size_um):
     pairs = []
     angles = []
     z_positions = [pos[0] for pos in origins]
-    is_mixed_3dstack = len(set(z_positions)) < len(z_positions)
+    ordered_z = sorted(set(z_positions))
+    is_mixed_3dstack = len(ordered_z) < len(z_positions)
     for i, j in np.transpose(np.triu_indices(len(origins), 1)):
         origini = np.array(origins[i])
         originj = np.array(origins[j])
@@ -509,14 +510,18 @@ def get_orthogonal_pairs(origins, image_size_um):
             # ignore z value for distance
             distance = math.dist(origini[-2:], originj[-2:])
             min_distance = max(image_size_um[-2:])
-            is_same_z = (origini[0] == originj[0])
+            z_i, z_j = origini[0], originj[0]
+            is_same_z = (z_i == z_j)
+            is_close_z = abs(ordered_z.index(z_i) - ordered_z.index(z_j)) <= 1
             if not is_same_z:
                 # for tiles in different z stack, require greater overlap
                 min_distance *= 0.8
+            ok = (distance < min_distance and is_close_z)
         else:
             distance = math.dist(origini, originj)
             min_distance = max(image_size_um)
-        if distance < min_distance:
+            ok = (distance < min_distance)
+        if ok:
             pairs.append((i, j))
             vector = origini - originj
             angle = math.degrees(math.atan2(vector[1], vector[0]))
