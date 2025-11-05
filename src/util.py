@@ -500,7 +500,7 @@ def get_orthogonal_pairs(origins, image_size_um):
     """
     pairs = []
     angles = []
-    z_positions = [pos[0] for pos in origins]
+    z_positions = [pos[0] for pos in origins if len(pos) == 3]
     ordered_z = sorted(set(z_positions))
     is_mixed_3dstack = len(ordered_z) < len(z_positions)
     for i, j in np.transpose(np.triu_indices(len(origins), 1)):

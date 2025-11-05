@@ -1,0 +1,36 @@
+general:
+  show_original: False
+  metadata_summary: False
+  chunk_size: [4096, 4096]
+  break_on_error: True
+  logging:
+    filename: log/muvis-align.log
+    format: '%(asctime)s %(levelname)s: %(message)s'
+    dask: True
+    time: True
+    verbose: True
+  output:
+    clear: False
+    overwrite: True
+    format: ome.zarr
+    tile_size: [4096, 4096]
+    compression:
+    npyramid_add: 4
+    pyramid_downsample: 2
+    thumbnail: ome.zarr
+    thumbnail_scale: 32
+
+operations:
+  - operation: register
+    input: D:/slides/13457227.zarr
+    #normalisation: global  # normalise in custom registration function instead
+    flatfield_quantiles: [0.5]
+    use_orthogonal_pairs: True
+    transform_type: translation
+    method:
+      name: sift
+      gaussian_sigma: 4
+      inlier_threshold_factor: 0.05
+      max_trials: 10000
+      ransac_iterations: 10
+    output: ../../test/
