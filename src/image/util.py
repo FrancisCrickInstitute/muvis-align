@@ -537,6 +537,22 @@ def detect_area_points(image):
     return area_points
 
 
+def group_sims_by_z(sims):
+    grouped_sims = []
+    z_positions = [si_utils.get_origin_from_sim(sim).get('z') for sim in sims]
+    is_mixed_3dstack = len(set(z_positions)) < len(z_positions)
+    if is_mixed_3dstack:
+        sims_by_z = {}
+        for simi, z_pos in enumerate(z_positions):
+            if z_pos is not None and z_pos not in sims_by_z:
+                sims_by_z[z_pos] = []
+            sims_by_z[z_pos].append(simi)
+        grouped_sims = list(sims_by_z.values())
+    if len(grouped_sims) == 0:
+        grouped_sims = [list(range(len(sims)))]
+    return grouped_sims
+
+
 def calc_foreground_map(sims):
     if len(sims) <= 2:
         return [True] * len(sims)

@@ -398,8 +398,15 @@ class MVSRegistration:
             foreground_map = None
         if flatfield_quantiles is not None:
             logging.info('Flat-field correction...')
-            sims = flatfield_correction(sims, self.source_transform_key, flatfield_quantiles,
-                                        foreground_map=foreground_map)
+            new_sims = [None] * len(sims)
+            for sim_indices in group_sims_by_z(sims):
+                sims_z_set = [sims[i] for i in sim_indices]
+                foreground_map_z_set = [foreground_map[i] for i in sim_indices] if foreground_map is not None else None
+                new_sims_z_set = flatfield_correction(sims_z_set, self.source_transform_key, flatfield_quantiles,
+                                                      foreground_map=foreground_map_z_set)
+                for sim_index, sim in zip(sim_indices, new_sims_z_set):
+                    new_sims[sim_index] = sim
+            sims = new_sims
 
         if normalisation:
             use_global = ('global' in normalisation)
