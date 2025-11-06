@@ -48,7 +48,6 @@ def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
     dims0 = sim0.dims
     has_c_dim = 'c' in dims0
     dtype = sim0.dtype
-    chunk_size = sim0.data.chunksize
     dark = 0
     bright = 1
     for quantile, quantile_image in zip(quantiles, quantile_images):
