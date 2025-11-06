@@ -44,9 +44,11 @@ def calc_flatfield_images(sims, quantiles, foreground_map=None):
 
 def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
     new_sims = []
-    dims0 = sims[0].dims
+    sim0 = sims[0]
+    dims0 = sim0.dims
     has_c_dim = 'c' in dims0
-    dtype = sims[0].dtype
+    dtype = sim0.dtype
+    chunk_size = sim0.data.chunksize
     dark = 0
     bright = 1
     for quantile, quantile_image in zip(quantiles, quantile_images):
@@ -57,7 +59,7 @@ def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
         else:
             bright = quantile_image
 
-    bright_dark_range = np.array(bright - dark)
+    bright_dark_range = bright - dark
     if has_c_dim:
         axes = list(range(len(dims0) - 1))   # all accept final 'c' axis
     else:

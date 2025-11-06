@@ -17,5 +17,5 @@ def test_process_memory(params, filenames):
 
 if __name__ == '__main__':
     params = 'resources/params_test.yml'
-    filenames = ['D:/slides/idr0026.zarr/0'] * 10
+    filenames = ['D:/slides/13457227.zarr'] * 2
     test_process_memory(params, filenames)
