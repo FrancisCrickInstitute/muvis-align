@@ -280,7 +280,7 @@ def eval_context(data, key, default_value, context):
 def get_value_units_micrometer(value_units0: list|dict) -> list|dict|None:
     conversions = {
         'nm': 1e-3,
-        'µm': 1, 'um': 1, 'micrometer': 1,
+        'µm': 1, 'um': 1, 'micrometer': 1, 'micron': 1,
         'mm': 1e3, 'millimeter': 1e3,
         'cm': 1e4, 'centimeter': 1e4,
         'm': 1e6, 'meter': 1e6
@@ -305,6 +305,17 @@ def get_value_units_micrometer(value_units0: list|dict) -> list|dict|None:
                 value_um = value_unit
             values_um.append(value_um)
     return values_um
+
+
+def convert_to_um(value, unit):
+    conversions = {
+        'nm': 1e-3,
+        'µm': 1, 'um': 1, 'micrometer': 1, 'micron': 1,
+        'mm': 1e3, 'millimeter': 1e3,
+        'cm': 1e4, 'centimeter': 1e4,
+        'm': 1e6, 'meter': 1e6
+    }
+    return value * conversions.get(unit, 1)
 
 
 def convert_rational_value(value) -> float:

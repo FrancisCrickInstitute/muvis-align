@@ -28,7 +28,7 @@ def create_dask_data(filename, level=0):
         lazy_array = dask.delayed(tifffile.imread)(filename, level=level)
         dask_data = da.from_delayed(lazy_array, shape=shape, dtype=dtype)
     else:
-        lazy_array = dask.delayed(imageio.imread)(filename)
+        lazy_array = dask.delayed(imageio.v3.imread)(filename)
         # TODO get metadata from metadata = PIL.Image.info
         dask_data = da.from_delayed(lazy_array, shape=shape, dtype=dtype)
     return dask_data
@@ -38,7 +38,7 @@ def create_dask_source(filename, source_metadata=None):
     ext = os.path.splitext(filename)[1].lstrip('.').lower()
     if ext.startswith('tif'):
         dask_source = TiffDaskSource(filename, source_metadata)
-    elif ext.startswith('zar'):
+    elif '.zar' in filename.lower():
         dask_source = ZarrDaskSource(filename, source_metadata)
     else:
         raise ValueError(f'Unsupported file type: {ext}')

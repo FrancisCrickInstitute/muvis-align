@@ -1,3 +1,4 @@
+import dask.array as da
 from multiview_stitcher import spatial_image_utils as si_utils
 import numpy as np
 import os
@@ -36,8 +37,10 @@ def calc_flatfield_images(sims, quantiles, foreground_map=None):
         back_sims = sims
     dtype = sims[0].dtype
     maxval = 2 ** (8 * dtype.itemsize) - 1
-    flatfield_images = [image / np.float32(maxval) for image in create_quantile_images(back_sims, quantiles=quantiles)]
+    flatfield_images = [image.astype(np.float32) / np.float32(maxval)
+                        for image in da.quantile(da.asarray(back_sims), quantiles, axis=0)]
     return flatfield_images
+
 
 def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
     new_sims = []
@@ -49,8 +52,14 @@ def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
             dark = quantile_image
         else:
             bright = quantile_image
+
+    axes = [sims[0].dims.index(dim) for dim in 'zyx']
+
+    bright_dark_range = bright - dark
+    mean_bright_dark = np.mean(bright - dark, axis=axes)
+
     for sim in sims:
-        image = float2int_image(image_flatfield_correction(int2float_image(sim), dark=dark, bright=bright), dtype)
+        image = float2int_image(image_flatfield_correction(int2float_image(sim), dark, bright_dark_range, mean_bright_dark), dtype)
         new_sim = si_utils.get_sim_from_array(
             image,
             dims=sim.dims,
@@ -63,11 +72,10 @@ def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
         new_sims.append(new_sim)
     return new_sims
 
-def image_flatfield_correction(image0, dark=0, bright=1, clip=True):
+def image_flatfield_correction(image0, dark, bright_dark_range, mean_bright_dark, clip=True):
     # Input/output: float images
     # https://en.wikipedia.org/wiki/Flat-field_correction
-    mean_bright_dark = np.mean(bright - dark, (0, 1))
-    image = (image0 - dark) * mean_bright_dark / (bright - dark)
+    image = (image0 - dark) * mean_bright_dark / bright_dark_range
     if clip:
         image = image.clip(0, 1)    # np.clip(image) is not dask-compatible, use image.clip() instead
     else:

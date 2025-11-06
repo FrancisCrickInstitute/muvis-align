@@ -495,27 +495,6 @@ def norm_image_quantiles(image0, quantile=0.99):
     return normimage
 
 
-def create_quantile_images(sims, quantiles):
-    quantile_images = []
-    channel_images2 = []
-    nchannels = sims[0].sizes.get('c', 1)
-    for channeli in range(nchannels):
-        channel_images = [sim.isel({'c': channeli}).squeeze() for sim in sims]
-        norm_images = calc_images_quantiles(channel_images, quantiles)
-        channel_images2.append(norm_images)
-
-    for quantilei in range(len(quantiles)):
-        quantile_image = None
-        for channel_image in channel_images2:
-            image = channel_image[quantilei]
-            if quantile_image is None:
-                quantile_image = image
-            else:
-                quantile_image = cv.merge(list(cv.split(quantile_image)) + [image])
-        quantile_images.append(quantile_image)
-    return quantile_images
-
-
 def get_max_downsamples(shape, npyramid_add, pyramid_downsample):
     shape = list(shape)
     for i in range(npyramid_add):
