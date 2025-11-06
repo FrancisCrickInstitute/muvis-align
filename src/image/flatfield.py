@@ -44,22 +44,34 @@ def calc_flatfield_images(sims, quantiles, foreground_map=None):
 
 def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
     new_sims = []
+    dims0 = sims[0].dims
+    has_c_dim = 'c' in dims0
     dtype = sims[0].dtype
     dark = 0
     bright = 1
     for quantile, quantile_image in zip(quantiles, quantile_images):
+        if has_c_dim and dims0.index('c') != -1:
+            quantile_image = da.moveaxis(quantile_image, dims0.index('c'), -1)
         if quantile <= 0.5:
             dark = quantile_image
         else:
             bright = quantile_image
 
-    axes = [sims[0].dims.index(dim) for dim in 'zyx']
-
-    bright_dark_range = bright - dark
-    mean_bright_dark = np.mean(bright - dark, axis=axes)
+    bright_dark_range = np.array(bright - dark)
+    if has_c_dim:
+        axes = list(range(len(dims0) - 1))   # all accept final 'c' axis
+    else:
+        axes = None
+    mean_bright_dark = np.array(np.mean(bright - dark, axis=axes))
 
     for sim in sims:
-        image = float2int_image(image_flatfield_correction(int2float_image(sim), dark, bright_dark_range, mean_bright_dark), dtype)
+        if has_c_dim:
+            image0 = sim.transpose(..., 'c')
+        else:
+            image0 = sim
+        image = float2int_image(image_flatfield_correction(int2float_image(image0), dark, bright_dark_range, mean_bright_dark), dtype)
+        if has_c_dim:
+            image = image.transpose(*dims0)     # revert to original order
         new_sim = si_utils.get_sim_from_array(
             image,
             dims=sim.dims,

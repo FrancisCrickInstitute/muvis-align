@@ -22,7 +22,7 @@ general:
 
 operations:
   - operation: register
-    input: D:/slides/13457227.zarr
+    input: D:/slides/5025553.zarr
     #normalisation: global  # normalise in custom registration function instead
     flatfield_quantiles: [0.5]
     use_orthogonal_pairs: True
