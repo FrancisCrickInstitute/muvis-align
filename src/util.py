@@ -374,7 +374,7 @@ def apply_transform(points, transform):
         point_len = len(point)
         while len(point) < len(transform):
             point = list(point) + [1]
-        new_point = np.dot(point, np.transpose(transform))
+        new_point = np.dot(point, np.transpose(np.array(transform)))
         new_points.append(new_point[:point_len])
     return new_points
 

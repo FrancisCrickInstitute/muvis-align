@@ -537,6 +537,14 @@ def detect_area_points(image):
     return area_points
 
 
+def get_sim_position_final(sim):
+    transform_keys = si_utils.get_tranform_keys_from_sim(sim)
+    transform = combine_transforms([np.array(si_utils.get_affine_from_sim(sim, transform_key))
+                                    for transform_key in transform_keys])
+    position = apply_transform([si_utils.get_origin_from_sim(sim, asarray=True)], transform)[0]
+    return position
+
+
 def group_sims_by_z(sims):
     grouped_sims = []
     z_positions = [si_utils.get_origin_from_sim(sim).get('z') for sim in sims]

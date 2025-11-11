@@ -83,6 +83,7 @@ class MVSRegistration:
 
         is_stack = ('stack' in operation)
         is_3d = ('3d' in operation)
+        is_simple_stack = is_stack and not is_3d
         is_transition = ('transition' in operation)
         is_channel_overlay = (len(channels) > 1)
 
@@ -152,8 +153,8 @@ class MVSRegistration:
             return False
 
         is_simple_stack = is_stack and not is_3d
-        overlaps = self.validate_overlap(sims, file_labels, is_simple_stack, is_simple_stack or is_channel_overlay)
-        overall_overlap = np.mean(overlaps)
+        _, has_overlaps = self.validate_overlap(sims, file_labels, is_simple_stack, is_simple_stack or is_channel_overlay)
+        overall_overlap = np.mean(has_overlaps)
         if overall_overlap < overlap_threshold:
             raise ValueError(f'Not enough overlap: {overall_overlap * 100:.1f}%')
 
@@ -356,9 +357,10 @@ class MVSRegistration:
         return sims, scales2, translations2, rotations
 
     def validate_overlap(self, sims, labels, is_stack=False, expect_large_overlap=False):
-        overlaps = []
+        min_dists = []
+        has_overlaps = []
         n = len(sims)
-        positions = [si_utils.get_origin_from_sim(sim, asarray=True) for sim in sims]
+        positions = [get_sim_position_final(sim) for sim in sims]
         sizes = [np.linalg.norm(get_sim_physical_size(sim)) for sim in sims]
         for i in range(n):
             norm_dists = []
@@ -377,15 +379,16 @@ class MVSRegistration:
                     norm_dists.append(norm_dist)
             if len(norm_dists) > 0:
                 norm_dist = min(norm_dists)
+                min_dists.append(float(norm_dist))
                 if norm_dist >= 1:
                     logging.warning(f'{labels[i]} has no overlap')
-                    overlaps.append(False)
+                    has_overlaps.append(False)
                 elif expect_large_overlap and norm_dist > 0.5:
                     logging.warning(f'{labels[i]} has small overlap')
-                    overlaps.append(False)
+                    has_overlaps.append(False)
                 else:
-                    overlaps.append(True)
-        return overlaps
+                    has_overlaps.append(True)
+        return min_dists, has_overlaps
 
     def preprocess(self, sims, params):
         flatfield_quantiles = params.get('flatfield_quantiles')
@@ -465,10 +468,12 @@ class MVSRegistration:
             register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
         elif use_orthogonal_pairs:
-            origins = np.array([si_utils.get_origin_from_sim(sim, asarray=True) for sim in register_sims])
+            origins = np.array([get_sim_position_final(sim) for sim in register_sims])
             size = get_sim_physical_size(sim0)
             pairs, _ = get_orthogonal_pairs(origins, size)
             logging.info(f'#pairs: {len(pairs)}')
+            for pair in pairs:
+                print(f'{self.file_labels[pair[0]]} - {self.file_labels[pair[1]]}')
         else:
             pairs = None
 
@@ -669,7 +674,7 @@ class MVSRegistration:
         sims = results['sims']
         pairs = results['pairs']
         if pairs is None:
-            origins = np.array([si_utils.get_origin_from_sim(sim, asarray=True) for sim in sims])
+            origins = np.array([get_sim_position_final(sim) for sim in sims])
             size = get_sim_physical_size(sims[0])
             pairs, _ = get_orthogonal_pairs(origins, size)
         for pair in pairs:
