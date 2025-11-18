@@ -1,0 +1,33 @@
+site_name: muvis-align
+site_url: https://FrancisCrickInstitute.github.io/muvis-align/
+site_description: convert source image to OME-TIFF or OME-Zarr format
+
+repo_name: muvis-align
+repo_url: https://github.com/FrancisCrickInstitute/muvis-align
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_submodules: true
+            show_if_no_docstring: true
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - index.md
+  - poster.md
+  - references.md
+
+theme:
+  name: material
+  color_mode: auto
+  user_color_mode_toggle: true
