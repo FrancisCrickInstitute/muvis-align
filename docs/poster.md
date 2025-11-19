@@ -27,7 +27,7 @@ config:
 ---
 flowchart LR
     subgraph sub_input["Input"]
-        ome("OME/NGFF data<br>(Ome-tiff/<br>Ome-zarr)"):::io
+        ome("OME/NGFF data<br>(OME-Tiff/<br>OME-Zarr)"):::io
         params("Params<br>(.yaml)"):::io
     end
 
@@ -62,7 +62,7 @@ flowchart LR
         write_reg("Registration<br>(.json + .csv)"):::io
         write_metrics("Metrics<br>(.json)"):::io
         write_report("Report<br>(.pdf)"):::io
-        write("OME/NGFF data<br>(Ome-tiff/<br>Ome-zarr)"):::io
+        write("OME/NGFF data<br>(OME-Tiff/<br>OME-Zarr)"):::io
     end
 
     ome -->|image data| sub_init
@@ -134,4 +134,7 @@ flowchart LR
     linkStyle 3 stroke:#ddbb00
 ```
 
-**CCP-volumeEM**: Martin Jones, Michele Darrow, Matthew Hartley, Helen Spiers, Martyn Winn, Amy Strange
+![EMPAIR12193overlay.png](images/EMPAIR12193overlay.png)
+FAST-EM array tomography (EMPIAR 12193)
+
+**CCP-volumeEM**: Martin Jones, Lucy Collinson, Michele Darrow, Matthew Hartley, Leandro Lemgruber, Helen Spiers, Amy Strange, Paul Verkade, Martyn Winn
