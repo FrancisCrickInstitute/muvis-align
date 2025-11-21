@@ -152,7 +152,6 @@ class MVSRegistration:
                        translation0=positions[0], params=output_params)
             return False
 
-        is_simple_stack = is_stack and not is_3d
         _, has_overlaps = self.validate_overlap(sims, file_labels, is_simple_stack, is_simple_stack or is_channel_overlay)
         overall_overlap = np.mean(has_overlaps)
         if overall_overlap < overlap_threshold:
@@ -594,6 +593,7 @@ class MVSRegistration:
                 'pairs': pairs}
 
     def fuse(self, sims, transform_key=None):
+        sim0 = sims[0]
         if transform_key is None:
             transform_key = self.reg_transform_key
         operation = self.params['operation']
@@ -601,7 +601,7 @@ class MVSRegistration:
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
         if z_scale is None:
-            if 'z' in sims[0].dims:
+            if 'z' in sim0.dims:
                 z_scale = np.min(np.diff(sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))))
         if not z_scale:
             z_scale = 1
@@ -609,17 +609,21 @@ class MVSRegistration:
         is_3d = ('3d' in operation)
         is_channel_overlay = (len(channels) > 1)
 
-        sim0 = sims[0]
-        source_type = sim0.dtype
-
         output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
+        if is_3d:
+            z_positions = sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))
+            z_shape = len(z_positions)
+            if z_shape <= 1:
+                z_shape = len(sims)
+            output_stack_properties['shape']['z'] = z_shape
+
+        if self.verbose:
+            logging.info(f'Output stack: {numpy_to_native(output_stack_properties)}')
+        data_size = np.prod(list(output_stack_properties['shape'].values())) * sim0.dtype.itemsize
+        logging.info(f'Fusing {print_hbytes(data_size)}')
+
         if is_channel_overlay:
             # convert to multichannel images
-            if self.verbose:
-                logging.info(f'Output stack: {output_stack_properties}')
-            data_size = np.prod(list(output_stack_properties['shape'].values())) * len(sims) * source_type.itemsize
-            logging.info(f'Fusing channels {print_hbytes(data_size)}')
-
             channel_sims = [fusion.fuse(
                 [sim],
                 transform_key=transform_key,
@@ -628,17 +632,6 @@ class MVSRegistration:
             channel_sims = [sim.assign_coords({'c': [channels[simi]['label']]}) for simi, sim in enumerate(channel_sims)]
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
-            if is_3d:
-                z_positions = sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))
-                z_shape = len(z_positions)
-                if z_shape <= 1:
-                    z_shape = len(sims)
-                output_stack_properties['shape']['z'] = z_shape
-            if self.verbose:
-                logging.info(f'Output stack: {output_stack_properties}')
-            data_size = np.prod(list(output_stack_properties['shape'].values())) * source_type.itemsize
-            logging.info(f'Fusing {print_hbytes(data_size)}')
-
             fused_image = fusion.fuse(
                 sims,
                 transform_key=transform_key,

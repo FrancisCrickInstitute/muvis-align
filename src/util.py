@@ -35,6 +35,21 @@ def reorder(items: list, old_order: str, new_order: str, default_value: int = 0)
     return new_items
 
 
+def numpy_to_native(value):
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    elif isinstance(value, list):
+        return [numpy_to_native(v) for v in value]
+    elif isinstance(value, tuple):
+        return (numpy_to_native(v) for v in value)
+    elif isinstance(value, dict):
+        return {k: numpy_to_native(v) for k, v in value.items()}
+    elif hasattr(value, 'dtype'):
+        return value.item()
+    else:
+        return value
+
+
 def filter_dict(dict0: dict) -> dict:
     new_dict = {}
     for key, value0 in dict0.items():
