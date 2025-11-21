@@ -221,7 +221,7 @@ class MVSRegistration:
                     self.save_thumbnail(output + 'thumb', nom_sims=sims, transform_key=self.reg_transform_key)
 
             with Timer('fuse image', self.logging_time):
-                fused_image = self.fuse(sims)
+                fused_image = self.fuse(sims, scales=scales)
 
             logging.info('Saving fused image...')
             with Timer('save fused image', self.logging_time):
@@ -250,11 +250,12 @@ class MVSRegistration:
         rotations = []
 
         is_stack = ('stack' in operation)
+        is_3d = ('3d' in operation)
         has_z_size = (source0.get_size().get('z', 0) > 0)
-        is_3d = (has_z_size or '3d' in operation)
+        to_discrete_z = is_stack and is_3d and not has_z_size
         pyramid_level = 0
 
-        output_order = 'zyx' if is_stack or is_3d else 'yx'
+        output_order = 'zyx' if has_z_size or is_stack or is_3d else 'yx'
         ndims = len(output_order)
         if source0.get_nchannels() > 1:
             output_order += 'c'
@@ -314,6 +315,12 @@ class MVSRegistration:
         #translations = [np.array(translation) * 1.25 for translation in translations]
 
         increase_z_positions = is_stack and not different_z_positions
+
+        if to_discrete_z:
+            discrete_z_map = sorted(set([translation.get('z', 0) for translation in translations]))
+        else:
+            discrete_z_map = []
+
         z_position = 0
         scales2 = []
         translations2 = []
@@ -339,11 +346,15 @@ class MVSRegistration:
                     transform = np.array(transform2)
                 else:
                     transform = np.array(combine_transforms([transform, transform2]))
+            translation2 = translation.copy()
+            if to_discrete_z:
+                translation2['z'] = discrete_z_map.index(translation['z'])
+
             sim = si_utils.get_sim_from_array(
                 image,
                 dims=list(output_order),
                 scale=scale,
-                translation=translation,
+                translation=translation2,
                 affine=transform,
                 transform_key=self.source_transform_key,
                 c_coords=channel_labels
@@ -592,7 +603,7 @@ class MVSRegistration:
                 'sims': sims,
                 'pairs': pairs}
 
-    def fuse(self, sims, transform_key=None):
+    def fuse(self, sims, transform_key=None, scales=None):
         sim0 = sims[0]
         if transform_key is None:
             transform_key = self.reg_transform_key
@@ -600,6 +611,10 @@ class MVSRegistration:
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
+        if z_scale is None:
+            z_scale0 = np.mean([scale[2] if len(scale) >= 3 else 0 for scale in scales])
+            if z_scale0 > 0:
+                z_scale = z_scale0
         if z_scale is None:
             if 'z' in sim0.dims:
                 z_scale = np.min(np.diff(sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))))
