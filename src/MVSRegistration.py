@@ -611,7 +611,7 @@ class MVSRegistration:
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
-        if z_scale is None:
+        if z_scale is None and scales is not None:
             z_scale0 = np.mean([scale[2] if len(scale) >= 3 else 0 for scale in scales])
             if z_scale0 > 0:
                 z_scale = z_scale0
