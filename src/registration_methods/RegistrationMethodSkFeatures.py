@@ -158,7 +158,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         }
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
-        eye_transform = np.eye(self.ndims + 1)
+        eye_transform = param_utils.identity_transform(self.ndims)
         transform = eye_transform
         quality = 0
         matches = []
