@@ -224,9 +224,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             transform = eye_transform
 
         if len(transform) < self.ndims + 1:
-            transform3d = eye_transform
-            transform3d[1:, 1:] = transform
-            transform = transform3d
+            transform_new = eye_transform
+            transform_new[1:, 1:] = transform
+            transform = transform_new
 
         return {
             "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)

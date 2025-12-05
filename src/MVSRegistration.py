@@ -109,7 +109,7 @@ class MVSRegistration:
             sims, scales, positions, rotations = self.init_sims(target_scale=target_scale)
 
         with Timer('pre-process', self.logging_time):
-            sims, register_sims, indices = self.preprocess(sims, params)
+            sims, register_sims, indices = self.preprocess(sims, params, positions)
 
         data = []
         for label, sim, scale in zip(file_labels, sims, scales):
@@ -138,7 +138,8 @@ class MVSRegistration:
                     with Timer('create thumbnail', self.logging_time):
                         self.save_thumbnail(output + 'thumb_original',
                                             nom_sims=sims,
-                                            transform_key=self.source_transform_key)
+                                            transform_key=self.source_transform_key,
+                                            positions=positions)
 
                 original_fused = self.fuse(sims, transform_key=self.source_transform_key)
 
@@ -170,9 +171,16 @@ class MVSRegistration:
                 else:
                     transform = mapping
                 si_utils.set_sim_affine(sim, transform, transform_key=self.reg_transform_key)
+            if is_stack:
+                scale = scales[0][2] if len(scales[0]) == 3 else 1
+                sims = make_sims_3d(sims, scale, positions)
         else:
             with Timer('register', self.logging_time):
                 results = self.register(sims, register_sims, indices, params)
+
+            if is_stack:
+                scale = scales[0][2] if len(scales[0]) == 3 else 1
+                results['sims'] = make_sims_3d(results['sims'], scale, positions)
 
             reg_result = results['reg_result']
             sims = results['sims']
@@ -218,7 +226,10 @@ class MVSRegistration:
         if save_images:
             if output_params.get('thumbnail'):
                 with Timer('create thumbnail', self.logging_time):
-                    self.save_thumbnail(output + 'thumb', nom_sims=sims, transform_key=self.reg_transform_key)
+                    self.save_thumbnail(output + 'thumb',
+                                        nom_sims=sims,
+                                        transform_key=self.reg_transform_key,
+                                        positions=positions)
 
             with Timer('fuse image', self.logging_time):
                 fused_image = self.fuse(sims, scales=scales)
@@ -252,10 +263,9 @@ class MVSRegistration:
         is_stack = ('stack' in operation)
         is_3d = ('3d' in operation)
         has_z_size = (source0.get_size().get('z', 0) > 0)
-        to_discrete_z = is_stack and is_3d and not has_z_size
         pyramid_level = 0
 
-        output_order = 'zyx' if has_z_size or is_stack or is_3d else 'yx'
+        output_order = 'zyx' if has_z_size else 'yx'
         ndims = len(output_order)
         if source0.get_nchannels() > 1:
             output_order += 'c'
@@ -316,11 +326,6 @@ class MVSRegistration:
 
         increase_z_positions = is_stack and not different_z_positions
 
-        if to_discrete_z:
-            discrete_z_map = sorted(set([translation.get('z', 0) for translation in translations]))
-        else:
-            discrete_z_map = []
-
         z_position = 0
         scales2 = []
         translations2 = []
@@ -347,8 +352,6 @@ class MVSRegistration:
                 else:
                     transform = np.array(combine_transforms([transform, transform2]))
             translation2 = translation.copy()
-            if to_discrete_z:
-                translation2['z'] = discrete_z_map.index(translation['z'])
 
             sim = si_utils.get_sim_from_array(
                 image,
@@ -400,7 +403,7 @@ class MVSRegistration:
                     has_overlaps.append(True)
         return min_dists, has_overlaps
 
-    def preprocess(self, sims, params):
+    def preprocess(self, sims, params, positions=None):
         flatfield_quantiles = params.get('flatfield_quantiles')
         normalisation = params.get('normalisation', '')
         filter_foreground = params.get('filter_foreground', False)
@@ -412,7 +415,7 @@ class MVSRegistration:
         if flatfield_quantiles is not None:
             logging.info('Flat-field correction...')
             new_sims = [None] * len(sims)
-            for sim_indices in group_sims_by_z(sims):
+            for sim_indices in group_sims_by_z(sims, positions):
                 sims_z_set = [sims[i] for i in sim_indices]
                 foreground_map_z_set = [foreground_map[i] for i in sim_indices] if foreground_map is not None else None
                 new_sims_z_set = flatfield_correction(sims_z_set, self.source_transform_key, flatfield_quantiles,
@@ -487,16 +490,7 @@ class MVSRegistration:
         else:
             pairs = None
 
-        if is_3d:
-            overlap_tolerance = {'z': 1}
-        else:
-            overlap_tolerance = None
-
-        if '3din2d' in reg_method:
-            from src.registration_methods.RegistrationMethodANTs3Din2D import RegistrationMethodANTs3Din2D
-            registration_method = RegistrationMethodANTs3Din2D(sim0, reg_params, debug)
-            pairwise_reg_func = registration_method.registration
-        elif 'cpd' in reg_method:
+        if 'cpd' in reg_method:
             from src.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
             registration_method = RegistrationMethodCPD(sim0, reg_params, debug)
             pairwise_reg_func = registration_method.registration
@@ -551,8 +545,6 @@ class MVSRegistration:
 
                 plot_summary=self.mpl_ui,
                 return_dict=True,
-
-                overlap_tolerance=overlap_tolerance,
             )
             # copy transforms from register sims to unmodified sims
             for reg_msim, index in zip(register_msims, indices):
@@ -586,15 +578,6 @@ class MVSRegistration:
 
         # re-index from subset of sims
         mappings_dict = {index: mapping for index, mapping in zip(indices, mappings)}
-
-        if is_stack:
-            # set 3D affine transforms from 2D registration params
-            for index, sim in enumerate(sims):
-                # check if already 3D
-                if 4 not in si_utils.get_affine_from_sim(sim, transform_key=self.reg_transform_key).shape:
-                    affine_3d = param_utils.identity_transform(ndim=3)
-                    affine_3d.loc[{dim: mappings[index].coords[dim] for dim in mappings[index].sel(t=0).dims}] = mappings[index].sel(t=0)
-                    si_utils.set_sim_affine(sim, affine_3d, transform_key=self.reg_transform_key)
 
         return {'reg_result': reg_result,
                 'mappings': mappings_dict,
@@ -655,12 +638,17 @@ class MVSRegistration:
             )
         return fused_image
 
-    def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
-        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
+    def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None, positions=None):
+        params = self.params
+        extra_metadata = import_metadata(params.get('extra_metadata', {}), input_path=params['input'])
         channels = extra_metadata.get('channels', [])
         output_params = self.params_general['output']
         thumbnail_scale = output_params.get('thumbnail_scale', 16)
+        is_stack = ('stack' in params['operation'])
+
         sims = self.init_sims(target_scale=thumbnail_scale)[0]
+        if is_stack:
+            sims = make_sims_3d(sims, positions=positions)
 
         if nom_sims is not None:
             if sims[0].sizes['x'] >= nom_sims[0].sizes['x']:

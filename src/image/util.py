@@ -545,9 +545,12 @@ def get_sim_position_final(sim):
     return position
 
 
-def group_sims_by_z(sims):
+def group_sims_by_z(sims, positions=None):
     grouped_sims = []
-    z_positions = [si_utils.get_origin_from_sim(sim).get('z') for sim in sims]
+    if positions is not None and len(positions[0]) == 3:
+        z_positions = [position[2] for position in positions]
+    else:
+        z_positions = [si_utils.get_origin_from_sim(sim).get('z') for sim in sims]
     is_mixed_3dstack = len(set(z_positions)) < len(z_positions)
     if is_mixed_3dstack:
         sims_by_z = {}
@@ -714,3 +717,27 @@ def combine_transforms(transforms):
         else:
             combined_transform = np.dot(transform, combined_transform)
     return combined_transform
+
+
+def make_sims_3d(sims, z_scale=1, positions=None):
+    new_sims = []
+    for index, sim in enumerate(sims):
+        if positions is not None and len(positions[index]) == 3:
+            z_position = positions[index][2]
+        else:
+            z_position = index * z_scale
+        # check if already 3D
+        if 'z' not in sim.dims:
+            sim = sim.expand_dims({'z': [z_position]}, axis=-3)
+        # set 3D affine transforms from 2D registration params
+        for transform_key in si_utils.get_tranform_keys_from_sim(sim):
+            transform = si_utils.get_affine_from_sim(sim, transform_key=transform_key)
+            if 4 not in transform.shape:
+                transform_3d = param_utils.identity_transform(ndim=3)
+                if 't' in transform.dims:
+                    transform_3d.loc[{dim: transform.coords[dim] for dim in transform.sel(t=0).dims}] = transform.sel(t=0)
+                else:
+                    transform_3d.loc[{dim: transform.coords[dim] for dim in transform.dims}] = transform
+                si_utils.set_sim_affine(sim, transform_3d, transform_key=transform_key)
+        new_sims.append(sim)
+    return new_sims
