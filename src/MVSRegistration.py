@@ -114,8 +114,8 @@ class MVSRegistration:
         data = []
         for label, sim, scale in zip(file_labels, sims, scales):
             position, rotation = get_data_mapping(sim, transform_key=self.source_transform_key)
-            position_pixels = np.array(position) / scale
-            row = [label] + list(position_pixels) + list(position) + [rotation]
+            position_pixels = {dim: position[dim] / float(scale[dim]) for dim in position.keys()}
+            row = [label] + dict_to_xyz(position_pixels) + dict_to_xyz(position) + [rotation]
             data.append(row)
         export_csv(output + 'prereg_mappings.csv', data, header=mappings_header)
 
@@ -172,36 +172,37 @@ class MVSRegistration:
                     transform = mapping
                 si_utils.set_sim_affine(sim, transform, transform_key=self.reg_transform_key)
             if is_stack:
-                scale = scales[0][2] if len(scales[0]) == 3 else 1
+                scale = scales[0].get('z', 1)
                 sims = make_sims_3d(sims, scale, positions)
         else:
             with Timer('register', self.logging_time):
-                results = self.register(sims, register_sims, indices, params)
+                results = self.register(sims, register_sims, indices, positions, params)
 
             if is_stack:
-                scale = scales[0][2] if len(scales[0]) == 3 else 1
+                scale = scales[0].get('z', 1)
                 results['sims'] = make_sims_3d(results['sims'], scale, positions)
 
             reg_result = results['reg_result']
             sims = results['sims']
+            mappings = results['mappings']
 
             logging.info('Exporting registered...')
             metrics = self.calc_metrics(results, file_labels)
-            mappings = metrics['mappings']
             logging.info(metrics['summary'])
-            export_json(mappings_filename, mappings)
+            output_mappings = {file_labels[index]: np.array(mapping.sel(t=0)).tolist() for index, mapping in mappings.items()}
+            export_json(mappings_filename, output_mappings)
             export_json(output + 'metrics.json', metrics)
             data = []
-            for sim, (label, mapping), scale, position, rotation in zip(sims, mappings.items(), scales, positions, rotations):
+            for label, sim, mapping, scale, position, rotation in zip(file_labels, sims, mappings.values(), scales, positions, rotations):
                 if not normalise_orientation:
                     # rotation already in msim affine transform
                     rotation = None
                 position, rotation = get_data_mapping(sim, transform_key=self.reg_transform_key,
-                                                      transform=np.array(mapping),
+                                                      transform=mapping,
                                                       translation0=position,
                                                       rotation=rotation)
-                position_pixels = np.array(position) / scale
-                row = [label] + list(position_pixels) + list(position) + [rotation]
+                position_pixels = {dim: position[dim] / float(scale[dim]) for dim in position.keys()}
+                row = [label] + dict_to_xyz(position_pixels) + dict_to_xyz(position) + [rotation]
                 data.append(row)
             export_csv(output + 'mappings.csv', data, header=mappings_header)
 
@@ -261,7 +262,6 @@ class MVSRegistration:
         rotations = []
 
         is_stack = ('stack' in operation)
-        is_3d = ('3d' in operation)
         has_z_size = (source0.get_size().get('z', 0) > 0)
         pyramid_level = 0
 
@@ -285,7 +285,7 @@ class MVSRegistration:
             if 'invert' in source_metadata:
                 translation[0] = -translation[0]
                 translation[1] = -translation[1]
-            if len(translation) >= 3:
+            if 'z' in translation:
                 z_position = translation['z']
             else:
                 z_position = 0
@@ -365,8 +365,8 @@ class MVSRegistration:
             if len(sim.chunksizes.get('x')) == 1 and len(sim.chunksizes.get('y')) == 1:
                 sim = sim.chunk(xyz_to_dict(chunk_size))
             sims.append(sim)
-            scales2.append(dict_to_xyz(scale))
-            translations2.append(dict_to_xyz(translation))
+            scales2.append(scale)
+            translations2.append(translation)
         return sims, scales2, translations2, rotations
 
     def validate_overlap(self, sims, labels, is_stack=False, expect_large_overlap=False):
@@ -387,7 +387,7 @@ class MVSRegistration:
                 compare_indices = range(n)
             for j in compare_indices:
                 if not j == i:
-                    distance = math.dist(positions[i], positions[j])
+                    distance = math.dist(positions[i].values(), positions[j].values())
                     norm_dist = distance / np.mean([sizes[i], sizes[j]])
                     norm_dists.append(norm_dist)
             if len(norm_dists) > 0:
@@ -449,7 +449,7 @@ class MVSRegistration:
             indices = range(len(sims))
         return sims, new_sims, indices
 
-    def register(self, sims, register_sims, indices, params):
+    def register(self, sims, register_sims, indices, positions, params):
         sim0 = sims[0]
         ndims = si_utils.get_ndim_from_sim(sim0)
 
@@ -481,7 +481,7 @@ class MVSRegistration:
             register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
         elif use_orthogonal_pairs:
-            origins = np.array([get_sim_position_final(sim) for sim in register_sims])
+            origins = np.array([get_sim_position_final(sim, position) for sim, position in zip(sims, positions)])
             size = get_sim_physical_size(sim0)
             pairs, _ = get_orthogonal_pairs(origins, size)
             logging.info(f'#pairs: {len(pairs)}')
@@ -595,7 +595,7 @@ class MVSRegistration:
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
         if z_scale is None and scales is not None:
-            z_scale0 = np.mean([scale[2] if len(scale) >= 3 else 0 for scale in scales])
+            z_scale0 = np.mean([scale.get('z', 0) for scale in scales])
             if z_scale0 > 0:
                 z_scale = z_scale0
         if z_scale is None:

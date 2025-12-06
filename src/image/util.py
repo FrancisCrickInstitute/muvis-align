@@ -537,20 +537,25 @@ def detect_area_points(image):
     return area_points
 
 
-def get_sim_position_final(sim):
+def get_sim_position_final(sim, position=None):
+    if position is None:
+        position = si_utils.get_origin_from_sim(sim)
     transform_keys = si_utils.get_tranform_keys_from_sim(sim)
     transform = combine_transforms([np.array(si_utils.get_affine_from_sim(sim, transform_key))
                                     for transform_key in transform_keys])
-    position = apply_transform([si_utils.get_origin_from_sim(sim, asarray=True)], transform)[0]
-    return position
+    transform_dims = si_utils.get_affine_from_sim(sim, transform_keys[0])['x_in'].data.tolist()
+    new_position = apply_transform_dict([position], transform, transform_dims)[0]
+    for dim in position.keys():
+        if dim not in new_position:
+            new_position[dim] = position[dim]
+    return new_position
 
 
 def group_sims_by_z(sims, positions=None):
     grouped_sims = []
-    if positions is not None and len(positions[0]) == 3:
-        z_positions = [position[2] for position in positions]
-    else:
-        z_positions = [si_utils.get_origin_from_sim(sim).get('z') for sim in sims]
+    if positions is None:
+        positions = [si_utils.get_origin_from_sim(sim) for sim in sims]
+    z_positions = [position.get('z') for position in positions]
     is_mixed_3dstack = len(set(z_positions)) < len(z_positions)
     if is_mixed_3dstack:
         sims_by_z = {}
@@ -660,15 +665,12 @@ def get_sim_shape_2d(sim, transform_key=None):
     return vertices
 
 
-def get_properties_from_transform(transform, invert=False):
-    if len(transform.shape) == 3:
-        transform = transform[0]
-    if invert:
-        transform = param_utils.invert_coordinate_order(transform)
-    transform = np.array(transform)
-    translation = param_utils.translation_from_affine(transform)
-    if len(translation) == 2:
-        translation = list(translation) + [0]
+def get_properties_from_transform(transform):
+    if 't' in transform.dims:
+        transform = transform.sel(t=0)
+    xtranslation = param_utils.translation_from_affine(transform)
+    dims = xtranslation['x_in'].data.tolist()
+    translation = {dim: xtranslation.sel(x_in=dim).item() for dim in dims}
     rotation = get_rotation_from_transform(transform)
     scale = get_scale_from_transform(transform)
     return translation, rotation, scale
@@ -682,28 +684,19 @@ def get_data_mapping(data, transform_key=None, transform=None, translation0=None
         sim = msi_utils.get_sim_from_msim(data)
     else:
         sim = data
-    sdims = ''.join(si_utils.get_spatial_dims_from_sim(sim))
-    sdims = sdims.replace('zyx', 'xyz').replace('yx', 'xy')   # order xy(z)
-    origin = si_utils.get_origin_from_sim(sim)
-    translation = [origin[sdim] for sdim in sdims]
-
-    if len(translation) == 0:
-        translation = [0, 0]
-    if len(translation) == 2:
-        if translation0 is not None and len (translation0) == 3:
-            z = translation0[2]
-        else:
-            z = 0
-        translation = list(translation) + [z]
+    translation = si_utils.get_origin_from_sim(sim)
+    if 'z' not in translation and translation0 is not None and 'z' in translation0:
+        translation['z'] = translation0['z']
 
     if transform is not None:
-        translation1, rotation1, _ = get_properties_from_transform(transform, invert=True)
-        translation = np.array(translation) + translation1
+        translation1, rotation1, _ = get_properties_from_transform(transform)
+        dims = set(list(translation) + list(translation1))
+        translation = {dim: translation.get(dim, 0) + translation1.get(dim, 0) for dim in dims}
         rotation += rotation1
 
     if transform_key is not None:
         transform1 = sim.transforms[transform_key]
-        translation1, rotation1, _ = get_properties_from_transform(transform1, invert=True)
+        _, rotation1, _ = get_properties_from_transform(transform1)
         rotation += rotation1
 
     return translation, rotation
@@ -722,12 +715,9 @@ def combine_transforms(transforms):
 def make_sims_3d(sims, z_scale=1, positions=None):
     new_sims = []
     for index, sim in enumerate(sims):
-        if positions is not None and len(positions[index]) == 3:
-            z_position = positions[index][2]
-        else:
-            z_position = index * z_scale
         # check if already 3D
         if 'z' not in sim.dims:
+            z_position = positions[index].get('z', index * z_scale)
             sim = sim.expand_dims({'z': [z_position]}, axis=-3)
         # set 3D affine transforms from 2D registration params
         for transform_key in si_utils.get_tranform_keys_from_sim(sim):

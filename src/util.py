@@ -9,6 +9,7 @@ import os
 import re
 from scipy.spatial.transform import Rotation
 from sklearn.neighbors import KDTree
+from xarray import DataArray
 
 
 def get_default(x, default):
@@ -394,6 +395,19 @@ def apply_transform(points, transform):
     return new_points
 
 
+def apply_transform_dict(points, transform, transform_dims='xyz'):
+    new_points = []
+    for point in points:
+        point = dict_to_xyz(point, dims=transform_dims)
+        while len(point) < len(transform):
+            point = list(point) + [1]
+        new_point = np.dot(point, np.transpose(np.array(transform)))
+        new_point = xyz_to_dict(new_point, dims=transform_dims)
+        new_point.pop('1', None)
+        new_points.append(new_point)
+    return new_points
+
+
 def validate_transform(transform, max_rotation=None):
     if transform is None:
         return False
@@ -411,7 +425,7 @@ def validate_transform(transform, max_rotation=None):
 
 def get_scale_from_transform(transform):
     scale = np.mean(np.linalg.norm(transform, axis=0)[:-1])
-    return scale
+    return float(scale)
 
 
 def get_translation_from_transform(transform):
@@ -439,9 +453,18 @@ def get_center_from_transform(transform):
     return cx, cy
 
 
-def get_rotation_from_transform(transform):
-    rotation = np.rad2deg(np.arctan2(transform[0][1], transform[0][0]))
-    return rotation
+def get_rotation_from_transform(transform, dims='xyz'):
+    # TODO: assume 2D rotation, expand to 3D
+    # Rotation.from_matrix(transform).as_euler() only works for simple rotation matrices
+    if isinstance(transform, DataArray):
+        dims = transform['x_in'].data.tolist()
+    x_index, y_index = dims.index('x'), dims.index('y')
+    transform = np.array(transform)
+    if y_index > x_index:
+        rotation = np.arctan2(transform[0][1], transform[0][0])
+    else:
+        rotation = np.arctan2(transform[1][0], transform[1][1])
+    return np.rad2deg(rotation)
 
 
 def normalise_rotation(rotation):
@@ -459,13 +482,13 @@ def points_to_3d(points):
     return [list(point) + [0] for point in points]
 
 
-def xyz_to_dict(xyz, axes='xyz'):
-    dct = {dim: value for dim, value in zip(axes, xyz)}
+def xyz_to_dict(xyz, dims='xyz'):
+    dct = {dim: value for dim, value in zip(dims, xyz)}
     return dct
 
 
-def dict_to_xyz(dct, keys='xyz'):
-    return [dct[key] for key in keys if key in dct]
+def dict_to_xyz(dct, dims='xyz'):
+    return [dct[dim] for dim in dims if dim in dct]
 
 
 def normalise_rotated_positions(positions0, rotations0, size, center):
@@ -519,37 +542,35 @@ def draw_edge_filter(bounds):
     return position_weights.reshape(np.flip(bounds))
 
 
-def get_orthogonal_pairs(origins, image_size_um):
+def get_orthogonal_pairs(positions, image_size_um):
     """
     Get pairs of orthogonal neighbors from a list of tiles.
     Tiles don't have to be placed on a regular grid.
     """
     pairs = []
     angles = []
-    z_positions = [pos[0] for pos in origins if len(pos) == 3]
+    z_positions = [position['z'] for position in positions if 'z' in position]
     ordered_z = sorted(set(z_positions))
     is_mixed_3dstack = len(ordered_z) < len(z_positions)
-    for i, j in np.transpose(np.triu_indices(len(origins), 1)):
-        origini = np.array(origins[i])
-        originj = np.array(origins[j])
+    for i, j in np.transpose(np.triu_indices(len(positions), 1)):
+        posi, posj = positions[i], positions[j]
         if is_mixed_3dstack:
             # ignore z value for distance
-            distance = math.dist(origini[-2:], originj[-2:])
-            min_distance = max(image_size_um[-2:])
-            z_i, z_j = origini[0], originj[0]
-            is_same_z = (z_i == z_j)
-            is_close_z = abs(ordered_z.index(z_i) - ordered_z.index(z_j)) <= 1
+            distance = math.dist([posi[dim] for dim in 'xy'], [posj[dim] for dim in 'xy'])
+            min_distance = max(image_size_um[:2])
+            is_same_z = (posi['z'] == posj['z'])
+            is_close_z = abs(ordered_z.index(posi['z']) - ordered_z.index(posj['z'])) <= 1
             if not is_same_z:
                 # for tiles in different z stack, require greater overlap
                 min_distance *= 0.8
             ok = (distance < min_distance and is_close_z)
         else:
-            distance = math.dist(origini, originj)
+            distance = math.dist(posi.values(), posj.values())
             min_distance = max(image_size_um)
             ok = (distance < min_distance)
         if ok:
             pairs.append((i, j))
-            vector = origini - originj
+            vector = np.array(list(posi.values())) - np.array(list(posj.values()))
             angle = math.degrees(math.atan2(vector[1], vector[0]))
             if distance < min(image_size_um):
                 angle += 90

@@ -19,18 +19,14 @@ def test_feature_registration():
     operation = params['operations'][1]
 
     target_scale = 4
-    input_path = operation['input']
-    filenames = glob.glob(input_path)[:2]
-    if len(filenames) == 0:
-        raise FileNotFoundError(f"No files found for pattern: {input_path}")
     reg = MVSRegistration(params['general'])
-    sims, _, _, _ = reg.init_sims(filenames, filenames, operation, target_scale=target_scale)
+    sims, _, positions, _ = reg.init_sims(target_scale=target_scale)
     sims, norm_sims, _ = reg.preprocess(sims, operation)
     sim0 = norm_sims[0]
     reg_method = RegMethod(sim0.dtype, operation['method'])
 
-    origins = np.array([si_utils.get_origin_from_sim(sim, asarray=True) for sim in sims])
     size = get_sim_physical_size(sim0)
+    origins = np.array([get_sim_position_final(sim, position) for sim, position in zip(sims, positions)])
     pairs, _ = get_orthogonal_pairs(origins, size)
     for pair in pairs:
         overlap_sims = reg.get_overlap_images((norm_sims[pair[0]], norm_sims[pair[1]]), reg.source_transform_key)
