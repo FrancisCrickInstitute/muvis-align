@@ -46,7 +46,7 @@ class MVSRegistration:
 
         logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
-    def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
+    def init_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
         self.fileset_label = fileset_label
         self.filenames = filenames
         self.file_labels = get_unique_file_labels(filenames)
@@ -59,6 +59,8 @@ class MVSRegistration:
         output_pattern = params['output'].format_map(parts)
         self.output = os.path.join(input_dir, output_pattern)    # preserve trailing slash: do not use os.path.normpath()
 
+    def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
+        self.init_operation(fileset_label, filenames, params, global_rotation, global_center)
         with ProgressBar(minimum=10, dt=1) if self.logging_dask else nullcontext():
             return self._run_operation()
 
@@ -306,7 +308,7 @@ class MVSRegistration:
             images.append(image)
             last_z_position = z_position
 
-        if z_scale is None:
+        if 'z' in output_order and z_scale is None:
             if len(delta_zs) > 0:
                 z_scale = np.min(delta_zs)
             else:
@@ -333,12 +335,13 @@ class MVSRegistration:
         translations2 = []
         for source, image, scale, translation, rotation, file_label in zip(sources, images, scales, translations, rotations, self.file_labels):
             # transform #dimensions need to match
-            if len(scale) > 0 and 'z' not in scale:
-                scale['z'] = abs(z_scale)
-            if (len(translation) > 0 and 'z' not in translation) or increase_z_positions:
-                translation['z'] = z_position
-            if increase_z_positions:
-                z_position += z_scale
+            if 'z' in output_order:
+                if len(scale) > 0 and 'z' not in scale:
+                    scale['z'] = abs(z_scale)
+                if (len(translation) > 0 and 'z' not in translation) or increase_z_positions:
+                    translation['z'] = z_position
+                if increase_z_positions:
+                    z_position += z_scale
             channel_labels = [channel.get('label', '') for channel in source.get_channels()]
             if rotation is None or 'norm' in source_metadata:
                 # if positions are normalised, don't use rotation
@@ -614,8 +617,6 @@ class MVSRegistration:
         if z_scale is None:
             if 'z' in sim0.dims:
                 z_scale = np.min(np.diff(sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))))
-        if not z_scale:
-            z_scale = 1
 
         is_3d = ('3d' in operation)
         is_channel_overlay = (len(channels) > 1)
@@ -653,8 +654,6 @@ class MVSRegistration:
 
     def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
         params = self.params
-        extra_metadata = import_metadata(params.get('extra_metadata', {}), input_path=params['input'])
-        channels = extra_metadata.get('channels', [])
         output_params = self.params_general['output']
         thumbnail_scale = output_params.get('thumbnail_scale', 16)
         is_stack = ('stack' in params['operation'])

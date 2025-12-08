@@ -34,7 +34,7 @@ class Pipeline(Thread):
         logging_mvs = params_logging.get('mvs', False)
         log_format = params_logging.get('format')
         basepath = os.path.dirname(self.log_filename)
-        if not os.path.exists(basepath):
+        if basepath and not os.path.exists(basepath):
             os.makedirs(basepath)
 
         handlers = [logging.FileHandler(self.log_filename, encoding='utf-8')]
