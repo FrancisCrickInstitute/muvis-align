@@ -14,6 +14,7 @@ import shutil
 import xarray as xr
 
 from src.Timer import Timer
+from src.constants import zarr_extension
 from src.image.Video import Video
 from src.image.flatfield import flatfield_correction
 from src.image.ome_helper import save_image, exists_output_image
@@ -675,7 +676,7 @@ class MVSRegistration:
         fused_image = self.fuse(sims, transform_key=transform_key).squeeze()
         self.save(output_filename, fused_image, output_params.get('thumbnail'), transform_key=transform_key)
 
-    def save(self, output_filename, data, format, transform_key=None, translation0=None):
+    def save(self, output_filename, data, format=zarr_extension, transform_key=None, translation0=None):
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         general_output_params = self.params_general['output']
