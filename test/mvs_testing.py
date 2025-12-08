@@ -281,12 +281,12 @@ def test_reg_2d(sims, tmp_path):
     show_image(fused_image)
 
     progress = tqdm(desc='Save zarr', total=1)
-    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key, params={'format': 'zar'})
+    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key)
     progress.update()
     progress.close()
 
     progress = tqdm(desc='Save tiff', total=1)
-    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key, params={'format': 'tif'})
+    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key)
     progress.update()
     progress.close()
 
@@ -372,12 +372,12 @@ def test_reg_3d_stack(sims, tmp_path):
     progress.close()
 
     progress = tqdm(desc='Save zarr', total=1)
-    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key, params={'format': 'zar'})
+    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key)
     progress.update()
     progress.close()
 
     progress = tqdm(desc='Save tiff', total=1)
-    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key, params={'format': 'tif'})
+    save_image(tmp_path / 'fused', fused_image, transform_key=transform_key)
     progress.update()
     progress.close()
 
@@ -399,7 +399,7 @@ def create_stack(path, n=100):
     for index in tqdm(range(n), desc='Creating tiles'):
         filename = str(path / f'image{index:04}')
         sim = init_sim(data, chunks=chunks, dimension_order='zyx', pixel_size=pixel_size, position=[0, 0, z], transform_key = 'stage_metadata')
-        save_image(filename, sim, transform_key=transform_key, params={'format': 'zar'})
+        save_image(filename, sim, transform_key=transform_key)
         z += z_scale
 
 
@@ -458,7 +458,7 @@ def test_create_stack(path, n):
     progress.close()
 
     progress = tqdm(desc='Save zarr', total=1)
-    save_image(path / 'fused', fused_image, transform_key=transform_key, params={'format': 'zar'})
+    save_image(path / 'fused', fused_image, transform_key=transform_key)
     progress.update()
     progress.close()
 

@@ -7,7 +7,8 @@ from src.image.ome_zarr_helper import save_ome_zarr
 from src.image.util import *
 
 
-def save_image(filename, output_format, sim, transform_key=None, channels=None, translation0=None, params={}):
+def save_image(filename, sim, output_format=zarr_extension, params={},
+               transform_key=None, channels=None, translation0=None):
     dimension_order = ''.join(sim.dims)
     sdims = ''.join(si_utils.get_spatial_dims_from_sim(sim))
     sdims = sdims.replace('zyx', 'xyz').replace('yx', 'xy')   # order xy(z)

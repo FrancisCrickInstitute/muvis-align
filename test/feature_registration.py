@@ -20,13 +20,13 @@ def test_feature_registration():
 
     target_scale = 4
     reg = MVSRegistration(params['general'])
-    sims, _, positions, _ = reg.init_sims(target_scale=target_scale)
+    sims = reg.init_sims(target_scale=target_scale)
     sims, norm_sims, _ = reg.preprocess(sims, operation)
     sim0 = norm_sims[0]
     reg_method = RegMethod(sim0.dtype, operation['method'])
 
     size = get_sim_physical_size(sim0)
-    origins = np.array([get_sim_position_final(sim, position) for sim, position in zip(sims, positions)])
+    origins = np.array([get_sim_position_final(sim, position) for sim, position in zip(sims, reg.positions)])
     pairs, _ = get_orthogonal_pairs(origins, size)
     for pair in pairs:
         overlap_sims = reg.get_overlap_images((norm_sims[pair[0]], norm_sims[pair[1]]), reg.source_transform_key)
