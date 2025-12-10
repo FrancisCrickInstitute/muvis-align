@@ -1,7 +1,7 @@
 import argparse
 import yaml
 
-from src.Pipeline import Pipeline
+from muvis_align.Pipeline import Pipeline
 
 
 if __name__ == '__main__':
