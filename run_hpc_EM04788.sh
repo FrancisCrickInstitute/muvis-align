@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=muvis_align
 #SBATCH --part=ncpu
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=64
 #SBATCH --time=240          # Runtime in D-HH:MM, minimum of 10 minutes
 #SBATCH --mem=64G   # Memory pool for all cores (see also --mem-per-cpu)
 
