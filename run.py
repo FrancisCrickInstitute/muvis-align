@@ -1,7 +1,11 @@
 import argparse
+import dask
 import yaml
 
 from muvis_align.Pipeline import Pipeline
+
+
+dask.config.set(scheduler='threads')
 
 
 if __name__ == '__main__':
