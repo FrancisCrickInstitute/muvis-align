@@ -678,7 +678,7 @@ class MVSRegistration:
     def save(self, output_filename, data, format=zarr_extension, transform_key=None, translation0=None):
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
-        general_output_params = self.params_general['output']
+        general_output_params = self.params_general.get('output', {})
         save_image(output_filename, data, format, params=general_output_params,
                    transform_key=transform_key, channels=channels, translation0=translation0)
 
