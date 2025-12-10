@@ -555,9 +555,9 @@ def group_sims_by_z(sims, positions=None):
     grouped_sims = []
     if positions is None:
         positions = [si_utils.get_origin_from_sim(sim) for sim in sims]
-    z_positions = [position.get('z') for position in positions]
-    is_mixed_3dstack = len(set(z_positions)) < len(z_positions)
-    if is_mixed_3dstack:
+    z_positions = [position.get('z', 0) for position in positions]
+    unique_z_values = len(set(z_positions)) == len(z_positions)
+    if not unique_z_values:
         sims_by_z = {}
         for simi, z_pos in enumerate(z_positions):
             if z_pos is not None and z_pos not in sims_by_z:
