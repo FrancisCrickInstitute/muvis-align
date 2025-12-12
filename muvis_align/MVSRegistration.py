@@ -464,11 +464,13 @@ class MVSRegistration:
         ndims = si_utils.get_ndim_from_sim(sim0)
 
         operation = params['operation']
-        reg_params = params.get('method')
+        reg_params = params.get('method', {})
         if isinstance(reg_params, dict):
             reg_method = reg_params.get('name', '').lower()
-        else:
+        elif isinstance(reg_params, str):
             reg_method = reg_params.lower()
+        else:
+            reg_method = ''
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
 
         is_stack = ('stack' in operation)
