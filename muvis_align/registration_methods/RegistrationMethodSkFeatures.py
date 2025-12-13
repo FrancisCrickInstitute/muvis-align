@@ -227,6 +227,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             transform_new[1:, 1:] = transform
             transform = transform_new
 
+        del fixed_data2
+        del moving_data2
+
         return {
             "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
             "quality": quality  # float between 0 and 1 (if not available, set to 1.0)
