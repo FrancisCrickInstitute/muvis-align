@@ -46,7 +46,7 @@ class Pipeline(Thread):
         if logging_mvs:
             # expose multiview_stitcher.registration logger and make more verbose
             mvsr_logger = logging.getLogger('multiview_stitcher.registration')
-            mvsr_logger.setLevel(logging.INFO)
+            mvsr_logger.setLevel(logging.DEBUG)
             if len(mvsr_logger.handlers) == 0:
                 mvsr_logger.addHandler(logging.StreamHandler())
         else:

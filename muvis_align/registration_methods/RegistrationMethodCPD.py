@@ -38,7 +38,7 @@ class RegistrationMethodCPD(RegistrationMethod):
             quality = metrics['match_rate']
 
         if not validate_transform(transform, get_sim_physical_size(fixed_data, invert=True)):
-            logging.error('Unable to find CPD registration')
+            logging.error('Feature extraction: Unable to find CPD registration')
 
         return {
             "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)

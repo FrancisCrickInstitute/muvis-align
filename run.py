@@ -5,7 +5,7 @@ from muvis_align.Pipeline import Pipeline
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=f'multiview-stitcher')
+    parser = argparse.ArgumentParser(description=f'muvis-align')
     parser.add_argument('params',
                         help='The parameters file',
                         default='resources/params.yml')

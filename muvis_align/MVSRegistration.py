@@ -458,24 +458,59 @@ class MVSRegistration:
             indices = range(len(sims))
         return sims, new_sims, indices
 
-    def register(self, sims, register_sims=None, indices=None):
-        params = self.params
-        sim0 = sims[0]
-        ndims = si_utils.get_ndim_from_sim(sim0)
+    def create_registration_method(self, sim0):
+        registration_method = None
+        pairwise_reg_func_kwargs = None
 
-        operation = params['operation']
-        reg_params = params.get('method', {})
+        reg_params = self.params.get('method', {})
         if isinstance(reg_params, dict):
             reg_method = reg_params.get('name', '').lower()
         elif isinstance(reg_params, str):
             reg_method = reg_params.lower()
         else:
             reg_method = ''
+        debug = self.params_general.get('debug', False)
+
+        if 'cpd' in reg_method:
+            from muvis_align.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
+            registration_method = RegistrationMethodCPD(sim0, reg_params, debug)
+            pairwise_reg_func = registration_method.registration
+        elif 'feature' in reg_method or 'orb' in reg_method or 'sift' in reg_method:
+            if 'cv' in reg_method:
+                from muvis_align.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
+                registration_method = RegistrationMethodCvFeatures(sim0, reg_params, debug)
+            else:
+                from muvis_align.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
+                registration_method = RegistrationMethodSkFeatures(sim0, reg_params, debug)
+            pairwise_reg_func = registration_method.registration
+        elif 'ant' in reg_method:
+            pairwise_reg_func = registration.registration_ANTsPy
+            # args for ANTsPy registration: used internally by ANYsPy algorithm
+            pairwise_reg_func_kwargs = {
+                'transform_types': ['Rigid'],
+                "aff_random_sampling_rate": 0.5,
+                "aff_iterations": (2000, 2000, 1000, 1000),
+                "aff_smoothing_sigmas": (4, 2, 1, 0),
+                "aff_shrink_factors": (16, 8, 2, 1),
+            }
+        else:
+            pairwise_reg_func = registration.phase_correlation_registration
+
+        self.registration_method = registration_method
+
+        return reg_method, pairwise_reg_func, pairwise_reg_func_kwargs
+
+    def register(self, sims, register_sims=None, indices=None):
+        params = self.params
+        sim0 = sims[0]
+        ndims = si_utils.get_ndim_from_sim(sim0)
+
+        operation = params['operation']
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
+        n_parallel_pairwise_regs = params.get('n_parallel_pairwise_regs')
 
         is_stack = ('stack' in operation)
         is_3d = ('3d' in operation)
-        debug = self.params_general.get('debug', False)
 
         reg_channel = params.get('channel', 0)
         if isinstance(reg_channel, int):
@@ -504,30 +539,7 @@ class MVSRegistration:
         else:
             pairs = None
 
-        if 'cpd' in reg_method:
-            from muvis_align.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
-            registration_method = RegistrationMethodCPD(sim0, reg_params, debug)
-            pairwise_reg_func = registration_method.registration
-        elif 'feature' in reg_method or 'orb' in reg_method or 'sift' in reg_method:
-            if 'cv' in reg_method:
-                from muvis_align.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
-                registration_method = RegistrationMethodCvFeatures(sim0, reg_params, debug)
-            else:
-                from muvis_align.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
-                registration_method = RegistrationMethodSkFeatures(sim0, reg_params, debug)
-            pairwise_reg_func = registration_method.registration
-        elif 'ant' in reg_method:
-            pairwise_reg_func = registration.registration_ANTsPy
-            # args for ANTsPy registration: used internally by ANYsPy algorithm
-            pairwise_reg_func_kwargs = {
-                'transform_types': ['Rigid'],
-                "aff_random_sampling_rate": 0.5,
-                "aff_iterations": (2000, 2000, 1000, 1000),
-                "aff_smoothing_sigmas": (4, 2, 1, 0),
-                "aff_shrink_factors": (16, 8, 2, 1),
-            }
-        else:
-            pairwise_reg_func = registration.phase_correlation_registration
+        reg_method, pairwise_reg_func, pairwise_reg_func_kwargs = self.create_registration_method(sim0)
 
         # Pass registration through metrics method
         #from muvis_align.registration_methods.RegistrationMetrics import RegistrationMetrics
@@ -556,6 +568,8 @@ class MVSRegistration:
 
                 post_registration_do_quality_filter=True,
                 post_registration_quality_threshold=0.1,
+
+                n_parallel_pairwise_regs=n_parallel_pairwise_regs,
 
                 plot_summary=self.mpl_ui,
                 return_dict=True,
@@ -696,7 +710,7 @@ class MVSRegistration:
         for pair in pairs:
             try:
                 # experimental; in case fail to extract overlap images
-                overlap_sims = self.get_overlap_images((sims[pair[0]], sims[pair[1]]), self.reg_transform_key)
+                overlap_sims = self.get_overlap_images(sims[pair[0]], sims[pair[1]], self.reg_transform_key)
                 nccs[pair] = calc_ncc(overlap_sims[0], overlap_sims[1])
                 ssims[pair] = calc_ssim(overlap_sims[0], overlap_sims[1])
                 #frcs[pair] = calc_frc(overlap_sims[0], overlap_sims[1])
@@ -705,18 +719,19 @@ class MVSRegistration:
                 #logging.warning(f'Failed to calculate resolution metric')
         return {'ncc': nccs, 'ssim': ssims}
 
-    def get_overlap_images(self, sims, transform_key):
+    def get_overlap_images(self, sim1, sim2, transform_key):
+        sims = [sim1, sim2]
         # functionality copied from registration.register_pair_of_msims()
-        spatial_dims = si_utils.get_spatial_dims_from_sim(sims[0])
+        spatial_dims = si_utils.get_spatial_dims_from_sim(sim1)
         overlap_tolerance = {dim: 0.0 for dim in spatial_dims}
         overlap_sims = []
         for sim in sims:
             if 't' in sim.coords.xindexes:
                 # work-around for points error in get_overlap_bboxes()
-                sim1 = si_utils.sim_sel_coords(sim, {'t': 0})
+                overlap_sim = si_utils.sim_sel_coords(sim, {'t': 0})
             else:
-                sim1 = sim
-            overlap_sims.append(sim1)
+                overlap_sim = sim
+            overlap_sims.append(overlap_sim)
         lowers, uppers = get_overlap_bboxes(
             overlap_sims[0],
             overlap_sims[1],
@@ -743,7 +758,6 @@ class MVSRegistration:
             )
             for isim, sim in enumerate(sims)
         ]
-        overlaps_sims = [sim.squeeze() for sim in overlaps_sims]
         return overlaps_sims
 
     def calc_metrics(self, results, labels):

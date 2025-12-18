@@ -52,7 +52,7 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
                 quality = metrics['match_rate']
 
         if not validate_transform(transform):
-            logging.error('Unable to find feature-based registration')
+            logging.error('Feature extraction: Unable to find feature-based registration')
             transform = np.eye(3)
 
         return {

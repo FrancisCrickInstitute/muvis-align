@@ -70,13 +70,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 points = points[indices]
                 desc = desc[indices]
             if len(points) == 0:
-                logging.error('No features detected!')
+                logging.error('Feature extraction: No features detected!')
         except RuntimeError as e:
             logging.error(e)
 
         if len(points) < self.nkeypoints / 100:
             # TODO: if #points is too low: alternative feature detection?
-            logging.warning(f'Low number of features: {len(points)}')
+            logging.warning(f'Feature extraction: Low number of features: {len(points)}')
 
         #inliers = filter_edge_points(points, np.flip(data0.shape[:2]))
         #points = points[inliers]
@@ -137,25 +137,6 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
         return transform, quality, matches, inliers
 
-    def registration_physical_space(
-            self,
-            fixed_data,
-            moving_data,
-            *,
-            fixed_origin,
-            moving_origin,
-            fixed_spacing,
-            moving_spacing,
-            initial_affine,
-            transform_types=None,
-            **ants_registration_kwargs,
-    ):
-        return {
-            "affine_matrix": np.eye(self.ndims + 1),
-            # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
-            "quality": 1  # float between 0 and 1 (if not available, set to 1.0)
-        }
-
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
         eye_transform = param_utils.identity_transform(self.ndims)
         transform = eye_transform
@@ -163,12 +144,12 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         matches = []
         inliers = []
 
-        #print(self.count, fixed_data.name, moving_data.name)
+        #print(self.count)
         #self.count+=1
         #return {"affine_matrix": transform, "quality": 1}
 
         if np.isnan(fixed_data).all() or np.isnan(moving_data).all():
-            logging.warning('No overlapping data')
+            logging.warning('Feature extraction: No overlapping data')
             return {
                 "affine_matrix": transform,  # homogenous matrix of shape (ndim + 1, ndim + 1), axis order (z, y, x)
                 "quality": 0  # float between 0 and 1 (if not available, set to 1.0)
@@ -213,13 +194,13 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             #                              matches[inliers],
             #                              show_plot=False, output_filename=output_filename + '_i.tiff')
 
-            #draw_keypoints_matches(fixed_data2, fixed_points,
-            #                       moving_data2, moving_points,
-            #                       matches, inliers,
-            #                       show_plot=False, output_filename=output_filename + '.tiff')
+            draw_keypoints_matches(fixed_data2, fixed_points,
+                                   moving_data2, moving_points,
+                                   matches, inliers,
+                                   show_plot=True)
 
         if quality == 0 or np.sum(inliers) == 0:
-            logging.error('Unable to find feature-based registration')
+            logging.error('Feature extraction: Unable to find feature-based registration')
             transform = eye_transform
 
         if len(transform) < self.ndims + 1:

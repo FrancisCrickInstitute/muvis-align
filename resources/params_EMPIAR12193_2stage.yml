@@ -9,6 +9,7 @@ general:
     format: '%(asctime)s %(levelname)s: %(message)s'
     dask: True
     time: True
+    mvs: True
     verbose: True
   output:
     clear: False
