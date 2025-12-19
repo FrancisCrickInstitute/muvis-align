@@ -93,6 +93,4 @@ def image_flatfield_correction(image0, dark, bright_dark_range, mean_bright_dark
         image = image.clip(0, 1)    # np.clip(image) is not dask-compatible, use image.clip() instead
     else:
         image -= np.min(image)
-        if np.max(image) > 1:
-            image /= np.max(image)
     return image

@@ -20,8 +20,8 @@ from muvis_align.util import *
 
 
 def show_image(image, title='', cmap=None):
-    nchannels = image.shape[2] if len(image.shape) > 2 else 1
     if cmap is None:
+        nchannels = image.shape[2] if len(image.shape) > 2 else 1
         cmap = 'gray' if nchannels == 1 else None
     plt.imshow(image, cmap=cmap)
     if title != '':
@@ -320,7 +320,7 @@ def draw_keypoints_matches_cv(image1, points1, image2, points2, matches=None, in
     return out_image
 
 
-def draw_keypoints_matches_sk(image1, points1, image2, points2, matches=None,
+def draw_keypoints_matches_sk(image1, points1, image2, points2, matches=np.array([]),
                               show_plot=True, output_filename=None):
     fig, ax = plt.subplots(figsize=(16, 8))
     shape_y, shape_x = image1.shape[:2]
@@ -345,7 +345,7 @@ def draw_keypoints_matches_sk(image1, points1, image2, points2, matches=None,
         plt.show()
 
 
-def draw_keypoints_matches(image1, points1, image2, points2, matches=None, inliers=None,
+def draw_keypoints_matches(image1, points1, image2, points2, matches=[], inliers=[],
                            points_color='black', match_color='red', inlier_color='lime',
                            show_plot=True, output_filename=None):
     fig, ax = plt.subplots(figsize=(16, 8))
@@ -363,18 +363,20 @@ def draw_keypoints_matches(image1, points1, image2, points2, matches=None, inlie
     ], axis=merge_axis)
     ax.imshow(image, cmap='gray')
 
-    ax.scatter(
-        points1[:, 1],
-        points1[:, 0],
-        facecolors='none',
-        edgecolors=points_color,
-    )
-    ax.scatter(
-        points2[:, 1] + offset2[1],
-        points2[:, 0] + offset2[0],
-        facecolors='none',
-        edgecolors=points_color,
-    )
+    if len(points1) > 0:
+        ax.scatter(
+            points1[:, 1],
+            points1[:, 0],
+            facecolors='none',
+            edgecolors=points_color,
+        )
+    if len(points2) > 0:
+        ax.scatter(
+            points2[:, 1] + offset2[1],
+            points2[:, 0] + offset2[0],
+            facecolors='none',
+            edgecolors=points_color,
+        )
 
     for i, match in enumerate(matches):
         color = match_color

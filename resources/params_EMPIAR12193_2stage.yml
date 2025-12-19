@@ -67,7 +67,7 @@ operations:
 #      name: 3din2d  # sift
 #      gaussian_sigma: 2
 #      inlier_threshold_factor: 0.05
-#      max_trials: 10000
+#      max_trials: 1000
 #      ransac_iterations: 10
 #    output: ../../aligned2/
 
