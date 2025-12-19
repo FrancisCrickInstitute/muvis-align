@@ -85,7 +85,7 @@ def apply_flatfield_correction(sims, transform_key, quantiles, quantile_images):
         new_sims.append(new_sim)
     return new_sims
 
-def image_flatfield_correction(image0, dark, bright_dark_range, mean_bright_dark, clip=True):
+def image_flatfield_correction(image0, dark, bright_dark_range, mean_bright_dark, clip=False):
     # Input/output: float images
     # https://en.wikipedia.org/wiki/Flat-field_correction
     image = (image0 - dark) * mean_bright_dark / bright_dark_range
