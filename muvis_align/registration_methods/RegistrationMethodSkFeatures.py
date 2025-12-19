@@ -23,7 +23,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         self.method = params.get('name', 'sift').lower()
         self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
-        self.nkeypoints = params.get('nkeypoints', 5000)
+        self.nkeypoints = params.get('max_keypoints', 5000)
         self.cross_check = params.get('cross_check', True)
         self.lowe_ratio = params.get('lowe_ratio', 0.92)
         self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)

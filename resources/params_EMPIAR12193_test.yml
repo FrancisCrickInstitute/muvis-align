@@ -34,7 +34,7 @@ operations:
     transform_type: rigid
     method:
       name: sift
-      nkeypoints: 10000
+      max_keypoints: 10000
       gaussian_sigma: 20
       inlier_threshold_factor: 0.05
       max_trials: 10000

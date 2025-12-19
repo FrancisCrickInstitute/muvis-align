@@ -47,8 +47,8 @@ operations:
 #    scale: 2
 #    method:
 #      name: sift
-#      nkeypoints: 10000
 #      gaussian_sigma: 4
+#      max_keypoints: 10000
 #      inlier_threshold_factor: 0.05
 #      max_trials: 1000
 #      ransac_iterations: 3
@@ -83,14 +83,16 @@ operations:
     #input: D:/slides/12193/data_subset2/S???/*.tiff
     source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 0.1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*0.1'}}
     extra_metadata: ../../aligned_stitched_mappings1.json
+    scale: 4
     flatfield_quantiles: [0.5]
     use_orthogonal_pairs: True
     transform_type: rigid
     method:
-      name: sift
-      gaussian_sigma: 4
+      name: orb
+      gaussian_sigma: 1
+      max_keypoints: 5000
       inlier_threshold_factor: 0.05
-      max_trials: 10000
-      ransac_iterations: 10
+      max_trials: 1000
+      ransac_iterations: 3
     n_parallel_pairwise_regs: 64
     output: ../../aligned2/
