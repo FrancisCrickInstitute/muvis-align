@@ -55,10 +55,10 @@ def get_images_metadata(filenames, source_metadata=None):
     pixel_sizes = []
     for filename in filenames:
         source = create_dask_source(filename, source_metadata)
-        pixel_size = dict_to_xyz(source.get_pixel_size())
-        size = dict_to_xyz(source.get_physical_size())
+        pixel_size = source.get_pixel_size()
+        size = source.get_physical_size()
         sizes.append(size)
-        position = dict_to_xyz(source.get_position())
+        position = source.get_position()
         rotation = source.get_rotation()
         rotations.append(rotation)
 
@@ -70,16 +70,16 @@ def get_images_metadata(filenames, source_metadata=None):
             summary += f'\t{rotation}'
         summary += '\n'
 
-        if len(size) < len(position):
-            size = list(size) + [0]
-        center = np.array(position) + np.array(size) / 2
+        center = {dim: position[dim] + size.get(dim, 0)/2 for dim in position}
         pixel_sizes.append(pixel_size)
         centers.append(center)
         positions.append(position)
-        max_positions.append(np.array(position) + np.array(size))
-    pixel_size = np.mean(pixel_sizes, 0)
-    center = np.mean(centers, 0)
-    area = np.max(max_positions, 0) - np.min(positions, 0)
+        max_positions.append({dim: position[dim] + size.get(dim, 0) for dim in position})
+    pixel_size = {dim: float(np.mean([pixel_size[dim] for pixel_size in pixel_sizes])) for dim in pixel_sizes[0]}
+    center = {dim: float(np.mean([center[dim] for center in centers])) for dim in centers[0]}
+    min_position = {dim: min([position[dim] for position in positions]) for dim in positions[0]}
+    max_position = {dim: max([position[dim] for position in positions]) for dim in positions[0]}
+    area = {dim: max_position[dim] - min_position[dim] for dim in max_position}
     summary += f'Area: {tuple(area)} Center: {tuple(center)}\n'
 
     rotations2 = []

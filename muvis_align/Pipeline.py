@@ -130,7 +130,7 @@ class Pipeline(Thread):
                     logging.info(f'File set: {fileset_label} metadata:\n' + metadata['summary'])
                 metadatas.append(metadata)
             if use_global_metadata:
-                global_center = np.mean([metadata['center'] for metadata in metadatas], 0)
+                global_center = {dim: np.mean([metadata['center'][dim] for metadata in metadatas]) for dim in metadatas[0]['center']}
                 rotations = [metadata['rotation'] for metadata in metadatas]
                 # fix missing rotation values
                 rotations = pd.Series(rotations).interpolate(limit_direction='both').to_numpy()

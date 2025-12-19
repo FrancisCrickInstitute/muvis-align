@@ -627,11 +627,11 @@ def normalise(sims, transform_key, use_global=True):
     return new_sims
 
 
-def get_sim_physical_size(sim, invert=False):
-    size = si_utils.get_shape_from_sim(sim, asarray=True) * si_utils.get_spacing_from_sim(sim, asarray=True)
-    if invert:
-        size = np.flip(size)
-    return size
+def get_sim_physical_size(sim):
+    size = si_utils.get_shape_from_sim(sim)
+    spacing = si_utils.get_spacing_from_sim(sim)
+    physical_size = {dim: size[dim] * spacing.get(dim, 1) for dim in size}
+    return physical_size
 
 
 def calc_output_properties(sims, transform_key, z_scale=None):

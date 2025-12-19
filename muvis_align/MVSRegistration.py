@@ -315,16 +315,14 @@ class MVSRegistration:
                 z_scale = 1
 
         if 'norm' in source_metadata:
-            size = np.array(source0.get_size()) * source0.get_pixel_size_micrometer()
-            center = None
+            size = source0.get_physical_size()
+            center = {dim: 0 for dim in output_order}
             if 'center' in source_metadata:
                 if 'global' in source_metadata:
                     center = self.global_center
                 else:
-                    center = np.mean(translations, 0)
-            elif 'origin' in source_metadata:
-                center = np.zeros(ndims)
-            translations, rotations = normalise_rotated_positions(translations, rotations, size, center)
+                    center = {dim: float(np.mean([translation[dim] for translation in translations])) for dim in translations[0]}
+            translations, rotations = normalise_rotated_positions(translations, rotations, size, center, len(output_order))
 
         #translations = [np.array(translation) * 1.25 for translation in translations]
 
@@ -383,7 +381,7 @@ class MVSRegistration:
         has_overlaps = []
         n = len(sims)
         positions = [get_sim_position_final(sim) for sim in sims]
-        sizes = [np.linalg.norm(get_sim_physical_size(sim)) for sim in sims]
+        sizes = [float(np.linalg.norm(list(get_sim_physical_size(sim).values()))) for sim in sims]
         for i in range(n):
             norm_dists = []
             # check if only single z slices

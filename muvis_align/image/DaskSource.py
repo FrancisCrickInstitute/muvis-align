@@ -55,7 +55,7 @@ class DaskSource:
             for dim in 'xy':
                 index = self.dimension_order.index(dim)
                 scale1.append(self.shape[index] / shape[index])
-            self.scales.append(np.mean(scale1))
+            self.scales.append(float(np.mean(scale1)))
 
     def get_shape(self, level=0):
         # shape in pixels

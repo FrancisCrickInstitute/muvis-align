@@ -491,7 +491,7 @@ def dict_to_xyz(dct, dims='xyz'):
     return [dct[dim] for dim in dims if dim in dct]
 
 
-def normalise_rotated_positions(positions0, rotations0, size, center):
+def normalise_rotated_positions(positions0, rotations0, size, center, ndims):
     # in [xy(z)]
     positions = []
     rotations = []
@@ -500,8 +500,8 @@ def normalise_rotated_positions(positions0, rotations0, size, center):
         if rotation is None and len(angles) > 0:
             rotation = -np.mean(angles)
         angle = -rotation if rotation is not None else None
-        transform = create_transform(center=center, angle=angle, matrix_size=4)
-        position = apply_transform([position0], transform)[0]
+        transform = create_transform(center=center, angle=angle, matrix_size=ndims + 1)
+        position = apply_transform_dict([position0], transform)[0]
         positions.append(position)
         rotations.append(rotation)
     return positions, rotations
@@ -557,7 +557,7 @@ def get_orthogonal_pairs(positions, image_size_um):
         if is_mixed_3dstack:
             # ignore z value for distance
             distance = math.dist([posi[dim] for dim in 'xy'], [posj[dim] for dim in 'xy'])
-            min_distance = max(image_size_um[:2])
+            min_distance = max([image_size_um[dim] for dim in 'xy'])
             is_same_z = (posi['z'] == posj['z'])
             is_close_z = abs(ordered_z.index(posi['z']) - ordered_z.index(posj['z'])) <= 1
             if not is_same_z:
@@ -566,13 +566,13 @@ def get_orthogonal_pairs(positions, image_size_um):
             ok = (distance < min_distance and is_close_z)
         else:
             distance = math.dist(posi.values(), posj.values())
-            min_distance = max(image_size_um)
+            min_distance = max(image_size_um.values())
             ok = (distance < min_distance)
         if ok:
-            pairs.append((i, j))
+            pairs.append((int(i), int(j)))
             vector = np.array(list(posi.values())) - np.array(list(posj.values()))
             angle = math.degrees(math.atan2(vector[1], vector[0]))
-            if distance < min(image_size_um):
+            if distance < min(image_size_um.values()):
                 angle += 90
             while angle < -90:
                 angle += 180
