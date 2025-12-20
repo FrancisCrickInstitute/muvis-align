@@ -9,7 +9,7 @@ from xarray import DataTree
 
 try:
     import matplotlib as mpl
-    mpl.use('TkAgg')
+    #mpl.use('TkAgg')
     #mpl.rcParams['backend'] = 'svg'
     mpl.rcParams['figure.dpi'] = 300
     import matplotlib.pyplot as plt
@@ -697,9 +697,10 @@ def get_data_mapping(data, transform_key=None, transform=None, translation0=None
         rotation += rotation1
 
     if transform_key is not None:
-        transform1 = sim.transforms[transform_key]
-        _, rotation1, _ = get_properties_from_transform(transform1)
-        rotation += rotation1
+        transform1 = sim.transforms.get(transform_key)
+        if transform1 is not None:
+            _, rotation1, _ = get_properties_from_transform(transform1)
+            rotation += rotation1
 
     return translation, rotation
 

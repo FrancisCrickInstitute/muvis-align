@@ -206,7 +206,7 @@ class MVSRegistration:
                                                       transform=mapping,
                                                       translation0=position,
                                                       rotation=rotation)
-                position_pixels = {dim: position[dim] / float(scale[dim]) for dim in position.keys()}
+                position_pixels = {dim: position[dim] / float(scale.get(dim, 1)) for dim in position.keys()}
                 row = [label] + dict_to_xyz(position_pixels) + dict_to_xyz(position) + [rotation]
                 data.append(row)
             export_csv(output + 'mappings.csv', data, header=mappings_header)
@@ -220,32 +220,33 @@ class MVSRegistration:
                         figure.savefig(summary_plot_filename)
 
         registered_positions_filename = output + 'positions_registered.pdf'
-        with Timer('plot positions', self.logging_time):
-            vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
-                                     use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
-                                     show_plot=self.mpl_ui, output_filename=registered_positions_filename)
+        if self.reg_transform_key in sims[0].transforms:
+            with Timer('plot positions', self.logging_time):
+                vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
+                                         use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
+                                         show_plot=self.mpl_ui, output_filename=registered_positions_filename)
 
-        if self.napari_ui:
-            shapes = [get_sim_shape_2d(sim, transform_key=self.reg_transform_key) for sim in sims]
-            self.update_napari_signal.emit(f'{self.fileset_label} registered', shapes, file_labels)
+            if self.napari_ui:
+                shapes = [get_sim_shape_2d(sim, transform_key=self.reg_transform_key) for sim in sims]
+                self.update_napari_signal.emit(f'{self.fileset_label} registered', shapes, file_labels)
 
-        if save_images:
-            if output_params.get('thumbnail'):
-                with Timer('create thumbnail', self.logging_time):
-                    self.save_thumbnail(output + 'thumb',
-                                        nom_sims=sims,
-                                        transform_key=self.reg_transform_key)
+            if save_images:
+                if output_params.get('thumbnail'):
+                    with Timer('create thumbnail', self.logging_time):
+                        self.save_thumbnail(output + 'thumb',
+                                            nom_sims=sims,
+                                            transform_key=self.reg_transform_key)
 
-            with Timer('fuse image', self.logging_time):
-                fused_image = self.fuse(sims)
+                with Timer('fuse image', self.logging_time):
+                    fused_image = self.fuse(sims)
 
-            logging.info('Saving fused image...')
-            with Timer('save fused image', self.logging_time):
-                self.save(registered_fused_filename, fused_image, output_params.get('format'),
-                          transform_key=self.reg_transform_key, translation0=self.positions[0])
+                logging.info('Saving fused image...')
+                with Timer('save fused image', self.logging_time):
+                    self.save(registered_fused_filename, fused_image, output_params.get('format'),
+                              transform_key=self.reg_transform_key, translation0=self.positions[0])
 
-        if is_transition:
-            self.save_video(output, sims, fused_image)
+            if is_transition:
+                self.save_video(output, sims, fused_image)
 
         return True
 
@@ -287,8 +288,8 @@ class MVSRegistration:
                 pyramid_scale = source.scales[pyramid_level]
                 scale = {dim: size * pyramid_scale if dim in 'xy' else size for dim, size in scale.items()}
             if 'invert' in source_metadata:
-                translation[0] = -translation[0]
-                translation[1] = -translation[1]
+                translation['x'] = -translation['x']
+                translation['y'] = -translation['y']
             if 'z' in translation:
                 z_position = translation['z']
             else:
@@ -296,6 +297,8 @@ class MVSRegistration:
             if last_z_position is not None and z_position != last_z_position:
                 different_z_positions = True
                 delta_zs.append(z_position - last_z_position)
+            if 'rotation' in source_metadata:
+                rotation = source_metadata['rotation']
             if self.global_rotation is not None:
                 rotation = self.global_rotation
 
@@ -630,7 +633,9 @@ class MVSRegistration:
                 z_scale = z_scale0
         if z_scale is None:
             if 'z' in sim0.dims:
-                z_scale = np.min(np.diff(sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))))
+                diffs = np.diff(sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims])))
+                if len(diffs) > 0:
+                    z_scale = min(diffs)
 
         is_3d = ('3d' in operation)
         is_channel_overlay = (len(channels) > 1)
@@ -762,15 +767,18 @@ class MVSRegistration:
         mappings0 = results['mappings']
         mappings = {labels[index]: mapping.data[0].tolist() for index, mapping in mappings0.items()}
 
+        var = None
         distances = [np.linalg.norm(param_utils.translation_from_affine(mapping.data[0]))
                      for mapping in mappings0.values()]
         if len(distances) > 2:
             # Coefficient of variation
-            cvar = np.std(distances) / np.mean(distances)
-            var = cvar
-        else:
+            mean_distance = np.mean(distances)
+            if mean_distance > 0:
+                cvar = np.std(distances) / mean_distance
+                var = cvar
+        if var is None:
             size = get_sim_physical_size(results['sims'][0])
-            norm_distance = np.sum(distances) / np.linalg.norm(size)
+            norm_distance = np.sum(distances) / np.linalg.norm(list(size.values()))
             var = norm_distance
 
         residual_errors = {labels[key[0]] + ' - ' + labels[key[1]]: value

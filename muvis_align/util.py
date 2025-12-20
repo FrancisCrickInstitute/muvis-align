@@ -483,7 +483,7 @@ def points_to_3d(points):
 
 
 def xyz_to_dict(xyz, dims='xyz'):
-    dct = {dim: value for dim, value in zip(dims, xyz)}
+    dct = {dim: float(value) for dim, value in zip(dims, xyz)}
     return dct
 
 
@@ -498,7 +498,7 @@ def normalise_rotated_positions(positions0, rotations0, size, center, ndims):
     _, angles = get_orthogonal_pairs(positions0, size)
     for position0, rotation in zip(positions0, rotations0):
         if rotation is None and len(angles) > 0:
-            rotation = -np.mean(angles)
+            rotation = -float(np.mean(angles))
         angle = -rotation if rotation is not None else None
         transform = create_transform(center=center, angle=angle, matrix_size=ndims + 1)
         position = apply_transform_dict([position0], transform)[0]
