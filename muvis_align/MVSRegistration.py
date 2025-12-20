@@ -283,6 +283,9 @@ class MVSRegistration:
             translation = source.get_position()
             rotation = source.get_rotation()
 
+            if 'is_center' in source_metadata:
+                translation = {dim: translation[dim] - source.get_physical_size().get(dim, 0) / 2 for dim in translation}
+
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
                 pyramid_scale = source.scales[pyramid_level]

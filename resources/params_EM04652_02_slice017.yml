@@ -25,8 +25,8 @@ operations:
     #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2
     input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00823.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/*.ome.tif
-    #source_metadata: {'scale': {'x': 0.032, 'y': 0.032}, 'position': {'y': 'fn[-3]*24', 'x': 'fn[-2]*24'}}
-    source_metadata: {'rotation': -40.51368871, 'global': True, 'norm': True}
+    #source_metadata: {scale: {x: 0.032, y: 0.032}, position: {y: 'fn[-3]*24', x: 'fn[-2]*24'}}
+    source_metadata: {rotation: -40.51368871, is_center: True, global: True, norm: True}
     normalisation: global
     use_orthogonal_pairs: True
     method: phase_correlation
@@ -36,6 +36,6 @@ operations:
 #    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2s/titched/slice*/registered.ome.zarr
 #    input: D:/slides/02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
 #    source_metadata: source
-#    extra_metadata: {'scale': {'z': 0.1}}
+#    extra_metadata: {scale: {z: 0.1}}
 #    method: phase_correlation
 #    output: ../../aligned/
