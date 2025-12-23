@@ -1,8 +1,10 @@
 import ast
+from configparser import ConfigParser
 import csv
-import json
 import cv2 as cv
+from datetime import datetime
 import glob
+import json
 import math
 import numpy as np
 import os
@@ -487,8 +489,11 @@ def xyz_to_dict(xyz, dims='xyz'):
     return dct
 
 
-def dict_to_xyz(dct, dims='xyz'):
-    return [dct[dim] for dim in dims if dim in dct]
+def dict_to_xyz(dct, dims='xyz', add_zeros=False):
+    array = [dct[dim] for dim in dims if dim in dct]
+    if len(array) < len(dims) and add_zeros:
+        array = array + [0] * (len(dims) - len(array))
+    return array
 
 
 def normalise_rotated_positions(positions0, rotations0, size, center, ndims):
@@ -642,3 +647,45 @@ def export_csv(filename, data, header=None):
             csvwriter.writerow(header)
         for row in data:
             csvwriter.writerow(row)
+
+
+def load_sbemimage_best_config(metapath, filename):
+    target_datetime = datetime.fromtimestamp(os.path.getmtime(filename))
+
+    for config_filename in sorted(glob.glob(os.path.join(metapath, 'logs/config_*.txt')), reverse=True):
+        match = re.split(r'config_(\d+-\d+-\d+).txt', config_filename)
+        if len(match) >= 2:
+            file_date = datetime.strptime(match[1], '%Y-%m-%d%H%M%S%f')
+            if file_date <= target_datetime:
+                with open(config_filename, 'r') as file:
+                    sbemimage_config = file.read()
+                return sbemimage_config
+    return None
+
+
+def adjust_sbemimage_position(translation, sbemimage_config):
+    cfg = ConfigParser()
+    cfg.read_string(sbemimage_config)
+    if bool(cfg['sys'].get('use_microtome')):
+        props = cfg['microtome']
+    else:
+        props = cfg['sem']
+    scale_x = float(props.get('stage_scale_factor_x'))
+    scale_y = float(props.get('stage_scale_factor_y'))
+    rotation_x = float(props.get('stage_rotation_angle_x'))
+    rotation_y = float(props.get('stage_rotation_angle_y'))
+    rotation_diff = rotation_x - rotation_y
+    rot_mat_a = math.cos(rotation_y) / math.cos(rotation_diff)
+    rot_mat_b = -math.sin(rotation_y) / math.cos(rotation_diff)
+    rot_mat_c = math.sin(rotation_x) / math.cos(rotation_diff)
+    rot_mat_d = math.cos(rotation_x) / math.cos(rotation_diff)
+    rot_mat_determinant = rot_mat_a * rot_mat_d - rot_mat_b * rot_mat_c
+
+    stage_x, stage_y = translation['x'], translation['y']
+    stage_x /= scale_x
+    stage_y /= scale_y
+    dx = ((rot_mat_d * stage_x - rot_mat_b * stage_y) / rot_mat_determinant)
+    dy = ((-rot_mat_c * stage_x + rot_mat_a * stage_y) / rot_mat_determinant)
+    translation['x'] = dx
+    translation['y'] = dy
+    return translation

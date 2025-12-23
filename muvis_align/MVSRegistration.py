@@ -118,7 +118,7 @@ class MVSRegistration:
         for label, sim, scale in zip(file_labels, sims, self.scales):
             position, rotation = get_data_mapping(sim, transform_key=self.source_transform_key)
             position_pixels = {dim: position[dim] / float(scale[dim]) for dim in position.keys()}
-            row = [label] + dict_to_xyz(position_pixels) + dict_to_xyz(position) + [rotation]
+            row = [label] + dict_to_xyz(position_pixels, add_zeros=True) + dict_to_xyz(position, add_zeros=True) + [rotation]
             data.append(row)
         export_csv(output + 'prereg_mappings.csv', data, header=mappings_header)
 
@@ -207,7 +207,7 @@ class MVSRegistration:
                                                       translation0=position,
                                                       rotation=rotation)
                 position_pixels = {dim: position[dim] / float(scale.get(dim, 1)) for dim in position.keys()}
-                row = [label] + dict_to_xyz(position_pixels) + dict_to_xyz(position) + [rotation]
+                row = [label] + dict_to_xyz(position_pixels, add_zeros=True) + dict_to_xyz(position, add_zeros=True) + [rotation]
                 data.append(row)
             export_csv(output + 'mappings.csv', data, header=mappings_header)
 
@@ -285,6 +285,23 @@ class MVSRegistration:
 
             if 'is_center' in source_metadata:
                 translation = {dim: translation[dim] - source.get_physical_size().get(dim, 0) / 2 for dim in translation}
+
+            if 'sbem' in source_metadata:
+                source_version = source.metadata.get('Creator', source.metadata.get('creator', ''))
+                if '2025' in source_version:
+                    path = os.path.dirname(self.filenames[0])
+                    metapath = None
+                    attempts = 0
+                    while attempts < 3:
+                        metapath = os.path.join(path, 'meta')
+                        if os.path.exists(metapath):
+                            break
+                        path = os.path.join(path, '..')
+                        attempts += 1
+                    if metapath:
+                        sbemimage_config = load_sbemimage_best_config(metapath, filename)
+                        if sbemimage_config:
+                            translation = adjust_sbemimage_position(translation, sbemimage_config)
 
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
@@ -523,10 +540,11 @@ class MVSRegistration:
         else:
             reg_channel_index = None
 
-        groupwise_resolution_kwargs = {
-            'transform': params.get('transform_type')  # options include 'translation', 'rigid', 'affine'
-        }
-        pairwise_reg_func_kwargs = None
+        groupwise_resolution_kwargs = None
+        if 'transform_type' in params:
+           groupwise_resolution_kwargs = {
+                'transform': params.get('transform_type')  # options include 'translation', 'rigid', 'affine'
+            }
         if register_sims is None:
             register_sims = sims
         if is_stack and not is_3d:
