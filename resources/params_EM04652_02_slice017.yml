@@ -1,5 +1,5 @@
 general:
-  show_original: True
+  show_original: False
   metadata_summary: False
   chunk_size: [4096, 4096]
   break_on_error: True
@@ -23,24 +23,26 @@ general:
 operations:
   - operation: register match s
     #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2
-    input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00823.ome.tif
-    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/*.ome.tif
-    #source_metadata: {scale: {x: 0.032, y: 0.032}, position: {y: 'fn[-3]*24', x: 'fn[-2]*24'}}
-    source_metadata: {rotation: -40.51368871, is_center: True, global: True, norm: True}
-    normalisation: global
+    input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/*_s00400.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00823.ome.tif
+    #input:
+    #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00400.ome.tif
+    #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/EM04652-02_slice17_spaghettiandmeatballs2_r0005_t0030_s00400.ome.tif
     source_metadata: {'sbem': True, scale: {x: 0.01, y: 0.01}}
+    #source_metadata: {'sbem': True, scale: [{x: 0.249151786, y: 0.249151786}, {x: 0.01, y: 0.01}]}
+    #normalisation: global
     use_orthogonal_pairs: True
     transform_type: translation
-    output: ../../stitched/slice{s}/
     #method: phase_correlation
     method:
-      name: sift
-      gaussian_sigma: 5
+      name: orb
+      gaussian_sigma: 3
       max_keypoints: 1000
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
     output_spacing: mean
+    output: ../stitched/slice{s}/
 
 #  - operation: stack
 #    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2s/titched/slice*/registered.ome.zarr
