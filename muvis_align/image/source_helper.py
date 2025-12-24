@@ -6,12 +6,12 @@ from muvis_align.image.ZarrDaskSource import ZarrDaskSource
 from muvis_align.util import get_filetitle, get_orthogonal_pairs
 
 
-def create_dask_source(filename, source_metadata=None):
+def create_dask_source(filename, source_metadata=None, index=None):
     ext = os.path.splitext(filename)[1].lstrip('.').lower()
     if ext.startswith('tif'):
-        dask_source = TiffDaskSource(filename, source_metadata)
+        dask_source = TiffDaskSource(filename, source_metadata, index=index)
     elif '.zar' in filename.lower():
-        dask_source = ZarrDaskSource(filename, source_metadata)
+        dask_source = ZarrDaskSource(filename, source_metadata, index=index)
     else:
         raise ValueError(f'Unsupported file type: {ext}')
     return dask_source

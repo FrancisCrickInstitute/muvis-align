@@ -539,7 +539,7 @@ def detect_area_points(image):
     return area_points
 
 
-def get_sim_position_final(sim, position=None):
+def get_sim_position_final(sim, position=None, get_center=False):
     if position is None:
         position = si_utils.get_origin_from_sim(sim)
     transform_keys = si_utils.get_tranform_keys_from_sim(sim)
@@ -550,6 +550,9 @@ def get_sim_position_final(sim, position=None):
     for dim in position.keys():
         if dim not in new_position:
             new_position[dim] = position[dim]
+    if get_center:
+        physical_size = get_sim_physical_size(sim)
+        new_position = {dim: new_position[dim] + physical_size.get(dim, 0) / 2 for dim in new_position}
     return new_position
 
 
@@ -634,8 +637,15 @@ def get_sim_physical_size(sim):
     return physical_size
 
 
-def calc_output_properties(sims, transform_key, z_scale=None):
-    output_spacing = si_utils.get_spacing_from_sim(sims[0])
+def calc_output_properties(sims, transform_key, output_spacing=None, z_scale=None):
+    spacings = [si_utils.get_spacing_from_sim(sim) for sim in sims]
+    dims = list(spacings[0])
+    if not output_spacing or 'mean' in output_spacing.lower():
+        output_spacing = {dim: np.mean([spacing[dim] for spacing in spacings]) for dim in dims}
+    elif 'max' in output_spacing.lower():
+        output_spacing = {dim: max([spacing[dim] for spacing in spacings]) for dim in dims}
+    elif 'min' in output_spacing.lower():
+        output_spacing = {dim: min([spacing[dim] for spacing in spacings]) for dim in dims}
     if z_scale is not None:
         output_spacing['z'] = z_scale
     output_properties = fusion.calc_fusion_stack_properties(

@@ -496,20 +496,20 @@ def dict_to_xyz(dct, dims='xyz', add_zeros=False):
     return array
 
 
-def normalise_rotated_positions(positions0, rotations0, size, center, ndims):
+def normalise_rotated_positions(centers0, rotations0, size, center, ndims):
     # in [xy(z)]
-    positions = []
+    centers = []
     rotations = []
-    _, angles = get_orthogonal_pairs(positions0, size)
-    for position0, rotation in zip(positions0, rotations0):
+    _, angles = get_orthogonal_pairs(centers0, size)
+    for center0, rotation in zip(centers0, rotations0):
         if rotation is None and len(angles) > 0:
             rotation = -float(np.mean(angles))
         angle = -rotation if rotation is not None else None
         transform = create_transform(center=center, angle=angle, matrix_size=ndims + 1)
-        position = apply_transform_dict([position0], transform)[0]
-        positions.append(position)
+        center = apply_transform_dict([center0], transform)[0]
+        centers.append(center)
         rotations.append(rotation)
-    return positions, rotations
+    return centers, rotations
 
 
 def get_nn_distance(points0):
@@ -663,7 +663,7 @@ def load_sbemimage_best_config(metapath, filename):
     return None
 
 
-def adjust_sbemimage_position(translation, sbemimage_config):
+def adjust_sbemimage_position(translation, physical_size, sbemimage_config):
     cfg = ConfigParser()
     cfg.read_string(sbemimage_config)
     if bool(cfg['sys'].get('use_microtome')):
@@ -686,6 +686,7 @@ def adjust_sbemimage_position(translation, sbemimage_config):
     stage_y /= scale_y
     dx = ((rot_mat_d * stage_x - rot_mat_b * stage_y) / rot_mat_determinant)
     dy = ((-rot_mat_c * stage_x + rot_mat_a * stage_y) / rot_mat_determinant)
-    translation['x'] = dx
-    translation['y'] = dy
+    # convert center to top/left
+    translation['x'] = dx - physical_size['x'] / 2
+    translation['y'] = dy - physical_size['y'] / 2
     return translation

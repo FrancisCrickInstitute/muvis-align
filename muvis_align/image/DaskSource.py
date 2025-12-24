@@ -6,7 +6,7 @@ from muvis_align.util import get_value_units_micrometer, find_all_numbers, split
 class DaskSource:
     default_physical_unit = 'µm'
 
-    def __init__(self, filename, source_metadata=None):
+    def __init__(self, filename, source_metadata=None, index=None):
         self.filename = filename
         self.dimension_order = ''
         self.is_rgb = False
@@ -21,18 +21,20 @@ class DaskSource:
         self.rotation = 0
         self.channels = []
         self.init_metadata()
-        self.fix_metadata(source_metadata)
+        self.fix_metadata(source_metadata, index=index)
 
     def init_metadata(self):
         raise NotImplementedError("Dask source should implement init_metadata() to initialize metadata")
 
-    def fix_metadata(self, source_metadata=None):
+    def fix_metadata(self, source_metadata=None, index=None):
         if isinstance(source_metadata, dict):
             filename_numeric = find_all_numbers(self.filename)
             filename_dict = {key: int(value) for key, value in split_numeric_dict(self.filename).items()}
             context = {'filename_numeric': filename_numeric, 'fn': filename_numeric} | filename_dict
             if 'position' in source_metadata:
                 translation0 = source_metadata['position']
+                if index is not None and isinstance(translation0, list):
+                    translation0 = translation0[index]
                 if 'x' in translation0:
                     self.position['x'] = eval_context(translation0, 'x', 0, context)
                 if 'y' in translation0:
@@ -41,6 +43,8 @@ class DaskSource:
                     self.position['z'] = eval_context(translation0, 'z', 0, context)
             if 'scale' in source_metadata:
                 scale0 = source_metadata['scale']
+                if index is not None and isinstance(scale0, list):
+                    scale0 = scale0[index]
                 if 'x' in scale0:
                     self.pixel_size['x'] = eval_context(scale0, 'x', 1, context)
                 if 'y' in scale0:

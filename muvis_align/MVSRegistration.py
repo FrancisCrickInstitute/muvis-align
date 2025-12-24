@@ -258,7 +258,7 @@ class MVSRegistration:
         z_scale = extra_metadata.get('scale', {}).get('z')
 
         logging.info('Initialising sims...')
-        sources = [create_dask_source(file, source_metadata) for file in self.filenames]
+        sources = [create_dask_source(file, source_metadata, index=index) for index, file in enumerate(self.filenames)]
         source0 = sources[0]
         images = []
         sims = []
@@ -301,7 +301,8 @@ class MVSRegistration:
                     if metapath:
                         sbemimage_config = load_sbemimage_best_config(metapath, filename)
                         if sbemimage_config:
-                            translation = adjust_sbemimage_position(translation, sbemimage_config)
+                            physical_size = source.get_physical_size()
+                            translation = adjust_sbemimage_position(translation, physical_size, sbemimage_config)
 
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
@@ -403,7 +404,7 @@ class MVSRegistration:
         min_dists = []
         has_overlaps = []
         n = len(sims)
-        positions = [get_sim_position_final(sim) for sim in sims]
+        positions = [get_sim_position_final(sim, get_center=True) for sim in sims]
         sizes = [float(np.linalg.norm(list(get_sim_physical_size(sim).values()))) for sim in sims]
         for i in range(n):
             norm_dists = []
@@ -648,6 +649,7 @@ class MVSRegistration:
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
+        output_spacing = self.params.get('output_spacing')
         if z_scale is None and self.scales is not None:
             z_scale0 = np.mean([scale.get('z', 0) for scale in self.scales])
             if z_scale0 > 0:
@@ -661,7 +663,8 @@ class MVSRegistration:
         is_3d = ('3d' in operation)
         is_channel_overlay = (len(channels) > 1)
 
-        output_stack_properties = calc_output_properties(sims, transform_key, z_scale=z_scale)
+        output_stack_properties = calc_output_properties(sims, transform_key,
+                                                         output_spacing=output_spacing, z_scale=z_scale)
         if is_3d:
             z_positions = sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))
             z_shape = len(z_positions)
