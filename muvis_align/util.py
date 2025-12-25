@@ -663,7 +663,7 @@ def load_sbemimage_best_config(metapath, filename):
     return None
 
 
-def adjust_sbemimage_position(translation, physical_size, sbemimage_config):
+def adjust_sbemimage_properties(translation, scale, physical_size, filename, sbemimage_config):
     cfg = ConfigParser()
     cfg.read_string(sbemimage_config)
     if bool(cfg['sys'].get('use_microtome')):
@@ -689,4 +689,27 @@ def adjust_sbemimage_position(translation, physical_size, sbemimage_config):
     # convert center to top/left
     translation['x'] = dx - physical_size['x'] / 2
     translation['y'] = dy - physical_size['y'] / 2
-    return translation
+
+    pixel_size = None
+    parts = split_numeric_dict(filename)
+    if 't' in parts:
+        grids = cfg['grids']
+        if 'r' in parts:
+            grid_index = json.loads(grids.get('roi_index')).index(int(parts['r']))
+        else:
+            grid_index = int(parts['g'])
+        pixel_size = json.loads(grids.get('pixel_size'))[grid_index] * 1e-3
+    else:
+        ov = cfg['overviews']
+        if 'ov' in parts:
+            ov_index = int(parts['ov'])
+            pixel_size = json.loads(ov.get('ov_pixel_size'))[ov_index] * 1e-3
+        elif '_stubov_' in filename.lower():
+            pixel_size = float(ov.get('stub_ov_pixel_size')) * 1e-3
+
+    if pixel_size:
+        scale = {'x': pixel_size, 'y': pixel_size}
+    else:
+        scale = None
+
+    return translation, scale

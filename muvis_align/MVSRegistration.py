@@ -302,7 +302,15 @@ class MVSRegistration:
                         sbemimage_config = load_sbemimage_best_config(metapath, filename)
                         if sbemimage_config:
                             physical_size = source.get_physical_size()
-                            translation = adjust_sbemimage_position(translation, physical_size, sbemimage_config)
+                            translation, scale0 = adjust_sbemimage_properties(translation, scale, physical_size,
+                                                                              filename, sbemimage_config)
+                            if scale0:
+                                scale = scale0
+                            elif scale.get('x') != scale.get('y'):
+                                logging.warning('SBEMimage pixel size requires correction, please provide in source metadata.')
+                            logging.warning(f'Adjusted SBEMimage properties for {filename}')
+                        else:
+                            logging.warning(f'Could not find SBEMimage config for {filename}.')
 
             if target_scale:
                 pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))

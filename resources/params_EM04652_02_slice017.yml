@@ -23,12 +23,12 @@ general:
 operations:
   - operation: register match s
     #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2
-    input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/*_s00400.ome.tif
+    input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00400.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00823.ome.tif
     #input:
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00400.ome.tif
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/EM04652-02_slice17_spaghettiandmeatballs2_r0005_t0030_s00400.ome.tif
-    source_metadata: {'sbem': True, scale: {x: 0.01, y: 0.01}}
+    source_metadata: sbem
     #source_metadata: {'sbem': True, scale: [{x: 0.249151786, y: 0.249151786}, {x: 0.01, y: 0.01}]}
     #normalisation: global
     use_orthogonal_pairs: True
