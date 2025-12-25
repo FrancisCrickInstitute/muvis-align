@@ -11,7 +11,7 @@ general:
     verbose: True
   output:
     clear: False
-    overwrite: True
+    overwrite: False
     format: ome.zarr
     tile_size: [4096, 4096]
     compression:
@@ -22,9 +22,10 @@ general:
 
 operations:
   - operation: register match s
-    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
-    input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00400.ome.tif
+    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00400.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00823.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
     #input:
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00400.ome.tif
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/EM04652-02_slice17_spaghettiandmeatballs2_r0005_t0030_s00400.ome.tif
@@ -42,10 +43,19 @@ operations:
     output_spacing: min
     output: ../../stitched/slice{s}/
 
-#  - operation: stack
-#    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2s/stitched/slice*/registered.ome.zarr
-#    input: D:/slides/02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
-#    source_metadata: source
-#    extra_metadata: {scale: {z: 0.1}}
-#    method: phase_correlation
-#    output: ../../aligned/
+  - operation: stack
+    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2s/stitched/slice*/registered.ome.zarr
+    #input: D:/slides/02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
+    source_metadata: source
+    extra_metadata: {scale: {z: 0.05}}
+    transform_type: affine
+    #method: phase_correlation
+    method:
+      name: orb
+      gaussian_sigma: 3
+      max_keypoints: 1000
+      inlier_threshold_factor: 0.05
+      max_trials: 1000
+      ransac_iterations: 3
+    output_spacing: min
+    output: ../../aligned/
