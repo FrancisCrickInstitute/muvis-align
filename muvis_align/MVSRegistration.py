@@ -301,8 +301,8 @@ class MVSRegistration:
                     if metapath:
                         sbemimage_config = load_sbemimage_best_config(metapath, filename)
                         if sbemimage_config:
-                            physical_size = source.get_physical_size()
-                            translation, scale0 = adjust_sbemimage_properties(translation, scale, physical_size,
+                            size = source.get_size()
+                            translation, scale0 = adjust_sbemimage_properties(translation, scale, size,
                                                                               filename, sbemimage_config)
                             if scale0:
                                 scale = scale0

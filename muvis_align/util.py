@@ -663,7 +663,7 @@ def load_sbemimage_best_config(metapath, filename):
     return None
 
 
-def adjust_sbemimage_properties(translation, scale, physical_size, filename, sbemimage_config):
+def adjust_sbemimage_properties(translation, scale, size, filename, sbemimage_config):
     cfg = ConfigParser()
     cfg.read_string(sbemimage_config)
     if bool(cfg['sys'].get('use_microtome')):
@@ -680,15 +680,6 @@ def adjust_sbemimage_properties(translation, scale, physical_size, filename, sbe
     rot_mat_c = math.sin(rotation_x) / math.cos(rotation_diff)
     rot_mat_d = math.cos(rotation_x) / math.cos(rotation_diff)
     rot_mat_determinant = rot_mat_a * rot_mat_d - rot_mat_b * rot_mat_c
-
-    stage_x, stage_y = translation['x'], translation['y']
-    stage_x /= scale_x
-    stage_y /= scale_y
-    dx = ((rot_mat_d * stage_x - rot_mat_b * stage_y) / rot_mat_determinant)
-    dy = ((-rot_mat_c * stage_x + rot_mat_a * stage_y) / rot_mat_determinant)
-    # convert center to top/left
-    translation['x'] = dx - physical_size['x'] / 2
-    translation['y'] = dy - physical_size['y'] / 2
 
     pixel_size = None
     parts = split_numeric_dict(filename)
@@ -711,5 +702,15 @@ def adjust_sbemimage_properties(translation, scale, physical_size, filename, sbe
         scale = {'x': pixel_size, 'y': pixel_size}
     else:
         scale = None
+
+    stage_x, stage_y = translation['x'], translation['y']
+    stage_x /= scale_x
+    stage_y /= scale_y
+    dx = ((rot_mat_d * stage_x - rot_mat_b * stage_y) / rot_mat_determinant)
+    dy = ((-rot_mat_c * stage_x + rot_mat_a * stage_y) / rot_mat_determinant)
+    # convert center to top/left
+    physical_size = {dim: size[dim] * scale[dim] for dim in size}
+    translation['x'] = dx - physical_size['x'] / 2
+    translation['y'] = dy - physical_size['y'] / 2
 
     return translation, scale

@@ -82,7 +82,7 @@ class DaskSource:
     def get_physical_size(self):
         pixel_size = self.get_pixel_size()
         size = self.get_size()
-        return {dim: size[dim] * pixel_size[dim] for dim in pixel_size.keys() if dim in size}
+        return {dim: size[dim] * pixel_size[dim] for dim in size}
 
     def get_position(self, level=0):
         # position in micrometers
