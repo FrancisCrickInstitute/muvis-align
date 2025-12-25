@@ -4,7 +4,7 @@ general:
   chunk_size: [4096, 4096]
   break_on_error: True
   logging:
-    filename: log/muvis-align-empiar12193.log
+    filename: log/muvis-align-EM04652.log
     format: '%(asctime)s %(levelname)s: %(message)s'
     dask: True
     time: True
