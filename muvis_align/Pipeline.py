@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from muvis_align.constants import version
 from muvis_align.image.source_helper import get_images_metadata
-from muvis_align.util import dir_regex, get_filetitle, find_all_numbers, split_numeric_dict
+from muvis_align.util import dir_regex, get_filetitle, find_all_numbers, find_target_numeric
 
 
 class Pipeline(Thread):
@@ -83,6 +83,7 @@ class Pipeline(Thread):
         metadata_summary = self.params_general.get('metadata_summary', False)
 
         filenames = dir_regex(params['input'])
+        filenames.extend(filenames * 1000)
         filenames = sorted(filenames, key=lambda file: list(find_all_numbers(file)))    # sort first key first
         if len(filenames) == 0:
             logging.warning(f'Skipping operation {operation} (no files)')
@@ -100,11 +101,8 @@ class Pipeline(Thread):
                 match_label = None
             matches = {}
             for filename in filenames:
-                parts = split_numeric_dict(filename)
-                match_value = parts.get(match_label)
+                match_value = find_target_numeric(filename, match_label)
                 if match_value is not None:
-                    if match_value.isdecimal():
-                        match_value = int(match_value)
                     if match_value not in matches:
                         matches[match_value] = []
                     matches[match_value].append(filename)

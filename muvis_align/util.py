@@ -168,9 +168,13 @@ def find_all_numbers(text: str) -> list:
     return list(map(int, re.findall(r'\d+', text)))
 
 
+def split_path_parts(text: str) -> list:
+    return text.replace('/', '_').replace('\\', '_').replace('.', '_').split('_')
+
+
 def split_numeric(text: str) -> list:
     num_parts = []
-    parts = re.split(r'[_/\\.]', text)
+    parts = split_path_parts(text)
     for part in parts:
         num_span = re.search(r'\d+', part)
         if num_span:
@@ -178,9 +182,19 @@ def split_numeric(text: str) -> list:
     return num_parts
 
 
+def find_target_numeric(text: str, target: str) -> int|None:
+    parts = split_path_parts(text)
+    for part in parts:
+        if part.startswith(target):
+            part = part.lstrip(target)
+            if part.isdecimal():
+                return int(part)
+    return None
+
+
 def split_numeric_dict(text: str) -> dict:
     num_parts = {}
-    parts = re.split(r'[_/\\.]', text)
+    parts = split_path_parts(text)
     parti = 0
     for part in parts:
         num_span = re.search(r'\d+', part)
