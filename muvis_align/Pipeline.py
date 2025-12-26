@@ -83,7 +83,6 @@ class Pipeline(Thread):
         metadata_summary = self.params_general.get('metadata_summary', False)
 
         filenames = dir_regex(params['input'])
-        filenames.extend(filenames * 1000)
         filenames = sorted(filenames, key=lambda file: list(find_all_numbers(file)))    # sort first key first
         if len(filenames) == 0:
             logging.warning(f'Skipping operation {operation} (no files)')
