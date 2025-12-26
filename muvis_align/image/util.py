@@ -29,6 +29,10 @@ def show_image(image, title='', cmap=None):
     plt.show()
 
 
+def plt_close():
+    plt.close()
+
+
 def grayscale_image(image):
     nchannels = image.shape[2] if len(image.shape) > 2 else 1
     if nchannels == 4:

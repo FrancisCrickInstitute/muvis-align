@@ -210,25 +210,61 @@ def split_numeric_dict(text: str) -> dict:
 
 def get_unique_file_labels(filenames: list) -> list:
     file_labels = []
-    file_parts = []
     label_indices = set()
     last_parts = None
+
+    n_dic = 0
+    n_full_dic = 0
+    n_full_num = 0
     for filename in filenames:
-        parts = split_numeric(filename)
-        if len(parts) == 0:
+        parts = split_numeric_dict(get_filetitle(filename))
+        if len(parts) > 0:
+            n_dic += 1
+        else:
+            parts = split_numeric_dict(filename)
+            if len(parts) > 0:
+                n_full_dic += 1
+            else:
+                parts = split_numeric(filename)
+                if len(parts) > 0:
+                    n_full_num += 1
+
+    use_dic = (n_dic == len(filenames))
+    use_full_dic = (n_full_dic == len(filenames))
+    use_full_num = (n_full_num == len(filenames))
+
+    all_parts = []
+    for filename in filenames:
+        if use_dic:
+            parts = split_numeric_dict(get_filetitle(filename))
+        elif use_full_dic:
+            parts = split_numeric_dict(filename)
+        elif use_full_num:
             parts = split_numeric(filename)
-            if len(parts) == 0:
-                parts = filename
-        file_parts.append(parts)
+        else:
+            parts = filename
+        all_parts.append(parts)
+
+    for parts in all_parts:
         if last_parts is not None:
-            for parti, (part1, part2) in enumerate(zip(last_parts, parts)):
-                if part1 != part2:
-                    label_indices.add(parti)
+            if isinstance(parts, dict):
+                indices = set(list(parts) + list(last_parts))
+                for index in indices:
+                    if parts.get(index) != last_parts.get(index):
+                        label_indices.add(index)
+            else:
+                indices = range(min(len(parts), len(last_parts)))
+                for index in indices:
+                    if index < len(parts) and index < len(last_parts) and parts[index] != last_parts[index]:
+                        label_indices.add(index)
         last_parts = parts
     label_indices = sorted(list(label_indices))
 
-    for file_part in file_parts:
-        file_label = '_'.join([file_part[i] for i in label_indices])
+    for parts in all_parts:
+        if isinstance(parts, dict):
+            file_label = '_'.join([key + parts[key] for key in label_indices if key in parts])
+        else:
+            file_label = '_'.join([parts[index] for index in label_indices if index in parts])
         file_labels.append(file_label)
 
     if len(set(file_labels)) < len(file_labels):

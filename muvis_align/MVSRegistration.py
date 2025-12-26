@@ -131,6 +131,7 @@ class MVSRegistration:
                 vis_utils.plot_positions(sims, transform_key=self.source_transform_key,
                                          use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
                                          show_plot=self.mpl_ui, output_filename=original_positions_filename)
+                plt_close()
 
             if self.napari_ui:
                 shapes = [get_sim_shape_2d(sim, transform_key=self.source_transform_key) for sim in sims]
@@ -146,11 +147,12 @@ class MVSRegistration:
                 sims2 = [sim.copy() for sim in sims]
                 scale = self.scales[0].get('z', 1)
                 sims2 = make_sims_3d(sims2, scale, self.positions)
-                original_fused = self.fuse(sims2, transform_key=self.source_transform_key)
 
                 original_fused_filename = output + 'original'
-                self.save(original_fused_filename, original_fused, output_params.get('format'),
-                          transform_key=self.source_transform_key)
+                original_fused, is_saved = self.fuse(sims2, transform_key=self.source_transform_key)
+                if not is_saved or 'tif' in output_params.get('format'):
+                    self.save(original_fused_filename, original_fused, output_params.get('format'),
+                              transform_key=self.source_transform_key)
 
         if len(filenames) == 1 and save_images:
             logging.warning('Skipping registration (single image)')
@@ -225,6 +227,7 @@ class MVSRegistration:
                 vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
                                          use_positional_colors=False, view_labels=file_labels, view_labels_size=3,
                                          show_plot=self.mpl_ui, output_filename=registered_positions_filename)
+                plt_close()
 
             if self.napari_ui:
                 shapes = [get_sim_shape_2d(sim, transform_key=self.reg_transform_key) for sim in sims]
@@ -238,12 +241,13 @@ class MVSRegistration:
                                             transform_key=self.reg_transform_key)
 
                 with Timer('fuse image', self.logging_time):
-                    fused_image = self.fuse(sims)
+                    fused_image, is_saved = self.fuse(sims)
 
-                logging.info('Saving fused image...')
-                with Timer('save fused image', self.logging_time):
-                    self.save(registered_fused_filename, fused_image, output_params.get('format'),
-                              transform_key=self.reg_transform_key, translation0=self.positions[0])
+                if not is_saved or 'tif' in output_params.get('format'):
+                    logging.info('Saving fused image...')
+                    with Timer('save fused image', self.logging_time):
+                        self.save(registered_fused_filename, fused_image, output_params.get('format'),
+                                  transform_key=self.reg_transform_key, translation0=self.positions[0])
 
             if is_transition:
                 self.save_video(output, sims, fused_image)
@@ -308,7 +312,7 @@ class MVSRegistration:
                                 scale = scale0
                             elif scale.get('x') != scale.get('y'):
                                 logging.warning('SBEMimage pixel size requires correction, please provide in source metadata.')
-                            logging.warning(f'Adjusted SBEMimage properties for {filename}')
+                            logging.info(f'Adjusted SBEMimage properties for {filename}')
                         else:
                             logging.warning(f'Could not find SBEMimage config for {filename}.')
 
@@ -649,7 +653,9 @@ class MVSRegistration:
                 'sims': sims,
                 'pairs': pairs}
 
-    def fuse(self, sims, transform_key=None):
+    def fuse(self, sims, transform_key=None,
+             output_filename=None, output_image=False):
+        is_saved = False
         sim0 = sims[0]
         if transform_key is None:
             transform_key = self.reg_transform_key
@@ -695,13 +701,18 @@ class MVSRegistration:
             channel_sims = [sim.assign_coords({'c': [channels[simi]['label']]}) for simi, sim in enumerate(channel_sims)]
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
+            if output_filename is not None and not output_filename.lower().endswith('.zarr'):
+                output_filename += '.ome.zarr'
             fused_image = fusion.fuse(
                 sims,
                 transform_key=transform_key,
                 output_stack_properties=output_stack_properties,
                 fusion_func=fusion.simple_average_fusion,
+                output_zarr_url=output_filename,
+                zarr_options={'ome_zarr': output_image}
             )
-        return fused_image
+            is_saved = output_filename is not None and output_image
+        return fused_image, is_saved
 
     def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
         params = self.params
@@ -723,8 +734,9 @@ class MVSRegistration:
                     si_utils.set_sim_affine(sim,
                                             si_utils.get_affine_from_sim(nom_sim, transform_key=transform_key),
                                             transform_key=transform_key)
-        fused_image = self.fuse(sims, transform_key=transform_key).squeeze()
-        self.save(output_filename, fused_image, output_params.get('thumbnail'), transform_key=transform_key)
+        fused_image, is_saved = self.fuse(sims, transform_key=transform_key)
+        if not is_saved or 'tif' in output_params.get('thumbnail'):
+            self.save(output_filename, fused_image.squeeze(), output_params.get('thumbnail'), transform_key=transform_key)
 
     def save(self, output_filename, data, format=zarr_extension, transform_key=None, translation0=None):
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
