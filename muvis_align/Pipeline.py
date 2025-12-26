@@ -105,8 +105,8 @@ class Pipeline(Thread):
                     if match_value not in matches:
                         matches[match_value] = []
                     matches[match_value].append(filename)
-                if len(matches) == 0:
-                    matches[0] = filenames
+            if len(matches) == 0:
+                matches[0] = filenames
             filesets = []
             fileset_labels = []
             for label in sorted(matches):
