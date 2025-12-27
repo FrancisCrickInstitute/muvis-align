@@ -6,9 +6,9 @@ general:
   logging:
     filename: log/muvis-align-EM04652.log
     format: '%(asctime)s %(levelname)s: %(message)s'
-    dask: True
+    dask: False
     time: True
-    verbose: True
+    verbose: False
   output:
     clear: False
     overwrite: False
@@ -41,6 +41,7 @@ operations:
       max_trials: 1000
       ransac_iterations: 3
     output_spacing: min
+    n_set_workers: 8
     n_parallel_pairwise_regs: 64
     output: ../../stitched/slice{s}/
 

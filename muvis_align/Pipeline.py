@@ -20,14 +20,6 @@ class Pipeline(Thread):
         self.params_general = params['general']
         self.init_logging()
 
-        napari_ui = 'napari' in self.params_general.get('ui', '')
-        if napari_ui:
-            from muvis_align.MVSRegistrationNapari import MVSRegistrationNapari
-            self.mvs_registration = MVSRegistrationNapari(self.params_general, self.viewer)
-        else:
-            from muvis_align.MVSRegistration import MVSRegistration
-            self.mvs_registration = MVSRegistration(self.params_general)
-
     def init_logging(self):
         params_logging = self.params_general.get('logging', {})
         self.log_filename = params_logging.get('filename', 'muvis-align.log')
@@ -151,5 +143,13 @@ class Pipeline(Thread):
     def run_operation_thread(self, fileset_label, fileset, params, center, rotation):
         if fileset_label:
             logging.info(f'File set: {fileset_label}')
-        return self.mvs_registration.run_operation(fileset_label, fileset, params,
-                                                   global_center=center, global_rotation=rotation)
+
+        napari_ui = 'napari' in self.params_general.get('ui', '')
+        if napari_ui:
+            from muvis_align.MVSRegistrationNapari import MVSRegistrationNapari
+            mvs_registration = MVSRegistrationNapari(self.params_general, self.viewer)
+        else:
+            from muvis_align.MVSRegistration import MVSRegistration
+            mvs_registration = MVSRegistration(self.params_general)
+        return mvs_registration.run_operation(fileset_label, fileset, params,
+                                              global_center=center, global_rotation=rotation)
