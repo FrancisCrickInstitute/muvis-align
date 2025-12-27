@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import numpy as np
 import os
@@ -132,13 +133,23 @@ class Pipeline(Thread):
                 # fix missing rotation values
                 rotations = pd.Series(rotations).interpolate(limit_direction='both').to_numpy()
 
-        ok = False
+        value_sets = []
         for index, (fileset, fileset_label) in enumerate(zip(filesets, fileset_labels)):
-            if len(filesets) > 1:
-                logging.info(f'File set: {fileset_label}')
             center = global_center if use_global_metadata else None
             rotation = rotations[index] if use_global_metadata else None
-            ok |= self.mvs_registration.run_operation(fileset_label, fileset, params,
-                                                      global_center=center, global_rotation=rotation)
+            value_sets.append({'fileset_label': fileset_label,
+                               'fileset': fileset,
+                               'params': params,
+                               'center': center,
+                               'rotation': rotation})
 
-        return ok
+        n_set_workers = params.get('n_set_workers', 1)
+        with ThreadPoolExecutor(max_workers=n_set_workers) as executor:
+            oks = executor.map(lambda kwargs: self.run_operation_thread(**kwargs), value_sets)
+        return np.all([ok for ok in oks])
+
+    def run_operation_thread(self, fileset_label, fileset, params, center, rotation):
+        if fileset_label:
+            logging.info(f'File set: {fileset_label}')
+        return self.mvs_registration.run_operation(fileset_label, fileset, params,
+                                                   global_center=center, global_rotation=rotation)
