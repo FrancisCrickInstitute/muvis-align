@@ -41,7 +41,6 @@ operations:
       max_trials: 1000
       ransac_iterations: 3
     output_spacing: min
-    n_set_workers: 8
     n_parallel_pairwise_regs: 64
     output: ../../stitched/slice{s}/
 
