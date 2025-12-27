@@ -262,9 +262,11 @@ def get_unique_file_labels(filenames: list) -> list:
 
     for parts in all_parts:
         if isinstance(parts, dict):
-            file_label = '_'.join([key + parts[key] for key in label_indices if key in parts])
+            file_label = '_'.join([key + parts[key] if isinstance(key, str) else parts[key]
+                                   for key in label_indices if key in parts])
         else:
-            file_label = '_'.join([parts[index] for index in label_indices if index in parts])
+            file_label = '_'.join([parts[index]
+                                   for index in label_indices if index in parts])
         file_labels.append(file_label)
 
     if len(set(file_labels)) < len(file_labels):
