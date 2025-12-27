@@ -41,8 +41,7 @@ operations:
       max_trials: 1000
       ransac_iterations: 3
     output_spacing: min
-    n_set_workers: 64
-    n_parallel_pairwise_regs: 1
+    n_parallel_pairwise_regs: 64
     output: ../../stitched/slice{s}/
 
   - operation: stack
