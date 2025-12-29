@@ -1,6 +1,6 @@
 import numpy as np
 
-from fusion_methods.FusionMethod import FusionMethod
+from muvis_align.fusion_methods.FusionMethod import FusionMethod
 
 
 class FusionMethodExclusive(FusionMethod):
