@@ -3,6 +3,7 @@
 
 from contextlib import nullcontext
 import dask
+import numpy as np
 from dask.diagnostics import ProgressBar
 import logging
 import multiview_stitcher
@@ -534,6 +535,25 @@ class MVSRegistration:
 
         return reg_method, pairwise_reg_func, pairwise_reg_func_kwargs
 
+    def create_fusion_method(self):
+        debug = self.params_general.get('debug', False)
+        fusion_params = self.params.get('fusion')
+        if isinstance(fusion_params, dict):
+            fusion_method = fusion_params.get('method', fusion_params.get('name', '')).lower()
+        else:
+            fusion_method = fusion_params.lower()
+
+        if 'exclus' in fusion_method:
+            from muvis_align.fusion_methods.FusionMethodExclusive import FusionMethodExclusive
+            fusion_method = FusionMethodExclusive(fusion_params, debug)
+            fuse_func = fusion_method.fusion
+        else:
+            fuse_func = fusion.simple_average_fusion
+
+        self.fusion_method = fusion_method
+
+        return fuse_func
+
     def register(self, sims, register_sims=None, indices=None):
         params = self.params
         sim0 = sims[0]
@@ -653,9 +673,7 @@ class MVSRegistration:
                 'sims': sims,
                 'pairs': pairs}
 
-    def fuse(self, sims, transform_key=None,
-             output_filename=None, output_image=False):
-        is_saved = False
+    def fuse(self, sims, transform_key=None, output_filename=None):
         sim0 = sims[0]
         if transform_key is None:
             transform_key = self.reg_transform_key
@@ -693,6 +711,7 @@ class MVSRegistration:
 
         if is_channel_overlay:
             # convert to multichannel images
+            saving_zarr = False
             channel_sims = [fusion.fuse(
                 [sim],
                 transform_key=transform_key,
@@ -701,18 +720,19 @@ class MVSRegistration:
             channel_sims = [sim.assign_coords({'c': [channels[simi]['label']]}) for simi, sim in enumerate(channel_sims)]
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
+            saving_zarr = output_filename is not None
             if output_filename is not None and not output_filename.lower().endswith('.zarr'):
                 output_filename += '.ome.zarr'
+
             fused_image = fusion.fuse(
                 sims,
+                fusion_func=self.create_fusion_method(),
                 transform_key=transform_key,
                 output_stack_properties=output_stack_properties,
-                fusion_func=fusion.simple_average_fusion,
                 output_zarr_url=output_filename,
-                zarr_options={'ome_zarr': output_image}
+                zarr_options={'ome_zarr': saving_zarr}
             )
-            is_saved = output_filename is not None and output_image
-        return fused_image, is_saved
+        return fused_image, saving_zarr
 
     def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
         params = self.params

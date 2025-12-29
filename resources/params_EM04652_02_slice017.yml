@@ -40,6 +40,7 @@ operations:
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
+    fusion: exclusive
     output_spacing: min
     n_parallel_pairwise_regs: 64
     output: ../../stitched/slice{s}/
