@@ -9,9 +9,10 @@ import logging
 import multiview_stitcher
 from multiview_stitcher import registration, vis_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
-from multiview_stitcher.registration import get_overlap_bboxes
+from multiview_stitcher.registration import get_overlap_bboxes, sims_to_intrinsic_coord_system
 import os.path
 import shutil
+from skimage.transform import resize
 import xarray as xr
 
 from muvis_align.Timer import Timer
@@ -273,7 +274,6 @@ class MVSRegistration:
 
         is_stack = ('stack' in operation)
         has_z_size = (source0.get_size().get('z', 0) > 0)
-        pyramid_level = 0
 
         output_order = 'zyx' if has_z_size else 'yx'
         ndims = len(output_order)
@@ -317,10 +317,11 @@ class MVSRegistration:
                         else:
                             logging.warning(f'Could not find SBEMimage config for {filename}.')
 
+            level = 0
+            rescale = 1
             if target_scale:
-                pyramid_level = np.argmin(abs(np.array(source.scales) - target_scale))
-                pyramid_scale = source.scales[pyramid_level]
-                scale = {dim: size * pyramid_scale if dim in 'xy' else size for dim, size in scale.items()}
+                level, rescale = get_level_from_scale(source.scales, target_scale)
+                scale = {dim: size * target_scale if dim in 'xy' else size for dim, size in scale.items()}
             if 'invert' in source_metadata:
                 translation['x'] = -translation['x']
                 translation['y'] = -translation['y']
@@ -336,7 +337,10 @@ class MVSRegistration:
             if self.global_rotation is not None:
                 rotation = self.global_rotation
 
-            dask_data = source.get_data(level=pyramid_level)
+            dask_data = source.get_data(level=level)
+            if rescale != 1:
+                new_shape = np.array(dask_data.shape) // rescale
+                dask_data = resize(dask_data, new_shape, preserve_range=True).astype(dask_data.dtype)
             image = redimension_data(dask_data, source.dimension_order, output_order)
 
             scales.append(scale)
@@ -787,21 +791,13 @@ class MVSRegistration:
         return {'ncc': nccs, 'ssim': ssims}
 
     def get_overlap_images(self, sim1, sim2, transform_key):
-        sims = [sim1, sim2]
+        sims = [sim1.squeeze(), sim2.squeeze()]
         # functionality copied from registration.register_pair_of_msims()
         spatial_dims = si_utils.get_spatial_dims_from_sim(sim1)
         overlap_tolerance = {dim: 0.0 for dim in spatial_dims}
-        overlap_sims = []
-        for sim in sims:
-            if 't' in sim.coords.xindexes:
-                # work-around for points error in get_overlap_bboxes()
-                overlap_sim = si_utils.sim_sel_coords(sim, {'t': 0})
-            else:
-                overlap_sim = sim
-            overlap_sims.append(overlap_sim)
         lowers, uppers = get_overlap_bboxes(
-            overlap_sims[0],
-            overlap_sims[1],
+            sims[0],
+            sims[1],
             input_transform_key=transform_key,
             output_transform_key=None,
             overlap_tolerance=overlap_tolerance,
@@ -825,7 +821,21 @@ class MVSRegistration:
             )
             for isim, sim in enumerate(sims)
         ]
-        return overlaps_sims
+
+        sims_pixel_space = sims_to_intrinsic_coord_system(
+            overlaps_sims[0],
+            overlaps_sims[1],
+            transform_key=transform_key,
+            overlap_bboxes=(lowers, uppers),
+        )
+
+        fixed_data = sims_pixel_space[0].data
+        moving_data = sims_pixel_space[1].data
+
+        fixed_data = xr.DataArray(fixed_data, dims=spatial_dims)
+        moving_data = xr.DataArray(moving_data, dims=spatial_dims)
+
+        return fixed_data, moving_data
 
     def calc_metrics(self, results, labels):
         mappings0 = results['mappings']
