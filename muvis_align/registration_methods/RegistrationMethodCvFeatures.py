@@ -4,29 +4,52 @@ import numpy as np
 from multiview_stitcher import param_utils
 from spatial_image import SpatialImage
 
-from muvis_align.image.util import uint8_image, validate_transform
+from muvis_align.image.util import uint8_image, validate_transform, draw_keypoints_matches, norm_image_variance
 from muvis_align.metrics import calc_match_metrics
 from muvis_align.registration_methods.RegistrationMethod import RegistrationMethod
 from muvis_align.util import get_mean_nn_distance
 
 
 class RegistrationMethodCvFeatures(RegistrationMethod):
+    def __init__(self, source, params, debug=False):
+        super().__init__(source, params, debug)
+        self.method = params.get('name', 'sift').lower()
+        self.gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+        self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
+        self.nkeypoints = params.get('max_keypoints', 5000)
+        self.cross_check = params.get('cross_check', True)
+        self.lowe_ratio = params.get('lowe_ratio', 0.92)
+        self.inlier_threshold_factor = params.get('inlier_threshold_factor', 0.05)
+        self.min_matches = params.get('min_matches', 10)
+        self.max_trails = params.get('max_trials', 100)
+        transform_type = params.get('transform_type', '').lower()
+
+        if transform_type in ['translation', 'translate']:
+            self.max_rotation = 10  # rotation should be ~0; check <10 degrees
+        else:
+            self.max_rotation = None
+
+
     def detect_features(self, data0):
-        data = data0.astype(self.source_type)
+        if 'z' in data0.dims:
+            # make data 2D
+            data0 = data0.max('z')
+        data = self.convert_data_to_float(data0)
+        data = np.array(norm_image_variance(data))
+        if self.gaussian_sigma:
+            data = cv.GaussianBlur(data, (self.gaussian_sigma, self.gaussian_sigma), 0)
 
-        data = uint8_image(data)
-        scale = min(1000 / np.linalg.norm(data.shape), 1)
-        data = cv.resize(data, (0, 0), fx=scale, fy=scale)
-        feature_model = cv.SIFT_create(contrastThreshold=0.1)
-        #feature_model = cv.ORB_create(patchSize=8, edgeThreshold=8)
-        keypoints, desc = feature_model.detectAndCompute(data, None)
-        points = [np.array(keypoint.pt) / scale for keypoint in keypoints]
-        return points, desc
+        #feature_model = cv.SIFT_create(contrastThreshold=0.1)
+        feature_model = cv.ORB_create(nfeatures=self.nkeypoints, patchSize=8, edgeThreshold=7)
+        keypoints, desc = feature_model.detectAndCompute(uint8_image(data), None)
+        points = np.array([np.flip(keypoint.pt) for keypoint in keypoints])
+        return points, desc, data
 
-    def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
-        fixed_points, fixed_desc = self.detect_features(fixed_data.data)
-        moving_points, moving_desc = self.detect_features(moving_data.data)
-        threshold = get_mean_nn_distance(fixed_points, moving_points)
+    def match(self, fixed_points, fixed_desc, moving_points, moving_desc,
+              min_matches, cross_check, lowe_ratio, inlier_threshold, mean_size_dist):
+        transform = None
+        quality = 0
+        inliers = []
 
         matcher = cv.BFMatcher()
         #matches0 = matcher.match(fixed_desc, moving_desc)
@@ -37,19 +60,44 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
             if m.distance < 0.92 * n.distance:
                 matches.append(m)
 
-        transform = None
-        quality = 0
-        if len(matches) >= 4:
+        if len(matches) >= min_matches:
             fixed_points2 = np.float32([fixed_points[match.queryIdx] for match in matches])
             moving_points2 = np.float32([moving_points[match.trainIdx] for match in matches])
             transform, inliers = cv.findHomography(fixed_points2, moving_points2,
-                                                   method=cv.USAC_MAGSAC, ransacReprojThreshold=threshold)
+                                                   method=cv.USAC_MAGSAC, ransacReprojThreshold=inlier_threshold)
+            if inliers is None:
+                inliers = []
+            if len(inliers) > 0 and validate_transform(transform, max_rotation=self.max_rotation):
+                quality = (np.sum(inliers) / self.nkeypoints) ** (1/3) # ^1/3 to decrease sensitivity
+
+            if self.debug:
+                print('%inliers', np.mean(inliers))
+
+        return transform, quality, matches, inliers
+
+    def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
+        mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
+        mean_size = np.mean(
+            [np.linalg.norm(data.shape) / np.sqrt(self.ndims) for data in [fixed_data, moving_data]])
+        inlier_threshold = mean_size * self.inlier_threshold_factor
+
+        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data)
+        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data)
+
+        if len(fixed_desc) > 0 and len(moving_desc) > 0:
+            transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,
+                                                              min_matches=self.min_matches, cross_check=self.cross_check,
+                                                              lowe_ratio=self.lowe_ratio, inlier_threshold=inlier_threshold,
+                                                              mean_size_dist=mean_size_dist)
             if transform is not None:
-                fixed_points3 = [point for point, is_inlier in zip(fixed_points2, inliers) if is_inlier]
-                moving_points3 = [point for point, is_inlier in zip(moving_points2, inliers) if is_inlier]
-                metrics = calc_match_metrics(fixed_points3, moving_points3, transform, threshold)
-                #quality = np.mean(inliers)
-                quality = metrics['match_rate']
+                if self.debug:
+                    print(f'#keypoints: {len(fixed_desc)},{len(moving_desc)}'
+                          f' #matches: {len(matches)} #inliers: {np.sum(inliers):.0f} quality: {quality:.3f}')
+                    matches2 = [(match.queryIdx, match.trainIdx) for match in matches]
+                    draw_keypoints_matches(fixed_data2, fixed_points,
+                                           moving_data2, moving_points,
+                                           matches2, inliers,
+                                           show_plot=True)
 
         if not validate_transform(transform):
             logging.error('Feature extraction: Unable to find feature-based registration')
