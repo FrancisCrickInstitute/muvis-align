@@ -497,6 +497,18 @@ def norm_image_variance(image0):
     return normimage
 
 
+def norm_image_variance2(image0):
+    if len(image0.shape) == 3 and image0.shape[2] == 4:
+        image, alpha = image0[..., :3], image0[..., 3]
+    else:
+        image, alpha = image0, None
+    normimage = ((image - np.mean(image)) / np.std(image) + 1) / 2
+    normimage = normimage.clip(0, 1).astype(np.float32)
+    if alpha is not None:
+        normimage = np.dstack([normimage, alpha])
+    return normimage
+
+
 def norm_image_quantiles(image0, quantile=0.99):
     if len(image0.shape) == 3 and image0.shape[2] == 4:
         image, alpha = image0[..., :3], image0[..., 3]

@@ -21,7 +21,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source, params, debug=False):
         super().__init__(source, params, debug=debug)
         self.method = params.get('name', 'sift').lower()
-        self.gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+        self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.nkeypoints = params.get('max_keypoints', 5000)
         self.cross_check = params.get('cross_check', True)
@@ -42,7 +42,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         else:
             self.max_rotation = None
 
-    def detect_features(self, data0):
+    def detect_features(self, data0, gaussian_sigma=None):
         points = []
         desc = []
 
@@ -50,9 +50,9 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             # make data 2D
             data0 = data0.max('z')
         data = self.convert_data_to_float(data0)
-        data = norm_image_variance(data)
-        if self.gaussian_sigma:
-            data = gaussian(data, sigma=self.gaussian_sigma)
+        data = norm_image_variance2(data)
+        if gaussian_sigma:
+            data = gaussian(data, sigma=gaussian_sigma)
 
         try:
             # not thread-safe - create instance that is not re-used in other thread
@@ -155,12 +155,15 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 "quality": 0  # float between 0 and 1 (if not available, set to 1.0)
             }
 
+        full_size_dist = np.linalg.norm(self.full_size)
         mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
+        scale = mean_size_dist / full_size_dist
+        gaussian_sigma = self.full_size_gaussian_sigma * (scale ** (1/3))
         mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(self.ndims) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * self.inlier_threshold_factor
 
-        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data)
-        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data)
+        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data, gaussian_sigma)
+        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data, gaussian_sigma)
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,

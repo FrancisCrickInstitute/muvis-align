@@ -4,7 +4,7 @@ import numpy as np
 from multiview_stitcher import param_utils
 from spatial_image import SpatialImage
 
-from muvis_align.image.util import uint8_image, validate_transform, draw_keypoints_matches, norm_image_variance
+from muvis_align.image.util import *
 from muvis_align.metrics import calc_match_metrics
 from muvis_align.registration_methods.RegistrationMethod import RegistrationMethod
 from muvis_align.util import get_mean_nn_distance
@@ -30,12 +30,12 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
             self.max_rotation = None
 
 
-    def detect_features(self, data0):
+    def detect_features(self, data0, gaussian_sigma=None):
         if 'z' in data0.dims:
             # make data 2D
             data0 = data0.max('z')
         data = self.convert_data_to_float(data0)
-        data = np.array(norm_image_variance(data))
+        data = np.array(norm_image_variance2(data))
         if self.gaussian_sigma:
             data = cv.GaussianBlur(data, (self.gaussian_sigma, self.gaussian_sigma), 0)
 
@@ -76,13 +76,16 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
         return transform, quality, matches, inliers
 
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:
+        full_size_dist = np.linalg.norm(self.full_size)
         mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
+        scale = mean_size_dist / full_size_dist
+        gaussian_sigma = self.full_size_gaussian_sigma * (scale ** (1/3))
         mean_size = np.mean(
             [np.linalg.norm(data.shape) / np.sqrt(self.ndims) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * self.inlier_threshold_factor
 
-        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data)
-        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data)
+        fixed_points, fixed_desc, fixed_data2 = self.detect_features(fixed_data, gaussian_sigma)
+        moving_points, moving_desc, moving_data2 = self.detect_features(moving_data, gaussian_sigma)
 
         if len(fixed_desc) > 0 and len(moving_desc) > 0:
             transform, quality, matches, inliers = self.match(fixed_points, fixed_desc, moving_points, moving_desc,

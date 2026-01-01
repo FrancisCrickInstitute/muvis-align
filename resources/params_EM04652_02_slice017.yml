@@ -18,7 +18,7 @@ general:
     npyramid_add: 4
     pyramid_downsample: 2
     thumbnail: ome.zarr
-    thumbnail_scale: 32
+    thumbnail_scale: 16
 
 operations:
   - operation: register match s
@@ -34,9 +34,9 @@ operations:
     transform_type: translation
     #method: phase_correlation
     method:
-      name: orb
+      name: sift
       gaussian_sigma: 3
-      max_keypoints: 1000
+      max_keypoints: 5000
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
@@ -53,9 +53,9 @@ operations:
     transform_type: affine
     #method: phase_correlation
     method:
-      name: orb
+      name: sift
       gaussian_sigma: 3
-      max_keypoints: 1000
+      max_keypoints: 5000
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
