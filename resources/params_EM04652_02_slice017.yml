@@ -17,7 +17,7 @@ general:
     compression:
     npyramid_add: 4
     pyramid_downsample: 2
-    thumbnail: ome.zarr
+    thumbnail:
     thumbnail_scale: 16
 
 operations:
@@ -32,14 +32,14 @@ operations:
     source_metadata: sbem
     #use_orthogonal_pairs: True
     transform_type: translation
-    #method: phase_correlation
-    method:
-      name: sift
-      gaussian_sigma: 3
-      max_keypoints: 5000
-      inlier_threshold_factor: 0.05
-      max_trials: 1000
-      ransac_iterations: 3
+    method: phase_correlation
+    #method:
+    #  name: sift
+    #  gaussian_sigma: 3
+    #  max_keypoints: 5000
+    #  inlier_threshold_factor: 0.05
+    #  max_trials: 1000
+    #  ransac_iterations: 3
     fusion: exclusive
     output_spacing: min
     n_parallel_pairwise_regs: 64

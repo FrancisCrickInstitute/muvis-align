@@ -565,6 +565,7 @@ class MVSRegistration:
 
         operation = params['operation']
         use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
+        post_registration_quality_threshold = params.get('post_registration_quality_threshold')
         n_parallel_pairwise_regs = params.get('n_parallel_pairwise_regs')
 
         is_stack = ('stack' in operation)
@@ -625,8 +626,8 @@ class MVSRegistration:
                 pairwise_reg_func_kwargs=pairwise_reg_func_kwargs,
                 groupwise_resolution_kwargs=groupwise_resolution_kwargs,
 
-                post_registration_do_quality_filter=True,
-                post_registration_quality_threshold=0.1,
+                post_registration_do_quality_filter=(post_registration_quality_threshold is not None),
+                post_registration_quality_threshold=post_registration_quality_threshold,
 
                 n_parallel_pairwise_regs=n_parallel_pairwise_regs,
 
