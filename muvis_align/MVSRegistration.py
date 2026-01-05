@@ -590,7 +590,8 @@ class MVSRegistration:
             register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
         elif use_orthogonal_pairs:
-            origins = np.array([get_sim_position_final(sim, position) for sim, position in zip(sims, self.positions)])
+            origins = np.array([get_sim_position_final(sim, position, get_center=True)
+                                for sim, position in zip(sims, self.positions)])
             size = get_sim_physical_size(sim0)
             pairs, _ = get_orthogonal_pairs(origins, size)
             logging.info(f'#pairs: {len(pairs)}')
