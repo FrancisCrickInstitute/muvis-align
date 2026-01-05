@@ -541,7 +541,7 @@ class MVSRegistration:
 
     def create_fusion_method(self):
         debug = self.params_general.get('debug', False)
-        fusion_params = self.params.get('fusion')
+        fusion_params = self.params.get('fusion', '')
         if isinstance(fusion_params, dict):
             fusion_method = fusion_params.get('method', fusion_params.get('name', '')).lower()
         else:
