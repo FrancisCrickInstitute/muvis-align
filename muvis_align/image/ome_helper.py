@@ -1,6 +1,7 @@
+import os.path
 from ome_zarr.scale import Scaler
 
-from muvis_align.constants import zarr_extension, tiff_extension
+from muvis_align.constants import zarr_extension, tiff_extension, image_saved_filename
 from muvis_align.image.ome_ngff_helper import save_ome_ngff
 from muvis_align.image.ome_tiff_helper import save_ome_tiff
 from muvis_align.image.ome_zarr_helper import save_ome_zarr
@@ -49,11 +50,18 @@ def save_image(filename, sim, output_format=zarr_extension, params={},
         save_ome_tiff(str(filename) + tiff_extension, sim.data, dimension_order, pixel_size,
                       channels, positions, rotation, tile_size=tile_size, compression=compression, scaler=scaler)
 
+    directory = os.path.dirname(filename)
+    export_json(os.path.join(directory, image_saved_filename), {'filename': str(filename), 'output_format': output_format})
 
-def exists_output_image(path, output_format):
-    exists = True
-    if 'zar' in output_format:
-        exists = exists and os.path.exists(path + zarr_extension)
-    if 'tif' in output_format:
-        exists = exists and os.path.exists(path + tiff_extension)
+
+def exists_output_image(output_dir, output_format):
+    exists = False
+    path = os.path.join(output_dir, image_saved_filename)
+    if os.path.exists(path):
+        data = import_json(path).get('output_format', '')
+        exists = True
+        if 'zar' in output_format:
+            exists = exists and 'zar' in data
+        if 'tif' in output_format:
+            exists = exists and 'tif' in data
     return exists
