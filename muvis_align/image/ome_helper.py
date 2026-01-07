@@ -9,7 +9,7 @@ from muvis_align.image.util import *
 
 
 def save_image(filename, sim, output_format=zarr_extension, params={},
-               transform_key=None, channels=None, translation0=None):
+               transform_key=None, channels=None, translation0=None, verbose=False):
     dimension_order = ''.join(sim.dims)
     sdims = ''.join(si_utils.get_spatial_dims_from_sim(sim))
     sdims = sdims.replace('zyx', 'xyz').replace('yx', 'xy')   # order xy(z)
@@ -39,13 +39,14 @@ def save_image(filename, sim, output_format=zarr_extension, params={},
     pyramid_downsample = params.get('pyramid_downsample', 2)
     npyramid_add = get_max_downsamples(sim.shape, params.get('npyramid_add', 0), pyramid_downsample)
     scaler = Scaler(downscale=pyramid_downsample, max_layer=npyramid_add)
+    ome_version = params.get('ome_version', '0.4')
 
     if 'zar' in output_format:
         #save_ome_zarr(str(filename) + zarr_extension, sim.data, dimension_order, pixel_size,
         #              channels, position, rotation, compression=compression, scaler=scaler,
         #              zarr_version=3, ome_version='0.5')
-        save_ome_ngff(str(filename) + zarr_extension, sim, channels, position, rotation,
-                      pyramid_downsample=pyramid_downsample)
+        save_ome_ngff(str(filename) + zarr_extension, sim, pyramid_downsample=pyramid_downsample,
+                      ome_version=ome_version, verbose=verbose)
     if 'tif' in output_format:
         save_ome_tiff(str(filename) + tiff_extension, sim.data, dimension_order, pixel_size,
                       channels, positions, rotation, tile_size=tile_size, compression=compression, scaler=scaler)
@@ -54,4 +55,4 @@ def save_image(filename, sim, output_format=zarr_extension, params={},
 
 
 def exists_output_image(filename):
-    return os.path.exists(filename + zarr_extension)
+    return os.path.exists(filename)
