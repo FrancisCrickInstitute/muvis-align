@@ -769,7 +769,8 @@ class MVSRegistration:
         channels = extra_metadata.get('channels', [])
         general_output_params = self.params_general.get('output', {})
         save_image(output_filename, data, format, params=general_output_params,
-                   transform_key=transform_key, channels=channels, translation0=translation0)
+                   transform_key=transform_key, channels=channels, translation0=translation0,
+                   verbose=self.verbose)
 
     def calc_overlap_metrics(self, results):
         nccs = {}
