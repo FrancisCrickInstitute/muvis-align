@@ -86,6 +86,7 @@ operations:
     scale: 4
     flatfield_quantiles: [0.5]
     use_orthogonal_pairs: True
+    groupwise_resolution_method: shortest_paths
     transform_type: rigid
     method:
       name: orb

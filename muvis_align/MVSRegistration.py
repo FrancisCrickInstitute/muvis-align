@@ -578,10 +578,15 @@ class MVSRegistration:
         else:
             reg_channel_index = None
 
+        if 'groupwise_resolution_method' in params:
+            groupwise_resolution_method = params['groupwise_resolution_method']
+        else:
+            groupwise_resolution_method = 'global_optimization'
+
         groupwise_resolution_kwargs = None
         if 'transform_type' in params:
            groupwise_resolution_kwargs = {
-                'transform': params.get('transform_type')  # options include 'translation', 'rigid', 'affine'
+                'transform': params['transform_type']  # options include 'translation', 'rigid', 'affine', 'similarity'
             }
         if register_sims is None:
             register_sims = sims
@@ -625,6 +630,8 @@ class MVSRegistration:
 
                 pairwise_reg_func=pairwise_reg_func,
                 pairwise_reg_func_kwargs=pairwise_reg_func_kwargs,
+
+                groupwise_resolution_method=groupwise_resolution_method,
                 groupwise_resolution_kwargs=groupwise_resolution_kwargs,
 
                 post_registration_do_quality_filter=(post_registration_quality_threshold is not None),
