@@ -54,4 +54,4 @@ def save_image(filename, sim, output_format=zarr_extension, params={},
 
 
 def exists_output_image(filename):
-    return os.path.exists(filename)
+    return os.path.exists(filename + zarr_extension)
