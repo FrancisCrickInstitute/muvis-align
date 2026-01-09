@@ -584,7 +584,7 @@ class MVSRegistration:
             groupwise_resolution_method = 'global_optimization'
 
         groupwise_resolution_kwargs = None
-        if 'transform_type' in params:
+        if groupwise_resolution_method == 'global_optimization' and 'transform_type' in params:
            groupwise_resolution_kwargs = {
                 'transform': params['transform_type']  # options include 'translation', 'rigid', 'affine', 'similarity'
             }
