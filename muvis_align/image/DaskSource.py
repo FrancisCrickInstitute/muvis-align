@@ -54,12 +54,13 @@ class DaskSource:
             if 'rotation' in source_metadata:
                 self.rotation = source_metadata['rotation']
 
-        for shape in self.shapes:
-            scale1 = []
-            for dim in 'xy':
-                index = self.dimension_order.index(dim)
-                scale1.append(self.shape[index] / shape[index])
-            self.scales.append(float(np.mean(scale1)))
+        if len(self.scales) == 0:
+            for shape in self.shapes:
+                scale1 = []
+                for dim in 'xy':
+                    index = self.dimension_order.index(dim)
+                    scale1.append(self.shape[index] / shape[index])
+                self.scales.append(float(np.mean(scale1)))
 
     def get_shape(self, level=0):
         # shape in pixels

@@ -78,6 +78,7 @@ class MVSRegistration:
         save_images = params.get('save_images', True)
         target_scale = params.get('scale')
         extra_metadata = import_metadata(params.get('extra_metadata', {}), input_path=params['input'])
+        z_scale = extra_metadata.get('scale', {}).get('z')
         channels = extra_metadata.get('channels', [])
         normalise_orientation = 'norm' in source_metadata
 
@@ -113,6 +114,9 @@ class MVSRegistration:
         with Timer('init sims', self.logging_time):
             sims = self.init_sims(target_scale=target_scale)
 
+        if not z_scale:
+            z_scale = self.scales[0].get('z', 1)
+
         with Timer('pre-process', self.logging_time):
             sims, register_sims, indices = self.preprocess(sims, params)
 
@@ -147,8 +151,7 @@ class MVSRegistration:
                                             transform_key=self.source_transform_key)
 
                 sims2 = [sim.copy() for sim in sims]
-                scale = self.scales[0].get('z', 1)
-                sims2 = make_sims_3d(sims2, scale, self.positions)
+                sims2 = make_sims_3d(sims2, z_scale, self.positions)
 
                 original_fused_filename = output + 'original'
                 original_fused, is_saved = self.fuse(sims2, transform_key=self.source_transform_key)
@@ -180,15 +183,13 @@ class MVSRegistration:
                     transform = mapping
                 si_utils.set_sim_affine(sim, transform, transform_key=self.reg_transform_key)
             if is_stack:
-                scale = self.scales[0].get('z', 1)
-                sims = make_sims_3d(sims, scale, self.positions)
+                sims = make_sims_3d(sims, z_scale, self.positions)
         else:
             with Timer('register', self.logging_time):
                 results = self.register(sims, register_sims, indices)
 
             if is_stack:
-                scale = self.scales[0].get('z', 1)
-                results['sims'] = make_sims_3d(results['sims'], scale, self.positions)
+                results['sims'] = make_sims_3d(results['sims'], z_scale, self.positions)
 
             reg_result = results['reg_result']
             sims = results['sims']
@@ -339,7 +340,8 @@ class MVSRegistration:
 
             dask_data = source.get_data(level=level)
             if rescale != 1:
-                new_shape = np.array(dask_data.shape) // rescale
+                new_shape = [int(size / rescale) if dim in 'xy' else 1
+                             for dim, size in zip(source.dimension_order, dask_data.shape)]
                 dask_data = resize(dask_data, new_shape, preserve_range=True).astype(dask_data.dtype)
             image = redimension_data(dask_data, source.dimension_order, output_order)
 
@@ -592,7 +594,8 @@ class MVSRegistration:
             register_sims = sims
         if is_stack and not is_3d:
             # register in 2d; pairwise consecutive views
-            register_sims = [si_utils.max_project_sim(sim, dim='z') for sim in register_sims]
+            register_sims = [si_utils.max_project_sim(sim, dim='z') if 'z' in sim.dims else sim
+                             for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
         elif use_orthogonal_pairs:
             origins = np.array([get_sim_position_final(sim, position, get_center=True)
@@ -690,11 +693,12 @@ class MVSRegistration:
         sim0 = sims[0]
         if transform_key is None:
             transform_key = self.reg_transform_key
-        operation = self.params['operation']
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
-        channels = extra_metadata.get('channels', [])
         z_scale = extra_metadata.get('scale', {}).get('z')
+        channels = extra_metadata.get('channels', [])
+        is_channel_overlay = (len(channels) > 1)
         output_spacing = self.params.get('output_spacing')
+
         if z_scale is None and self.scales is not None:
             z_scale0 = np.mean([scale.get('z', 0) for scale in self.scales])
             if z_scale0 > 0:
@@ -705,12 +709,9 @@ class MVSRegistration:
                 if len(diffs) > 0:
                     z_scale = min(diffs)
 
-        is_3d = ('3d' in operation)
-        is_channel_overlay = (len(channels) > 1)
-
         output_stack_properties = calc_output_properties(sims, transform_key,
                                                          output_spacing=output_spacing, z_scale=z_scale)
-        if is_3d:
+        if 'z' in output_stack_properties['shape']:
             z_positions = sorted(set([si_utils.get_origin_from_sim(sim).get('z', 0) for sim in sims]))
             z_shape = len(z_positions)
             if z_shape <= 1:

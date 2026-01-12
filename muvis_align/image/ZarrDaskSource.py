@@ -1,3 +1,4 @@
+import numpy as np
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 import os.path
@@ -31,7 +32,9 @@ class ZarrDaskSource(DaskSource):
         pixel_sizes = []
         positions = []
         channels = []
-        for transforms in self.metadata.get('coordinateTransformations', []):
+        scales = []
+        scale0 = 1
+        for ct_index, transforms in enumerate(self.metadata.get('coordinateTransformations', [])):
             pixel_size = {}
             position = {}
             scale1 = []
@@ -50,9 +53,13 @@ class ZarrDaskSource(DaskSource):
                         position[dim] = 0
             pixel_sizes.append(pixel_size)
             positions.append(position)
+            scale = np.mean([scale1[index] for index, dim in enumerate(self.dimension_order) if dim in 'xy'])
+            if ct_index == 0:
+                scale0 = scale
+            scales.append(scale / scale0)
 
-        colormaps = self.metadata['colormap']
-        for channeli, channel0 in enumerate(self.metadata['channel_names']):
+        colormaps = self.metadata.get('colormap', [])
+        for channeli, channel0 in enumerate(self.metadata.get('channel_names', [])):
             channel = {'label': channel0}
             if channeli < len(colormaps):
                 channel['color'] = colormaps[channeli][-1]
@@ -61,6 +68,7 @@ class ZarrDaskSource(DaskSource):
         self.positions = positions
         self.rotation = 0
         self.channels = channels
+        self.scales = scales
 
     def get_data(self, level=0):
         return self.data[level]

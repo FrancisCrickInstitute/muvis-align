@@ -213,9 +213,9 @@ def calc_pyramid(xyzct: tuple, npyramid_add: int = 0, pyramid_downsample: float 
 def get_level_from_scale(source_scales, target_scale=1):
     best_level_scale = 0, target_scale
     for level, scale in enumerate(source_scales):
-        if np.isclose(scale, target_scale):
+        if np.isclose(scale, target_scale, rtol=1e-4):
             return level, 1
-        if scale > target_scale:
+        if scale <= target_scale:
             best_level_scale = level, target_scale / scale
     return best_level_scale
 

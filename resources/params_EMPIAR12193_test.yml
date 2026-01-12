@@ -12,13 +12,13 @@ general:
     verbose: True
   output:
     clear: False
-    overwrite: True
+    overwrite: False
     format: ome.zarr
     tile_size: [4096, 4096]
     compression:
     npyramid_add: 4
     pyramid_downsample: 2
-    thumbnail: ome.zarr
+    thumbnail:
 
 operations:
   - operation: stack
@@ -30,12 +30,13 @@ operations:
     input: D:/slides/12193/stitched_subset/S???/registered.ome.zarr
     source_metadata: source
     extra_metadata: {'scale': {'z': 0.1}}
+    scale: 4
     #normalisation: individual  # normalise in custom registration function instead
     transform_type: rigid
     method:
-      name: sift
+      name: orb
       max_keypoints: 5000
-      gaussian_sigma: 20
+      gaussian_sigma: 10
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
