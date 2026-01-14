@@ -573,6 +573,8 @@ class MVSRegistration:
         is_stack = ('stack' in operation)
         is_3d = ('3d' in operation)
 
+        return_dict = True
+
         reg_channel = params.get('channel', 0)
         if isinstance(reg_channel, int):
             reg_channel_index = reg_channel
@@ -590,6 +592,10 @@ class MVSRegistration:
            groupwise_resolution_kwargs = {
                 'transform': params['transform_type']  # options include 'translation', 'rigid', 'affine', 'similarity'
             }
+
+        if groupwise_resolution_method == 'shortest_paths':
+            return_dict = False
+
         if register_sims is None:
             register_sims = sims
         if is_stack and not is_3d:
@@ -643,7 +649,7 @@ class MVSRegistration:
                 n_parallel_pairwise_regs=n_parallel_pairwise_regs,
 
                 plot_summary=self.mpl_ui,
-                return_dict=True,
+                return_dict=return_dict,
             )
 
             if indices is None:
@@ -664,14 +670,21 @@ class MVSRegistration:
                         param_utils.identity_transform(ndim=ndims, t_coords=[0]),
                         transform_key=self.reg_transform_key)
 
-            mappings = reg_result['params']
-            # re-index from subset of sims
-            residual_error_dict = reg_result.get('groupwise_resolution', {}).get('metrics', {}).get('residuals', {})
-            residual_error_dict = {(indices[key[0]], indices[key[1]]): value.item()
-                                   for key, value in residual_error_dict.items()}
-            registration_qualities_dict = reg_result.get('pairwise_registration', {}).get('metrics', {}).get('qualities', {})
-            registration_qualities_dict = {(indices[key[0]], indices[key[1]]): value
-                                           for key, value in registration_qualities_dict.items()}
+            if return_dict:
+                mappings = reg_result['params']
+                # re-index from subset of sims
+                residual_error_dict = reg_result.get('groupwise_resolution', {}).get('metrics', {}).get('residuals', {})
+                residual_error_dict = {(indices[key[0]], indices[key[1]]): value.item()
+                                       for key, value in residual_error_dict.items()}
+                registration_qualities_dict = reg_result.get('pairwise_registration', {}).get('metrics', {}).get('qualities', {})
+                registration_qualities_dict = {(indices[key[0]], indices[key[1]]): value
+                                               for key, value in registration_qualities_dict.items()}
+            else:
+                mappings = reg_result
+                reg_result = {}
+                residual_error_dict = {}
+                registration_qualities_dict = {}
+
         except NotEnoughOverlapError:
             logging.warning('Not enough overlap')
             reg_result = {}
@@ -849,12 +862,9 @@ class MVSRegistration:
         return fixed_data, moving_data
 
     def calc_metrics(self, results, labels):
-        mappings0 = results['mappings']
-        mappings = {labels[index]: mapping.data[0].tolist() for index, mapping in mappings0.items()}
-
         var = None
-        distances = [np.linalg.norm(param_utils.translation_from_affine(mapping.data[0]))
-                     for mapping in mappings0.values()]
+        distances = [np.linalg.norm(param_utils.translation_from_affine(mapping.sel(t=0)))
+                     for mapping in results['mappings'].values()]
         if len(distances) > 2:
             # Coefficient of variation
             mean_distance = np.mean(distances)
@@ -896,8 +906,7 @@ class MVSRegistration:
         #           f' SSIM: {ssim:.3f}'
                    f' Variation: {var:.3f}')
 
-        return {'mappings': mappings,
-                'variation': var,
+        return {'variation': var,
                 'residual_error': residual_error,
                 'residual_errors': residual_errors,
                 'registration_quality': registration_quality,
