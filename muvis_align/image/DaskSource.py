@@ -87,7 +87,7 @@ class DaskSource:
 
     def get_position(self, level=0):
         # position in micrometers
-        if self.positions:
+        if self.positions and level > 0:
             return get_value_units_micrometer(self.positions[level])
         else:
             return get_value_units_micrometer(self.position)

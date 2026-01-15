@@ -66,6 +66,7 @@ class ZarrDaskSource(DaskSource):
             channels.append(channel)
         self.pixel_sizes = pixel_sizes
         self.positions = positions
+        self.position = positions[0]
         self.rotation = 0
         self.channels = channels
         self.scales = scales
