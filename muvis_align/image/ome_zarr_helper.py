@@ -32,12 +32,12 @@ def save_ome_zarr(filename, data, dimension_order, pixel_size, channels, transla
         pyramid_downsample = 1
 
     coordinate_transformations = []
-    scale = 1
+    factor = 1
     for i in range(npyramid_add + 1):
-        transform = create_transformation_metadata(dimension_order, pixel_size, scale, translation, rotation)
+        transform = create_transformation_metadata(dimension_order, pixel_size, factor, translation, rotation)
         coordinate_transformations.append(transform)
         if pyramid_downsample:
-            scale /= pyramid_downsample
+            factor *= pyramid_downsample
 
     if ome_version == '0.4':
         ome_zarr_format = ome_zarr.format.FormatV04()

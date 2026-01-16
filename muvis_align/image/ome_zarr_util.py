@@ -23,36 +23,28 @@ def create_axes_metadata(dimension_order):
     return axes
 
 
-def create_transformation_metadata(dimension_order, pixel_size_um, scale, translation_um=[], rotation=None):
+def create_transformation_metadata(dimension_order, pixel_size_um, factor, translation_um={}, rotation=None):
     metadata = []
-    pixel_size_scale = []
-    translation_scale = []
-    for dimension in dimension_order:
-        if dimension == 'z' and len(pixel_size_um) > 2:
-            pixel_size_scale1 = pixel_size_um[2]
-        elif dimension == 'y' and len(pixel_size_um) > 1:
-            pixel_size_scale1 = pixel_size_um[1] / scale
-        elif dimension == 'x' and len(pixel_size_um) > 0:
-            pixel_size_scale1 = pixel_size_um[0] / scale
+    metadata_scale = []
+    metadata_translation = []
+    for dim in dimension_order:
+        if dim in 'xy':
+            pixel_size_scale1 = pixel_size_um[dim] * factor
         else:
             pixel_size_scale1 = 1
         if pixel_size_scale1 == 0:
             pixel_size_scale1 = 1
-        pixel_size_scale.append(pixel_size_scale1)
+        metadata_scale.append(pixel_size_scale1)
 
-        if dimension == 'z' and len(translation_um) > 2:
-            translation1 = translation_um[2]
-        elif dimension == 'y' and len(translation_um) > 1:
-            translation1 = translation_um[1] * scale
-        elif dimension == 'x' and len(translation_um) > 0:
-            translation1 = translation_um[0] * scale
+        # translation_pyramid = translation + (scale - 1) * pixel_size / 2
+        if dim in 'xy':
+            correction = (factor - 1) * pixel_size_um[dim] / 2
         else:
-            translation1 = 0
-        translation_scale.append(translation1)
+            correction = 0
+        metadata_translation.append(translation_um.get(dim, 0) + correction)
 
-    metadata.append({'type': 'scale', 'scale': pixel_size_scale})
-    if not all(v == 0 for v in translation_scale):
-        metadata.append({'type': 'translation', 'translation': translation_scale})
+    metadata.append({'type': 'scale', 'scale': metadata_scale})
+    metadata.append({'type': 'translation', 'translation': metadata_translation})
     # Supported in ome-zarr V0.6
     #if rotation is not None:
     #    metadata.append({'type': 'rotation', 'rotation': rotation})

@@ -16,7 +16,6 @@ class DaskSource:
         self.pixel_sizes = []
         self.pixel_size = {}
         self.scales = []
-        self.positions = []
         self.position = {}
         self.rotation = 0
         self.channels = []
@@ -87,10 +86,7 @@ class DaskSource:
 
     def get_position(self, level=0):
         # position in micrometers
-        if self.positions and level > 0:
-            return get_value_units_micrometer(self.positions[level])
-        else:
-            return get_value_units_micrometer(self.position)
+        return get_value_units_micrometer(self.position)
 
     def get_rotation(self):
         # rotation in degrees

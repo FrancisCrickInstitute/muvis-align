@@ -469,7 +469,7 @@ def calc_images_quantiles(images, quantiles):
 
 def get_image_quantile(image: np.ndarray, quantile: float, axis=None) -> float:
     value = np.quantile(image, quantile, axis=axis).astype(image.dtype)
-    return value
+    return value.item()
 
 
 def get_image_window(image, low=0.01, high=0.99):
