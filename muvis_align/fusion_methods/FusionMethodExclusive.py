@@ -40,7 +40,7 @@ class FusionMethodExclusive(FusionMethod):
             # apply weights
             transformed_views *= weights
 
-        fused = np.nansum(transformed_views, axis=0).astype(transformed_views[0].dtype)
+        fused = np.nansum(transformed_views, axis=0, dtype=transformed_views[0].dtype)
         if needs_cleanup:
             del weights
             del mask

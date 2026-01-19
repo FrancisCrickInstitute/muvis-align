@@ -541,7 +541,7 @@ class MVSRegistration:
 
         return reg_method, pairwise_reg_func, pairwise_reg_func_kwargs
 
-    def create_fusion_method(self):
+    def create_fusion_method(self, sim0):
         debug = self.params_general.get('debug', False)
         fusion_params = self.params.get('fusion', '')
         if isinstance(fusion_params, dict):
@@ -551,7 +551,11 @@ class MVSRegistration:
 
         if 'exclus' in fusion_method:
             from muvis_align.fusion_methods.FusionMethodExclusive import FusionMethodExclusive
-            fusion_method = FusionMethodExclusive(fusion_params, debug)
+            fusion_method = FusionMethodExclusive(sim0, fusion_params, debug)
+            fuse_func = fusion_method.fusion
+        elif 'add' in fusion_method:
+            from muvis_align.fusion_methods.FusionMethodAdditive import FusionMethodAdditive
+            fusion_method = FusionMethodAdditive(sim0, fusion_params, debug)
             fuse_func = fusion_method.fusion
         else:
             fuse_func = fusion.simple_average_fusion
@@ -753,7 +757,7 @@ class MVSRegistration:
 
             fused_image = fusion.fuse(
                 sims,
-                fusion_func=self.create_fusion_method(),
+                fusion_func=self.create_fusion_method(sim0),
                 transform_key=transform_key,
                 output_stack_properties=output_stack_properties,
                 output_zarr_url=output_filename,
