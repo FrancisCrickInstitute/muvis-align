@@ -244,7 +244,7 @@ class MVSRegistration:
                                             transform_key=self.reg_transform_key)
 
                 with Timer('fuse image', self.logging_time):
-                    fused_image, is_saved = self.fuse(sims)
+                    fused_image, is_saved = self.fuse(sims, output_filename=registered_positions_filename)
 
                 if not is_saved or 'tif' in output_params.get('format'):
                     logging.info('Saving fused image...')
@@ -748,7 +748,7 @@ class MVSRegistration:
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
             saving_zarr = output_filename is not None
-            if output_filename is not None and not output_filename.lower().endswith('.zarr'):
+            if saving_zarr and not output_filename.lower().endswith('.zarr'):
                 output_filename += '.ome.zarr'
 
             fused_image = fusion.fuse(
