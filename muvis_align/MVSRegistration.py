@@ -56,9 +56,13 @@ class MVSRegistration:
         self.global_rotation = global_rotation
         self.global_center = global_center
 
-        input_dir = os.path.dirname(filenames[0])
-        parts = split_numeric_dict(filenames[0])
-        output_pattern = params['output'].format_map(parts)
+        if filenames:
+            input_dir = os.path.dirname(filenames[0])
+            parts = split_numeric_dict(filenames[0])
+            output_pattern = params['output'].format_map(parts)
+        else:
+            input_dir = os.path.dirname(params['input'])
+            output_pattern = params['output']
         self.output = os.path.join(input_dir, output_pattern)    # preserve trailing slash: do not use os.path.normpath()
 
     def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
