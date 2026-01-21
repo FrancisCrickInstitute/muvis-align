@@ -61,7 +61,10 @@ class MVSRegistration:
             parts = split_numeric_dict(filenames[0])
             output_pattern = params['output'].format_map(parts)
         else:
-            input_dir = os.path.dirname(params['input'])
+            input_pattern = params['input']
+            if isinstance(input_pattern, list):
+                input_pattern = input_pattern[0]
+            input_dir = os.path.dirname(input_pattern)
             output_pattern = params['output']
         self.output = os.path.join(input_dir, output_pattern)    # preserve trailing slash: do not use os.path.normpath()
 
@@ -267,6 +270,9 @@ class MVSRegistration:
         chunk_size = self.params_general.get('chunk_size', [1024, 1024])
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         z_scale = extra_metadata.get('scale', {}).get('z')
+
+        if len(self.filenames) == 0:
+            raise ValueError('No input files')
 
         logging.info('Initialising sims...')
         sources = [create_dask_source(file, source_metadata, index=index) for index, file in enumerate(self.filenames)]
