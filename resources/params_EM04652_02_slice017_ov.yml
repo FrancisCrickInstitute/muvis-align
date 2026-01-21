@@ -22,8 +22,8 @@ general:
 
 operations:
   - operation: stack
-    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
-    input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
+    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
     #input:
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00000.ome.tif
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00001.ome.tif
