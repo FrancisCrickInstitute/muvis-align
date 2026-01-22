@@ -27,8 +27,8 @@ operations:
     #input:
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00000.ome.tif
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00001.ome.tif
-    #source_metadata: sbemimage
-    source_metadata: {'position': {'y': 0, 'x': 0}}
+    source_metadata: sbemimage
+    #source_metadata: {'position': {'y': 0, 'x': 0}}
     extra_metadata: {scale: {z: 0.05}}
     transform_type: affine
     #method: phase_correlation
