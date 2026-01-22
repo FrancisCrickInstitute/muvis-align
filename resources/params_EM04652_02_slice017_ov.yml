@@ -1,5 +1,5 @@
 general:
-  show_original: False
+  show_original: True
   metadata_summary: False
   chunk_size: [4096, 4096]
   break_on_error: True
