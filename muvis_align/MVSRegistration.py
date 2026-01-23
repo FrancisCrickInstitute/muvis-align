@@ -16,7 +16,7 @@ from skimage.transform import resize
 import xarray as xr
 
 from muvis_align.Timer import Timer
-from muvis_align.constants import zarr_extension
+from muvis_align.constants import *
 from muvis_align.image.Video import Video
 from muvis_align.image.flatfield import flatfield_correction
 from muvis_align.image.ome_helper import save_image, exists_output_image
@@ -106,8 +106,8 @@ class MVSRegistration:
             logging.warning('Skipping (no images)')
             return False
 
-        registered_fused_filename = output + 'registered'
-        mappings_filename = os.path.join(output, params.get('mappings', 'mappings.json'))
+        registered_fused_filename = output + registered_name
+        mappings_filename = os.path.join(output, params.get('mappings', default_mappings_name))
 
         output_dir = os.path.dirname(output)
         if not overwrite and exists_output_image(registered_fused_filename):
@@ -133,12 +133,12 @@ class MVSRegistration:
             position_pixels = {dim: position[dim] / float(scale[dim]) for dim in position.keys()}
             row = [label] + dict_to_xyz(position_pixels, add_zeros=True) + dict_to_xyz(position, add_zeros=True) + [rotation]
             data.append(row)
-        export_csv(output + 'prereg_mappings.csv', data, header=mappings_header)
+        export_csv(output + prereg_mappings_name, data, header=mappings_header)
 
         if show_original:
             # before registration:
             logging.info('Exporting original...')
-            original_positions_filename = output + 'positions_original.pdf'
+            original_positions_filename = output + original_positions_name
 
             with Timer('plot positions', self.logging_time):
                 vis_utils.plot_positions(sims, transform_key=self.source_transform_key,
@@ -153,14 +153,14 @@ class MVSRegistration:
             if save_images:
                 if output_params.get('thumbnail'):
                     with Timer('create thumbnail', self.logging_time):
-                        self.save_thumbnail(output + 'thumb_original',
+                        self.save_thumbnail(output + original_thumbnail_name,
                                             nom_sims=sims,
                                             transform_key=self.source_transform_key)
 
                 sims2 = [sim.copy() for sim in sims]
                 sims2 = make_sims_3d(sims2, z_scale, self.positions)
 
-                original_fused_filename = output + 'original'
+                original_fused_filename = output + original_name
                 original_fused, is_saved = self.fuse(sims2, transform_key=self.source_transform_key)
                 if not is_saved or 'tif' in output_params.get('format'):
                     self.save(original_fused_filename, original_fused, output_params.get('format'),
@@ -207,7 +207,7 @@ class MVSRegistration:
             logging.info(metrics['summary'])
             output_mappings = {file_labels[index]: np.array(mapping.sel(t=0)).tolist() for index, mapping in mappings.items()}
             export_json(mappings_filename, output_mappings)
-            export_json(output + 'metrics.json', metrics)
+            export_json(output + metrics_name, metrics)
             data = []
             for label, sim, mapping, scale, position, rotation\
                     in zip(file_labels, sims, mappings.values(), self.scales, self.positions, self.rotations):
@@ -221,7 +221,7 @@ class MVSRegistration:
                 position_pixels = {dim: position[dim] / float(scale.get(dim, 1)) for dim in position.keys()}
                 row = [label] + dict_to_xyz(position_pixels, add_zeros=True) + dict_to_xyz(position, add_zeros=True) + [rotation]
                 data.append(row)
-            export_csv(output + 'mappings.csv', data, header=mappings_header)
+            export_csv(output + metrics_tabular_name, data, header=mappings_header)
 
             for reg_label, reg_item in reg_result.items():
                 if isinstance(reg_item, dict):
@@ -231,7 +231,7 @@ class MVSRegistration:
                         summary_plot_filename = output + f'{reg_label}.pdf'
                         figure.savefig(summary_plot_filename)
 
-        registered_positions_filename = output + 'positions_registered.pdf'
+        registered_positions_filename = output + registered_positions_name
         if self.reg_transform_key in sims[0].transforms:
             with Timer('plot positions', self.logging_time):
                 vis_utils.plot_positions(sims, transform_key=self.reg_transform_key,
@@ -246,7 +246,7 @@ class MVSRegistration:
             if save_images:
                 if output_params.get('thumbnail'):
                     with Timer('create thumbnail', self.logging_time):
-                        self.save_thumbnail(output + 'thumb',
+                        self.save_thumbnail(output + registered_thumbnail_name,
                                             nom_sims=sims,
                                             transform_key=self.reg_transform_key)
 
