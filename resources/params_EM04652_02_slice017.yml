@@ -49,9 +49,7 @@ operations:
     input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
     #input: D:/slides/02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
     #source_metadata: source
-    source_metadata: {'position': {'y': 0, 'x': 0}}
-    source_metadata: source
-    #source_metadata: {position: {y: 0, x: 0}, rotation: null}
+    source_metadata: {position: {y: 0, x: 0}, rotation: null}
     extra_metadata: {scale: {z: 0.05}}
     scale: 4
     transform_type: affine
