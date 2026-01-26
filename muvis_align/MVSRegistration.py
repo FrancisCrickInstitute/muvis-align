@@ -331,8 +331,8 @@ class MVSRegistration:
             level = 0
             rescale = 1
             if target_scale:
-                level, rescale = get_level_from_scale(source.scales, target_scale)
-                scale = {dim: size * target_scale if dim in 'xy' else size for dim, size in scale.items()}
+                # Only downscaling
+                level, rescale, scale = get_level_from_scale(source.scales, source.pixel_size, target_scale)
             if 'invert' in source_metadata:
                 translation['x'] = -translation['x']
                 translation['y'] = -translation['y']
@@ -716,7 +716,7 @@ class MVSRegistration:
                 'sims': sims,
                 'pairs': pairs}
 
-    def fuse(self, sims, transform_key=None, output_filename=None):
+    def fuse(self, sims, transform_key=None, output_filename=None, thumbnail=False):
         sim0 = sims[0]
         if transform_key is None:
             transform_key = self.reg_transform_key
@@ -724,7 +724,10 @@ class MVSRegistration:
         z_scale = extra_metadata.get('scale', {}).get('z')
         channels = extra_metadata.get('channels', [])
         is_channel_overlay = (len(channels) > 1)
-        output_spacing = self.params.get('output_spacing')
+        if thumbnail:
+            output_spacing = 'max'
+        else:
+            output_spacing = self.params.get('output_spacing')
 
         if z_scale is None and self.scales is not None:
             z_scale0 = np.mean([scale.get('z', 0) for scale in self.scales])
@@ -797,7 +800,7 @@ class MVSRegistration:
                     si_utils.set_sim_affine(sim,
                                             si_utils.get_affine_from_sim(nom_sim, transform_key=transform_key),
                                             transform_key=transform_key)
-        fused_image, is_saved = self.fuse(sims, transform_key=transform_key)
+        fused_image, is_saved = self.fuse(sims, transform_key=transform_key, thumbnail=True)
         if not is_saved or 'tif' in output_params.get('thumbnail'):
             self.save(output_filename, fused_image.squeeze(), output_params.get('thumbnail'), transform_key=transform_key)
 

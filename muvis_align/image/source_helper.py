@@ -3,7 +3,7 @@ import os
 
 from muvis_align.image.TiffDaskSource import TiffDaskSource
 from muvis_align.image.ZarrDaskSource import ZarrDaskSource
-from muvis_align.util import get_filetitle, get_orthogonal_pairs
+from muvis_align.util import get_orthogonal_pairs, get_unique_file_labels, print_dict_xyz
 
 
 def create_dask_source(filename, source_metadata=None, index=None):
@@ -25,7 +25,8 @@ def get_images_metadata(filenames, source_metadata=None):
     positions = []
     max_positions = []
     pixel_sizes = []
-    for filename in filenames:
+    file_labels = get_unique_file_labels(filenames)
+    for filename, label in zip(filenames, file_labels):
         source = create_dask_source(filename, source_metadata)
         pixel_size = source.get_pixel_size()
         size = source.get_physical_size()
@@ -34,10 +35,10 @@ def get_images_metadata(filenames, source_metadata=None):
         rotation = source.get_rotation()
         rotations.append(rotation)
 
-        summary += (f'{get_filetitle(filename)}'
-                    f'\t{tuple(pixel_size)}'
-                    f'\t{tuple(size)}'
-                    f'\t{tuple(position)}')
+        summary += (f'{label}'
+                    f'\t{print_dict_xyz(pixel_size)}'
+                    f'\t{print_dict_xyz(size)}'
+                    f'\t{print_dict_xyz(position)}')
         if rotation is not None:
             summary += f'\t{rotation}'
         summary += '\n'
@@ -50,9 +51,9 @@ def get_images_metadata(filenames, source_metadata=None):
     pixel_size = {dim: float(np.mean([pixel_size[dim] for pixel_size in pixel_sizes])) for dim in pixel_sizes[0]}
     center = {dim: float(np.mean([center[dim] for center in centers])) for dim in centers[0]}
     min_position = {dim: min([position[dim] for position in positions]) for dim in positions[0]}
-    max_position = {dim: max([position[dim] for position in positions]) for dim in positions[0]}
+    max_position = {dim: max([position[dim] for position in max_positions]) for dim in max_positions[0]}
     area = {dim: max_position[dim] - min_position[dim] for dim in max_position}
-    summary += f'Area: {tuple(area)} Center: {tuple(center)}\n'
+    summary += f'Area: {print_dict_xyz(area)} Center: {print_dict_xyz(center)}\n'
 
     rotations2 = []
     for rotation, size in zip(rotations, sizes):

@@ -210,14 +210,23 @@ def calc_pyramid(xyzct: tuple, npyramid_add: int = 0, pyramid_downsample: float 
     return sizes_add
 
 
-def get_level_from_scale(source_scales, target_scale=1):
-    best_level_scale = 0, target_scale
+def get_level_from_scale(source_scales, source_pixel_size, target_scale=1):
+    # Only downscaling
+    mean_source_pixel_size = float(np.mean([source_pixel_size[dim] for dim in 'xy']))
+    if isinstance(target_scale, str):
+        index = target_scale.find(next(filter(str.isalpha, target_scale)))
+        target_scale = convert_to_um(float(target_scale[:index]), target_scale[index:]) / mean_source_pixel_size
+    best_level, best_scale, target_pixel_size = 0, target_scale, source_pixel_size
     for level, scale in enumerate(source_scales):
         if np.isclose(scale, target_scale, rtol=1e-4):
-            return level, 1
+            target_pixel_size = {dim: float(source_pixel_size[dim] * scale) for dim in source_pixel_size}
+            return level, 1, target_pixel_size
         if scale <= target_scale:
-            best_level_scale = level, target_scale / scale
-    return best_level_scale
+            best_level, best_scale = level, target_scale / scale
+    if best_level == 0 and best_scale < 1:
+        best_scale = 1
+        target_pixel_size = source_pixel_size
+    return best_level, best_scale, target_pixel_size
 
 
 def image_reshape(image: np.ndarray, target_size: tuple) -> np.ndarray:

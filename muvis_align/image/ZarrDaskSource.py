@@ -47,13 +47,13 @@ class ZarrDaskSource(DaskSource):
             scale = np.mean([scale1[index] for index, dim in enumerate(self.dimension_order) if dim in 'xy'])
             if ct_index == 0:
                 scale0 = scale
-                for index, dim in enumerate(self.dimension_order):
-                    if dim in 'xyz':
-                        pixel_size[dim] = convert_to_um(scale1[index], units.get(dim, ''))
-                        if position1 is not None:
-                            position[dim] = (position1[index], units.get(dim, ''))
-                        else:
-                            position[dim] = 0
+            for index, dim in enumerate(self.dimension_order):
+                if dim in 'xyz':
+                    pixel_size[dim] = convert_to_um(scale1[index], units.get(dim, ''))
+                    if position1 is not None:
+                        position[dim] = (position1[index], units.get(dim, ''))
+                    else:
+                        position[dim] = 0
             scales.append(scale / scale0)
 
         colormaps = self.metadata.get('colormap', [])
@@ -63,6 +63,7 @@ class ZarrDaskSource(DaskSource):
                 channel['color'] = colormaps[channeli][-1]
             channels.append(channel)
         self.pixel_sizes = pixel_sizes
+        self.pixel_size = pixel_sizes[0]
         self.position = position
         self.rotation = 0
         self.channels = channels

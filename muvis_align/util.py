@@ -113,6 +113,16 @@ def print_dict(dct: dict, indent: int = 0) -> str:
     return s
 
 
+def print_dict_xyz(dct: dict, dims='xyz', decimals=3) -> str:
+    s = ''
+    for dim in dims:
+        if dim in dct:
+            if s:
+                s += ' '
+            s += f'{dim}:{dct[dim]:.{decimals}f}'
+    return s
+
+
 def print_hbytes(nbytes: int) -> str:
     exps = ['', 'K', 'M', 'G', 'T', 'P', 'E']
     div = 1024
