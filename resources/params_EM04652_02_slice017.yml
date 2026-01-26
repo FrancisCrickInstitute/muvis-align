@@ -8,7 +8,7 @@ general:
     format: '%(asctime)s %(levelname)s: %(message)s'
     dask: False
     time: True
-    verbose: False
+    verbose: True
   output:
     clear: False
     overwrite: False
@@ -18,7 +18,7 @@ general:
     npyramid_add: 4
     pyramid_downsample: 2
     thumbnail: ome.zarr
-    thumbnail_scale: 16
+    thumbnail_scale: 64
 
 operations:
   - operation: register match s
@@ -50,6 +50,8 @@ operations:
     #input: D:/slides/02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
     #source_metadata: source
     source_metadata: {'position': {'y': 0, 'x': 0}}
+    source_metadata: source
+    #source_metadata: {position: {y: 0, x: 0}, rotation: null}
     extra_metadata: {scale: {z: 0.05}}
     scale: 4
     transform_type: affine
