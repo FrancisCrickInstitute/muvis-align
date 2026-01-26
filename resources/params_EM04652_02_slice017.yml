@@ -18,7 +18,7 @@ general:
     npyramid_add: 4
     pyramid_downsample: 2
     thumbnail: ome.zarr
-    thumbnail_scale: 64
+    thumbnail_scale: 1um
 
 operations:
   - operation: register match s
@@ -51,7 +51,7 @@ operations:
     #source_metadata: source
     source_metadata: {position: {y: 0, x: 0}, rotation: null}
     extra_metadata: {scale: {z: 0.05}}
-    scale: 4
+    #scale: 0.04um
     transform_type: affine
     #method: phase_correlation
     method:
