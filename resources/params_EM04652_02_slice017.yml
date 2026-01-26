@@ -4,7 +4,7 @@ general:
   chunk_size: [4096, 4096]
   break_on_error: True
   logging:
-    filename: log/muvis-align-EM04652_2.log
+    filename: log/muvis-align-EM04652.log
     format: '%(asctime)s %(levelname)s: %(message)s'
     dask: False
     time: True
@@ -40,7 +40,7 @@ operations:
     #  inlier_threshold_factor: 0.05
     #  max_trials: 1000
     #  ransac_iterations: 3
-    #fusion: exclusive
+    fusion: exclusive
     output_spacing: min
     n_parallel_pairwise_regs: 64
     output: ../../stitched/slice{s}/
@@ -63,4 +63,4 @@ operations:
       ransac_iterations: 3
     output_spacing: min
     n_parallel_pairwise_regs: 64
-    output: ../../aligned2/
+    output: ../../aligned/
