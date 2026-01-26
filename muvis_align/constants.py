@@ -1,4 +1,4 @@
-version = '0.2.21'
+version = '0.2.22'
 
 zarr_extension = '.ome.zarr'
 tiff_extension = '.ome.tiff'
