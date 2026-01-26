@@ -780,10 +780,12 @@ class MVSRegistration:
         output_params = self.params_general['output']
         thumbnail_scale = output_params.get('thumbnail_scale', 16)
         is_stack = ('stack' in params['operation'])
+        extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
+        z_scale = extra_metadata.get('scale', {}).get('z')
 
         sims = self.init_sims(target_scale=thumbnail_scale)
         if is_stack:
-            sims = make_sims_3d(sims, positions=self.positions)
+            sims = make_sims_3d(sims, z_scale, self.positions)
 
         if nom_sims is not None:
             if sims[0].sizes['x'] >= nom_sims[0].sizes['x']:
