@@ -45,6 +45,7 @@ class MVSRegistration:
         self.source_transform_key = 'source_metadata'
         self.reg_transform_key = 'registered'
         self.transition_transform_key = 'transition'
+        self.sources = None
 
         logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
@@ -125,7 +126,7 @@ class MVSRegistration:
             z_scale = self.scales[0].get('z', 1)
 
         with Timer('pre-process', self.logging_time):
-            sims, register_sims, indices = self.preprocess(sims, params)
+            register_sims, indices = self.preprocess(sims, params)
 
         data = []
         for label, sim, scale in zip(file_labels, sims, self.scales):
@@ -264,6 +265,11 @@ class MVSRegistration:
 
         return True
 
+    def init_sources(self):
+        source_metadata = import_metadata(self.params.get('source_metadata', 'source'), input_path=self.params['input'])
+        self.sources = [create_dask_source(file, source_metadata, index=index)
+                        for index, file in enumerate(self.filenames)]
+
     def init_sims(self, target_scale=None):
         operation = self.params['operation']
         source_metadata = import_metadata(self.params.get('source_metadata', 'source'), input_path=self.params['input'])
@@ -275,7 +281,9 @@ class MVSRegistration:
             raise ValueError('No input files')
 
         logging.info('Initialising sims...')
-        sources = [create_dask_source(file, source_metadata, index=index) for index, file in enumerate(self.filenames)]
+        if self.sources is None:
+            self.init_sources()
+        sources = self.sources
         source0 = sources[0]
         images = []
         sims = []
@@ -468,6 +476,16 @@ class MVSRegistration:
         normalisation = params.get('normalisation', '')
         filter_foreground = params.get('filter_foreground', False)
 
+        # normalise pixel size: take max pixel size
+        scale = {dim: max(source.get_pixel_size()[dim] for source in self.sources)
+                 for dim in sims[0].dims if dim in 'xy'}
+        needs_reinit = False
+        for source in self.sources:
+            if not np.all([np.isclose(source.get_pixel_size()[dim], scale[dim]) for dim in 'xy']):
+                needs_reinit = True
+        if needs_reinit:
+            sims = self.init_sims(target_scale=scale)
+
         if filter_foreground:
             foreground_map = calc_foreground_map(sims)
         else:
@@ -507,7 +525,7 @@ class MVSRegistration:
             indices = np.where(foreground_map)[0]
         else:
             indices = range(len(sims))
-        return sims, new_sims, indices
+        return new_sims, indices
 
     def create_registration_method(self, sim0):
         registration_method = None
@@ -628,7 +646,7 @@ class MVSRegistration:
         else:
             pairs = None
 
-        reg_method, pairwise_reg_func, pairwise_reg_func_kwargs = self.create_registration_method(sim0)
+        reg_method, pairwise_reg_func, pairwise_reg_func_kwargs = self.create_registration_method(register_sims[0])
 
         # Pass registration through metrics method
         #from muvis_align.registration_methods.RegistrationMetrics import RegistrationMetrics
