@@ -332,7 +332,7 @@ class MVSRegistration:
                                 scale = scale0
                             elif scale.get('x') != scale.get('y'):
                                 logging.warning('SBEMimage pixel size requires correction, please provide in source metadata.')
-                            logging.info(f'Adjusted SBEMimage properties for {filename}')
+                            logging.debug(f'Adjusted SBEMimage properties for {filename}')
                         else:
                             logging.warning(f'Could not find SBEMimage config for {filename}.')
 
@@ -340,7 +340,7 @@ class MVSRegistration:
             rescale = 1
             if target_scale:
                 # Only downscaling
-                level, rescale, scale = get_level_from_scale(source.scales, source.pixel_size, target_scale)
+                level, rescale, scale = get_level_from_scale(source.scales, source.get_pixel_size(), target_scale)
             if 'invert' in source_metadata:
                 translation['x'] = -translation['x']
                 translation['y'] = -translation['y']
