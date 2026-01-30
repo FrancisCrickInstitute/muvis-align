@@ -65,11 +65,15 @@ class DaskSource:
         # shape in pixels
         return self.shapes[level]
 
-    def get_size(self, level=0):
+    def get_size(self, level=0, asarray=False, axes='zyx'):
         # size in pixels
-        return {dim: size for dim, size in zip(self.dimension_order, self.get_shape(level))}
+        size = {dim: size for dim, size in zip(self.dimension_order, self.get_shape(level))}
+        if asarray:
+            return np.array([size[dim] for dim in axes if dim in size])
+        else:
+            return size
 
-    def get_pixel_size(self, level=0):
+    def get_pixel_size(self, level=0, asarray=False, axes='zyx'):
         # pixel size in micrometers
         if self.pixel_sizes:
             pixel_size = get_value_units_micrometer(self.pixel_sizes[level])
@@ -77,16 +81,27 @@ class DaskSource:
             scale = self.scales[level]
             pixel_size0 = get_value_units_micrometer(self.pixel_size)
             pixel_size = {dim: size * scale for dim, size in pixel_size0.items()}
-        return pixel_size
+        if asarray:
+            return np.array([pixel_size[dim] for dim in axes if dim in pixel_size])
+        else:
+            return pixel_size
 
-    def get_physical_size(self):
+    def get_physical_size(self, asarray=False, axes='zyx'):
         pixel_size = self.get_pixel_size()
         size = self.get_size()
-        return {dim: size[dim] * pixel_size[dim] for dim in size if dim in pixel_size}
+        physical_size = {dim: size[dim] * pixel_size[dim] for dim in size if dim in pixel_size}
+        if asarray:
+            return np.array([physical_size[dim] for dim in axes if dim in physical_size])
+        else:
+            return physical_size
 
-    def get_position(self, level=0):
+    def get_position(self, asarray=False, axes='zyx'):
         # position in micrometers
-        return get_value_units_micrometer(self.position)
+        position = get_value_units_micrometer(self.position)
+        if asarray:
+            return np.array([position[dim] for dim in axes if dim in position])
+        else:
+            return position
 
     def get_rotation(self):
         # rotation in degrees

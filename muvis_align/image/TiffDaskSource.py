@@ -102,6 +102,13 @@ class TiffDaskSource(DaskSource):
         self.channels = channels
 
     def get_data(self, level=0):
-        lazy_array = dask.delayed(tifffile.imread)(self.filename, level=level)
-        dask_data = dask.array.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
+        if level < 0:
+            dask_data = []
+            for level in range(len(self.shapes)):
+                lazy_array = dask.delayed(tifffile.imread)(self.filename, level=level)
+                data = dask.array.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
+                dask_data.append(data)
+        else:
+            lazy_array = dask.delayed(tifffile.imread)(self.filename, level=level)
+            dask_data = dask.array.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
         return dask_data

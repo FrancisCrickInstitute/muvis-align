@@ -557,6 +557,20 @@ def filter_noise_images(images):
     return int(threshold), mask
 
 
+def invert_data(data):
+    if isinstance(data, list):
+        return [invert_data(d) for d in data]
+    else:
+        dtype = data.dtype
+        if np.issubdtype(dtype, np.integer):
+            info = np.iinfo(dtype)
+            return info.max - data
+        elif np.issubdtype(dtype, np.floating):
+            return 1.0 - data
+        else:
+            return data
+
+
 def detect_area_points(image):
     method = cv.THRESH_OTSU
     threshold = -5

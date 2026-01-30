@@ -70,4 +70,7 @@ class ZarrDaskSource(DaskSource):
         self.scales = scales
 
     def get_data(self, level=0):
-        return self.data[level]
+        if level < 0:
+            return self.data
+        else:
+            return self.data[level]
