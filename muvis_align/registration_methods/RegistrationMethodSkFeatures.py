@@ -49,6 +49,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             # make data 2D
             data0 = data0.max('z')
         data = self.convert_data_to_float(data0)
+        data = norm_image_variance2(data)
         if gaussian_sigma:
             data = gaussian_filter_image(data, gaussian_sigma)
 
