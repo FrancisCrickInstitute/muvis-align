@@ -7,7 +7,6 @@ import logging
 import numpy as np
 #import SimpleITK as sitk
 from skimage.feature import match_descriptors, SIFT, ORB
-from skimage.filters import gaussian
 from skimage.measure import ransac
 from skimage.transform import AffineTransform, EuclideanTransform
 from spatial_image import SpatialImage
@@ -21,7 +20,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
     def __init__(self, source, params, debug=False):
         super().__init__(source, params, debug=debug)
         self.method = params.get('name', 'sift').lower()
-        self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 1))
+        self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 0))
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.nkeypoints = params.get('max_keypoints', 5000)
         self.cross_check = params.get('cross_check', True)
@@ -50,9 +49,8 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
             # make data 2D
             data0 = data0.max('z')
         data = self.convert_data_to_float(data0)
-        data = norm_image_variance2(data)
         if gaussian_sigma:
-            data = gaussian(data, sigma=gaussian_sigma)
+            data = gaussian_filter_image(data, gaussian_sigma)
 
         try:
             # not thread-safe - create instance that is not re-used in other thread
@@ -196,7 +194,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
 
             draw_keypoints_matches(fixed_data2, fixed_points,
                                    moving_data2, moving_points,
-                                   matches, inliers,
+                                   matches, inliers, points_color='blue',
                                    show_plot=True)
 
         if quality == 0 or np.sum(inliers) == 0:

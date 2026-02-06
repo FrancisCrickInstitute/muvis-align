@@ -6,12 +6,12 @@ general:
   logging:
     filename: log/muvis-align-EM04652.log
     format: '%(asctime)s %(levelname)s: %(message)s'
-    dask: False
+    dask: True
     time: True
     verbose: True
   output:
     clear: False
-    overwrite: False
+    overwrite: True
     format: ome.zarr
     tile_size: [4096, 4096]
     compression:
@@ -23,23 +23,23 @@ general:
 operations:
   - operation: register match s
     input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
-    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00400.ome.tif
-    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00823.ome.tif
-    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00500.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00010.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
     #input:
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00400.ome.tif
     #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_s00400/EM04652-02_slice17_spaghettiandmeatballs2_r0005_t0030_s00400.ome.tif
     source_metadata: sbem
     #use_orthogonal_pairs: True
     transform_type: translation
-    method: phase_correlation
-    #method:
-    #  name: sift
-    #  gaussian_sigma: 3
-    #  max_keypoints: 5000
-    #  inlier_threshold_factor: 0.05
-    #  max_trials: 1000
-    #  ransac_iterations: 3
+    #method: phase_correlation
+    method:
+      name: sift
+      gaussian_sigma: 3
+      max_keypoints: 5000
+      inlier_threshold_factor: 0.05
+      max_trials: 1000
+      ransac_iterations: 3
     fusion: exclusive
     output_spacing: min
     n_parallel_pairwise_regs: 64
@@ -47,7 +47,10 @@ operations:
 
   - operation: stack
     input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
-    #input: D:/slides/02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
+    #input:
+    #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/stitched/slice00009/registered.ome.zarr
+    #- D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/stitched_hpc/slice00010/registered.ome.zarr
     #source_metadata: source
     source_metadata: {position: {y: 0, x: 0}, rotation: null}
     extra_metadata: {scale: {z: 0.05}}

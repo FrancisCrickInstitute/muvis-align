@@ -3,13 +3,13 @@
 
 from contextlib import nullcontext
 import dask
-import numpy as np
 from dask.diagnostics import ProgressBar
 import logging
 import multiview_stitcher
 from multiview_stitcher import registration, vis_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes, sims_to_intrinsic_coord_system
+import numpy as np
 import os.path
 import shutil
 from skimage.transform import resize
@@ -474,17 +474,18 @@ class MVSRegistration:
     def preprocess(self, sims, params):
         flatfield_quantiles = params.get('flatfield_quantiles')
         normalisation = params.get('normalisation', '')
+        gaussian_sigma = params.get('gaussian_sigma')
         filter_foreground = params.get('filter_foreground', False)
 
         # normalise pixel size: take max pixel size
-        scale = {dim: max(source.get_pixel_size()[dim] for source in self.sources)
-                 for dim in sims[0].dims if dim in 'xy'}
+        max_scale = {dim: max(scale[dim] for scale in self.scales) for dim in 'xy'}
         needs_reinit = False
         for source in self.sources:
-            if not np.all([np.isclose(source.get_pixel_size()[dim], scale[dim]) for dim in 'xy']):
+            if not np.all([np.isclose(source.get_pixel_size()[dim], max_scale[dim]) for dim in 'xy']):
                 needs_reinit = True
+        scales0 = self.scales
         if needs_reinit:
-            sims = self.init_sims(target_scale=scale)
+            sims = self.init_sims(target_scale=max_scale)
 
         if filter_foreground:
             foreground_map = calc_foreground_map(sims)
@@ -508,9 +509,18 @@ class MVSRegistration:
                 logging.info('Normalising (global)...')
             else:
                 logging.info('Normalising (individual)...')
-            new_sims = normalise(sims, self.source_transform_key, use_global=use_global)
+            new_sims = normalise_sims(sims, self.source_transform_key, use_global=use_global)
         else:
             new_sims = sims
+
+        if gaussian_sigma:
+            new_sims2 = []
+            for sim, scale0 in zip(new_sims, scales0):
+                # factor in original pixel size for gaussian sigma value
+                scale = np.mean(list(scale0.values())) / np.mean(list(max_scale.values()))
+                sigma = gaussian_sigma * (scale ** (1 / 3))
+                new_sims2.append(gaussian_filter_sim(sim, self.source_transform_key, sigma))
+            new_sims = new_sims2
 
         if filter_foreground:
             logging.info('Filtering foreground images...')
@@ -851,11 +861,10 @@ class MVSRegistration:
                 #logging.warning(f'Failed to calculate resolution metric')
         return {'ncc': nccs, 'ssim': ssims}
 
-    def get_overlap_images(self, sim1, sim2, transform_key):
+    def get_overlap_images(self, sim1, sim2, transform_key, overlap_tolerance=0):
         sims = [sim1.squeeze(), sim2.squeeze()]
         # functionality copied from registration.register_pair_of_msims()
         spatial_dims = si_utils.get_spatial_dims_from_sim(sim1)
-        overlap_tolerance = {dim: 0.0 for dim in spatial_dims}
         lowers, uppers = get_overlap_bboxes(
             sims[0],
             sims[1],

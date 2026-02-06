@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 from multiview_stitcher import msi_utils, param_utils, fusion, mv_graph
 from multiview_stitcher import spatial_image_utils as si_utils
-from scipy.ndimage import gaussian_filter
+from skimage.filters import gaussian
 from skimage.feature import plot_matched_features
 from skimage.transform import downscale_local_mean
 from xarray import DataTree
@@ -456,18 +456,14 @@ def create_compression_filter(compression: list) -> tuple:
     return compressor, compression_filters
 
 
-def blur_image_single(image, sigma):
-    return gaussian_filter(image, sigma)
-
-
-def blur_image(image, sigma):
+def gaussian_filter_image(image, sigma):
     nchannels = image.shape[2] if image.ndim == 3 else 1
     if nchannels not in [1, 3]:
         new_image = np.zeros_like(image)
         for channeli in range(nchannels):
-            new_image[..., channeli] = blur_image_single(image[..., channeli], sigma)
+            new_image[..., channeli] = gaussian(image[..., channeli], sigma)
     else:
-        new_image = blur_image_single(image, sigma)
+        new_image = gaussian(image, sigma, preserve_range=True)
     return new_image
 
 
@@ -645,7 +641,7 @@ def calc_foreground_map(sims):
     return map
 
 
-def normalise(sims, transform_key, use_global=True):
+def normalise_sims(sims, transform_key, use_global=True):
     new_sims = []
     dtype = sims[0].dtype
     # global mean and stddev
@@ -669,7 +665,8 @@ def normalise(sims, transform_key, use_global=True):
         if not use_global:
             min = np.mean(sim, dtype=np.float32)
             range = np.std(sim, dtype=np.float32)
-        image = (sim - min) / range
+        #image = (sim - min) / range
+        image = ((sim - min) / range + 1) / 2   # extended range
         image = float2int_image(image.clip(0, 1), dtype)    # np.clip(image) is not dask-compatible, use image.clip() instead
         new_sim = si_utils.get_sim_from_array(
             image,
@@ -683,6 +680,22 @@ def normalise(sims, transform_key, use_global=True):
         )
         new_sims.append(new_sim)
     return new_sims
+
+
+def gaussian_filter_sim(sim, transform_key, sigma):
+    image = np.asarray(sim)
+    blurred_image = gaussian_filter_image(image, sigma)
+    new_sim = si_utils.get_sim_from_array(
+        blurred_image.astype(sim.dtype),
+        dims=sim.dims,
+        scale=si_utils.get_spacing_from_sim(sim),
+        translation=si_utils.get_origin_from_sim(sim),
+        transform_key=transform_key,
+        affine=si_utils.get_affine_from_sim(sim, transform_key),
+        c_coords=sim.c.data,
+        t_coords=sim.t.data
+    )
+    return new_sim
 
 
 def get_sim_physical_size(sim):

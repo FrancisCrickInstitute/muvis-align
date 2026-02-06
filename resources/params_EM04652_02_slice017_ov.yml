@@ -30,11 +30,12 @@ operations:
     #source_metadata: sbemimage
     source_metadata: {'position': {'y': 0, 'x': 0}}
     extra_metadata: {scale: {z: 0.05}}
+    gaussian_sigma: 2.5
     transform_type: affine
     #method: phase_correlation
     method:
       name: orb
-      gaussian_sigma: 2.5
+      #gaussian_sigma: 2.5
       max_keypoints: 5000
       inlier_threshold_factor: 0.05
       max_trials: 1000

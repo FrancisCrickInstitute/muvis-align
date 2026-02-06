@@ -20,7 +20,7 @@ import zarr
 
 from muvis_align.Timer import Timer
 from muvis_align.image.source_helper import create_dask_source
-from muvis_align.image.util import normalise
+from muvis_align.image.util import normalise_sims
 from muvis_align.util import xyz_to_dict
 
 
@@ -147,7 +147,7 @@ def task(filenames):
 
     with Timer('normalise', auto_unit=False):
         #value = np.mean(dask_data).compute()
-        new_sims = normalise(sims, transform_key=transform_key)
+        new_sims = normalise_sims(sims, transform_key=transform_key)
     with Timer('computing', auto_unit=False):
         for new_sim in new_sims:
             new_sim.compute()
