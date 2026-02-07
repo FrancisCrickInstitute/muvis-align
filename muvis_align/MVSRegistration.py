@@ -340,7 +340,7 @@ class MVSRegistration:
             rescale = 1
             if target_scale:
                 # Only downscaling
-                level, rescale, scale = get_level_from_scale(source.scales, source.get_pixel_size(), target_scale)
+                level, rescale, scale = get_level_from_scale(source.scales, scale, target_scale)
             if 'invert' in source_metadata:
                 translation['x'] = -translation['x']
                 translation['y'] = -translation['y']

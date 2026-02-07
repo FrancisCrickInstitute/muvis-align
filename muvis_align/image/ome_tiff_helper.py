@@ -61,12 +61,10 @@ def create_tiff_metadata(pixel_size, dimension_order=None, channels=[], position
     ome_metadata = None
     resolution = None
     resolution_unit = None
-    pixel_size_um = None
 
     if pixel_size is not None:
-        pixel_size_um = get_value_units_micrometer(pixel_size)[:2]
         resolution_unit = 'CENTIMETER'
-        resolution = [1e4 / size for size in pixel_size_um]
+        resolution = [1e4 / size for size in dict_to_xyz(pixel_size, 'xy')]
 
     if is_ome:
         ome_metadata = {'Creator': 'muvis-align'}
@@ -74,22 +72,22 @@ def create_tiff_metadata(pixel_size, dimension_order=None, channels=[], position
             #ome_metadata['DimensionOrder'] = dimension_order[::-1].upper()
             ome_metadata['axes'] = dimension_order.upper()
         ome_channels = []
-        if pixel_size_um is not None:
-            ome_metadata['PhysicalSizeX'] = float(pixel_size_um[0])
+        if pixel_size is not None:
+            ome_metadata['PhysicalSizeX'] = pixel_size['x']
             ome_metadata['PhysicalSizeXUnit'] = 'µm'
-            ome_metadata['PhysicalSizeY'] = float(pixel_size_um[1])
+            ome_metadata['PhysicalSizeY'] = pixel_size['y']
             ome_metadata['PhysicalSizeYUnit'] = 'µm'
-            if len(pixel_size_um) > 2:
-                ome_metadata['PhysicalSizeZ'] = float(pixel_size_um[2])
+            if 'z' in pixel_size:
+                ome_metadata['PhysicalSizeZ'] = pixel_size['z']
                 ome_metadata['PhysicalSizeZUnit'] = 'µm'
         if positions is not None and len(positions) > 0:
             plane_metadata = {}
-            plane_metadata['PositionX'] = [float(position[0]) for position in positions]
+            plane_metadata['PositionX'] = [position['x'] for position in positions]
             plane_metadata['PositionXUnit'] = ['µm' for _ in positions]
-            plane_metadata['PositionY'] = [float(position[1]) for position in positions]
+            plane_metadata['PositionY'] = [position['y'] for position in positions]
             plane_metadata['PositionYUnit'] = ['µm' for _ in positions]
-            if len(positions[0]) > 2:
-                plane_metadata['PositionZ'] = [float(position[2]) for position in positions]
+            if 'z' in positions[0]:
+                plane_metadata['PositionZ'] = [position['z'] for position in positions]
                 plane_metadata['PositionZUnit'] = ['µm' for _ in positions]
             ome_metadata['Plane'] = plane_metadata
         if rotation is not None:

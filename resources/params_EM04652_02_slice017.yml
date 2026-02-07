@@ -17,15 +17,16 @@ general:
     compression:
     npyramid_add: 4
     pyramid_downsample: 2
-    thumbnail: ome.zarr
+    thumbnail: ome.tiff
     thumbnail_scale: 1um
 
 operations:
   - operation: register match s
     input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00500.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00012.ome.tif
     source_metadata: sbem
-    gaussian_sigma: 1
+    gaussian_sigma: 0.5
     #use_orthogonal_pairs: True
     transform_type: translation
     #method: phase_correlation

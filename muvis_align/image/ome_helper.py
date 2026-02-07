@@ -34,17 +34,18 @@ def save_image(filename, sim, output_format=zarr_extension, params={},
     scaler = Scaler(downscale=pyramid_downsample, max_layer=npyramid_add)
     ome_version = params.get('ome_version', '0.4')
 
-    if 'zar' in output_format:
-        #save_ome_zarr(str(filename) + zarr_extension, sim.data, dimension_order, pixel_size,
-        #              channels, position, rotation, compression=compression, scaler=scaler,
-        #              zarr_version=3, ome_version='0.5')
-        save_ome_ngff(str(filename) + zarr_extension, sim, pyramid_downsample=pyramid_downsample,
-                      ome_version=ome_version, verbose=verbose)
-    if 'tif' in output_format:
-        save_ome_tiff(str(filename) + tiff_extension, sim.data, dimension_order, pixel_size,
-                      channels, positions, rotation, tile_size=tile_size, compression=compression, scaler=scaler)
+    if output_format:
+        if 'zar' in output_format:
+            #save_ome_zarr(str(filename) + zarr_extension, sim.data, dimension_order, pixel_size,
+            #              channels, position, rotation, compression=compression, scaler=scaler,
+            #              zarr_version=3, ome_version='0.5')
+            save_ome_ngff(str(filename) + zarr_extension, sim, pyramid_downsample=pyramid_downsample,
+                          ome_version=ome_version, verbose=verbose)
+        if 'tif' in output_format:
+            save_ome_tiff(str(filename) + tiff_extension, sim.data, dimension_order, pixel_size,
+                          channels, positions, rotation, tile_size=tile_size, compression=compression, scaler=scaler)
 
-    open(str(filename), 'w')
+        open(str(filename), 'w')
 
 
 def exists_output_image(filename):
