@@ -27,11 +27,10 @@ References:
 """
 
 from typing import TYPE_CHECKING
-
-from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
-
 if TYPE_CHECKING:
     import napari
+
+from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 
 class MainWidget(QWidget):

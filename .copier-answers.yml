@@ -14,5 +14,5 @@ install_dependabot: true
 install_precommit: true
 license: GNU GPL v3.0
 module_name: muvis_align
-plugin_name: napari-muvis-align
+plugin_name: muvis-align
 short_description: Image registration plugin using multiview-stitcher
