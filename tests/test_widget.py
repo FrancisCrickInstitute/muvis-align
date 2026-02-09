@@ -9,7 +9,7 @@ from muvis_align._widget import (
 # you don't need to import it, as long as napari is installed
 # in your testing environment
 # capsys is a pytest fixture that captures stdout and stderr output streams
-def test_example_q_widget(make_napari_viewer, capsys):
+def test_widget(make_napari_viewer, capsys):
     # make viewer and add an image layer using our fixture
     viewer = make_napari_viewer()
     viewer.add_image(np.random.random((100, 100)))

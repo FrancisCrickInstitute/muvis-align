@@ -1,4 +1,4 @@
-name: napari-muvis-align
+name: muvis-align
 display_name: muvis-align
 # use 'hidden' to remove plugin from napari hub search results
 visibility: hidden    # public
@@ -6,14 +6,14 @@ visibility: hidden    # public
 categories: ["Registration"]
 contributions:
   commands:
-    - id: napari-muvis-align.create_widget
+    - id: muvis-align.create_widget
       python_name: muvis_align._widget:MainWidget
       title: muvis-align
 
   widgets:
-    - command: napari-muvis-align.create_widget
+    - command: muvis-align.create_widget
       display_name: muvis-align
 
   menus:
     napari/layers/segment:
-      - command: napari-muvis-align.create_widget
+      - command: muvis-align.create_widget

@@ -49,7 +49,7 @@ dev = [
 ]
 
 [project.entry-points."napari.manifest"]
-napari-muvis-align = "muvis_align:napari.yaml"
+muvis-align = "muvis_align:napari.yaml"
 
 
 
