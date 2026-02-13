@@ -9,8 +9,9 @@ WORKDIR /app
 
 # Copy project files
 COPY requirements.txt .
-COPY src/**/*.py src/
-COPY * .
+COPY run.py .
+COPY pyproject.toml .
+COPY src/ src/
 
 # Install dependencies
 RUN pip install -r requirements.txt
