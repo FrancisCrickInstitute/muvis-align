@@ -376,14 +376,14 @@ class MVSRegistration:
                 z_scale = 1
 
         if 'norm' in source_metadata:
-            size = source0.get_physical_size()
+            sizes = [source.get_physical_size() for source in sources]
             center = {dim: 0 for dim in output_order}
             if 'center' in source_metadata:
                 if 'global' in source_metadata:
                     center = self.global_center
                 else:
                     center = {dim: float(np.mean([translation[dim] for translation in translations])) for dim in translations[0]}
-            translations, rotations = normalise_rotated_positions(translations, rotations, size, center, len(output_order))
+            translations, rotations = normalise_rotated_positions(translations, rotations, sizes, center, len(output_order))
 
         #translations = [np.array(translation) * 1.25 for translation in translations]
 
@@ -608,7 +608,7 @@ class MVSRegistration:
         ndims = si_utils.get_ndim_from_sim(sim0)
 
         operation = params['operation']
-        use_orthogonal_pairs = params.get('use_orthogonal_pairs', False)
+        pairing = params.get('pairing', '')
         post_registration_quality_threshold = params.get('post_registration_quality_threshold')
         n_parallel_pairwise_regs = params.get('n_parallel_pairwise_regs')
 
@@ -645,11 +645,11 @@ class MVSRegistration:
             register_sims = [si_utils.max_project_sim(sim, dim='z') if 'z' in sim.dims else sim
                              for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
-        elif use_orthogonal_pairs:
+        elif 'orthogonal' in pairing or 'overlay' in pairing:
             origins = np.array([get_sim_position_final(sim, position, get_center=True)
                                 for sim, position in zip(sims, self.positions)])
-            size = get_sim_physical_size(sim0)
-            pairs, _ = get_orthogonal_pairs(origins, size)
+            sizes = [get_sim_physical_size(sim) for sim in sims]
+            pairs, _ = get_pairs(origins, sizes, pairing)
             logging.info(f'#pairs: {len(pairs)}')
             #for pair in pairs:
             #    print(f'{self.file_labels[pair[0]]} - {self.file_labels[pair[1]]}')
@@ -847,8 +847,8 @@ class MVSRegistration:
         pairs = results['pairs']
         if pairs is None:
             origins = np.array([get_sim_position_final(sim) for sim in sims])
-            size = get_sim_physical_size(sims[0])
-            pairs, _ = get_orthogonal_pairs(origins, size)
+            sizes = [get_sim_physical_size(sim) for sim in sims]
+            pairs, _ = get_pairs(origins, sizes)
         for pair in pairs:
             try:
                 # experimental; in case fail to extract overlap images

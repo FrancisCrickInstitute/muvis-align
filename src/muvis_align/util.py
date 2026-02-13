@@ -561,11 +561,11 @@ def dict_to_xyz(dct, dims='xyz', add_zeros=False):
     return array
 
 
-def normalise_rotated_positions(centers0, rotations0, size, center, ndims):
+def normalise_rotated_positions(centers0, rotations0, sizes, center, ndims):
     # in [xy(z)]
     centers = []
     rotations = []
-    _, angles = get_orthogonal_pairs(centers0, size)
+    _, angles = get_pairs(centers0, sizes)
     for center0, rotation in zip(centers0, rotations0):
         if rotation is None and len(angles) > 0:
             rotation = -float(np.mean(angles))
@@ -612,7 +612,7 @@ def draw_edge_filter(bounds):
     return position_weights.reshape(np.flip(bounds))
 
 
-def get_orthogonal_pairs(positions, image_size_um):
+def get_pairs(positions, sizes, pairing=None):
     """
     Get pairs of orthogonal neighbors from a list of tiles.
     Tiles don't have to be placed on a regular grid.
@@ -624,25 +624,32 @@ def get_orthogonal_pairs(positions, image_size_um):
     is_mixed_3dstack = len(ordered_z) < len(z_positions)
     for i, j in np.transpose(np.triu_indices(len(positions), 1)):
         posi, posj = positions[i], positions[j]
+        sizei, sizej = sizes[i], sizes[j]
         if is_mixed_3dstack:
             # ignore z value for distance
             distance = math.dist([posi[dim] for dim in 'xy'], [posj[dim] for dim in 'xy'])
-            min_distance = max([image_size_um[dim] for dim in 'xy'])
+            min_distance = max([size[dim] for size in [sizei, sizej] for dim in 'xy'])
             is_same_z = (posi['z'] == posj['z'])
             is_close_z = abs(ordered_z.index(posi['z']) - ordered_z.index(posj['z'])) <= 1
-            if not is_same_z:
+            if not is_close_z:
+                # if not close, discard as pair
+                min_distance = 0
+            elif not is_same_z:
                 # for tiles in different z stack, require greater overlap
                 min_distance *= 0.8
-            ok = (distance < min_distance and is_close_z)
         else:
             distance = math.dist(posi.values(), posj.values())
-            min_distance = max(image_size_um.values())
+            min_distance = max(list(sizei.values()) + list(sizej.values()))
+
+        if pairing and 'overla' in pairing:
+            ok = (distance / min_distance < 0.5)
+        else:
             ok = (distance < min_distance)
         if ok:
             pairs.append((int(i), int(j)))
             vector = np.array(list(posi.values())) - np.array(list(posj.values()))
             angle = math.degrees(math.atan2(vector[1], vector[0]))
-            if distance < min(image_size_um.values()):
+            if distance < min(list(sizei.values()) + list(sizej.values())):
                 angle += 90
             while angle < -90:
                 angle += 180

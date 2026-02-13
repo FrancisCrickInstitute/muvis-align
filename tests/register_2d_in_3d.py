@@ -9,7 +9,7 @@ from multiview_stitcher import registration, param_utils, msi_utils, fusion
 import numpy as np
 
 from muvis_align.image.util import get_sim_position_final, show_image
-from muvis_align.util import get_orthogonal_pairs
+from muvis_align.util import get_pairs
 
 dask.config.set(scheduler='threads')
 
@@ -140,7 +140,7 @@ for z in range(z_tiles):
                 ))
 
 origins = np.array([get_sim_position_final(sim) for sim in sims])
-pairs, _ = get_orthogonal_pairs(origins, size)
+pairs, _ = get_pairs(origins, [size] * len(sims))
 msims = [msi_utils.get_msim_from_sim(im) for im in sims]
 
 # register indicating a z overlap tolerance for pairing slices

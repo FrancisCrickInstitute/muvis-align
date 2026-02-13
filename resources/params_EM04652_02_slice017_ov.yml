@@ -30,6 +30,7 @@ operations:
     #source_metadata: sbemimage
     source_metadata: {'position': {'y': 0, 'x': 0}}
     extra_metadata: {scale: {z: 0.05}}
+    normalisation: global
     gaussian_sigma: 2.5
     transform_type: affine
     #method: phase_correlation

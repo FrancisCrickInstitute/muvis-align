@@ -3,7 +3,7 @@ import os
 
 from muvis_align.image.TiffDaskSource import TiffDaskSource
 from muvis_align.image.ZarrDaskSource import ZarrDaskSource
-from muvis_align.util import get_orthogonal_pairs, get_unique_file_labels, print_dict_xyz
+from muvis_align.util import get_pairs, get_unique_file_labels, print_dict_xyz
 
 
 def create_dask_source(filename, source_metadata=None, index=None):
@@ -56,9 +56,9 @@ def get_images_metadata(filenames, source_metadata=None):
     summary += f'Area: {print_dict_xyz(area)} Center: {print_dict_xyz(center)}\n'
 
     rotations2 = []
-    for rotation, size in zip(rotations, sizes):
+    for rotation in rotations:
         if rotation is None:
-            _, angles = get_orthogonal_pairs(centers, size)
+            _, angles = get_pairs(centers, sizes)
             if len(angles) > 0:
                 rotation = -np.mean(angles)
                 rotations2.append(rotation)
