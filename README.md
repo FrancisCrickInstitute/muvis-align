@@ -1,11 +1,11 @@
 # muvis-align
 
-[![License GNU GPL v3.0](https://img.shields.io/pypi/l/napari-muvis-align.svg?color=green)](https://github.com/folterj/napari-muvis-align/raw/main/LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/napari-muvis-align.svg?color=green)](https://pypi.org/project/napari-muvis-align)
-[![Python Version](https://img.shields.io/pypi/pyversions/napari-muvis-align.svg?color=green)](https://python.org)
-[![tests](https://github.com/folterj/napari-muvis-align/workflows/tests/badge.svg)](https://github.com/folterj/napari-muvis-align/actions)
-[![codecov](https://codecov.io/gh/folterj/napari-muvis-align/branch/main/graph/badge.svg)](https://codecov.io/gh/folterj/napari-muvis-align)
-[![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-muvis-align)](https://napari-hub.org/plugins/napari-muvis-align)
+[![License GNU GPL v3.0](https://img.shields.io/pypi/l/muvis-align.svg?color=green)](https://github.com/folterj/muvis-align/raw/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/muvis-align.svg?color=green)](https://pypi.org/project/muvis-align)
+[![Python Version](https://img.shields.io/pypi/pyversions/muvis-align.svg?color=green)](https://python.org)
+[![tests](https://github.com/folterj/muvis-align/workflows/tests/badge.svg)](https://github.com/folterj/muvis-align/actions)
+[![codecov](https://codecov.io/gh/folterj/muvis-align/branch/main/graph/badge.svg)](https://codecov.io/gh/folterj/muvis-align)
+[![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/muvis-align)](https://napari-hub.org/plugins/muvis-align)
 [![npe2](https://img.shields.io/badge/plugin-npe2-blue?link=https://napari.org/stable/plugins/index.html)](https://napari.org/stable/plugins/index.html)
 [![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-inverted-border-purple.json)](https://github.com/copier-org/copier)
 
@@ -34,16 +34,16 @@ https://napari.org/stable/plugins/index.html
 
 ## Installation
 
-You can install `napari-muvis-align` via [pip]:
+You can install `muvis-align` via [pip]:
 
 ```
-pip install napari-muvis-align
+pip install muvis-align
 ```
 
-If napari is not already installed, you can install `napari-muvis-align` with napari and Qt via:
+If napari is not already installed, you can install `muvis-align` with napari and Qt via:
 
 ```
-pip install "napari-muvis-align[all]"
+pip install "muvis-align[all]"
 ```
 
 
@@ -56,7 +56,7 @@ the coverage at least stays the same before you submit a pull request.
 ## License
 
 Distributed under the terms of the [GNU GPL v3.0] license,
-"napari-muvis-align" is free and open source software
+"muvis-align" is free and open source software
 
 ## Issues
 

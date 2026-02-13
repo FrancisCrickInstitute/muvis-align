@@ -1,9 +1,9 @@
 [project]
 name = "muvis-align"
 dynamic = ["version"]
-description = "Image registration plugin using multiview-stitcher"
+description = "Image registration using multiview-stitcher"
 readme = "README.md"
-license = {file = "LICENSE.md"}
+license = {file = "LICENSE"}
 authors = [
   {name = "Joost de Folter"},
   {email = "folterj@gmail.com"},
@@ -36,7 +36,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Allow easily installation with the full, default napari installation
-# (including Qt backend) using napari-muvis-align[all].
+# (including Qt backend) using muvis-align[all].
 all = ["napari[all]"]
 
 [dependency-groups]

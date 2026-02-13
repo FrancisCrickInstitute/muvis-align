@@ -15,4 +15,4 @@ install_precommit: true
 license: GNU GPL v3.0
 module_name: muvis_align
 plugin_name: muvis-align
-short_description: Image registration plugin using multiview-stitcher
+short_description: Image registration using multiview-stitcher
