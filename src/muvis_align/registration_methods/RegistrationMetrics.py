@@ -1,7 +1,7 @@
 from spatial_image import SpatialImage
 
-from muvis_align.metrics import calc_ncc, calc_ssim
-from muvis_align.registration_methods.RegistrationMethod import RegistrationMethod
+from src.muvis_align.metrics import calc_ncc, calc_ssim
+from src.muvis_align.registration_methods.RegistrationMethod import RegistrationMethod
 
 
 class RegistrationMetrics(RegistrationMethod):

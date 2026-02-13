@@ -2,8 +2,8 @@ import zarr
 import ome_zarr.format
 from ome_zarr.writer import write_image
 
-from muvis_align.image.util import create_compression_filter, redimension_data
-from muvis_align.image.ome_zarr_util import create_axes_metadata, create_transformation_metadata, create_channel_ome_metadata
+from src.muvis_align.image.util import create_compression_filter, redimension_data
+from src.muvis_align.image.ome_zarr_util import create_axes_metadata, create_transformation_metadata, create_channel_ome_metadata
 
 
 def save_ome_zarr(filename, data, dimension_order, pixel_size, channels, translation, rotation,

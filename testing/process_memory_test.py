@@ -1,7 +1,7 @@
 import logging
 import yaml
 
-from muvis_align.MVSRegistration import MVSRegistration
+from src.muvis_align.MVSRegistration import MVSRegistration
 
 
 def test_process_memory(params, filenames):

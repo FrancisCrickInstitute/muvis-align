@@ -4,9 +4,9 @@ import numpy as np
 import tifffile
 from tifffile import PHOTOMETRIC
 
-from muvis_align.image.DaskSource import DaskSource
-from muvis_align.image.color_conversion import int_to_rgba
-from muvis_align.util import ensure_list
+from src.muvis_align.image.DaskSource import DaskSource
+from src.muvis_align.image.color_conversion import int_to_rgba
+from src.muvis_align.util import ensure_list
 
 
 class TiffDaskSource(DaskSource):

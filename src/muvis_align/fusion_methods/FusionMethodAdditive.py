@@ -1,6 +1,6 @@
 import numpy as np
 
-from muvis_align.fusion_methods.FusionMethod import FusionMethod
+from src.muvis_align.fusion_methods.FusionMethod import FusionMethod
 
 
 class FusionMethodAdditive(FusionMethod):

@@ -1,11 +1,11 @@
 import os.path
 from ome_zarr.scale import Scaler
 
-from muvis_align.constants import zarr_extension, tiff_extension
-from muvis_align.image.ome_ngff_helper import save_ome_ngff
-from muvis_align.image.ome_tiff_helper import save_ome_tiff
-from muvis_align.image.ome_zarr_helper import save_ome_zarr
-from muvis_align.image.util import *
+from src.muvis_align.constants import zarr_extension, tiff_extension
+from src.muvis_align.image.ome_ngff_helper import save_ome_ngff
+from src.muvis_align.image.ome_tiff_helper import save_ome_tiff
+from src.muvis_align.image.ome_zarr_helper import save_ome_zarr
+from src.muvis_align.image.util import *
 
 
 def save_image(filename, sim, output_format=zarr_extension, params={},

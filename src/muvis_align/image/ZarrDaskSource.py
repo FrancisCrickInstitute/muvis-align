@@ -3,8 +3,8 @@ from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 import os.path
 
-from muvis_align.image.DaskSource import DaskSource
-from muvis_align.util import convert_to_um
+from src.muvis_align.image.DaskSource import DaskSource
+from src.muvis_align.util import convert_to_um
 
 
 class ZarrDaskSource(DaskSource):

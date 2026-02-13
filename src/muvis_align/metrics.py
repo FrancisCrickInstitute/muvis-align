@@ -4,8 +4,8 @@ import numpy as np
 from skimage.metrics import structural_similarity
 from sklearn.metrics import euclidean_distances
 
-from muvis_align.image.util import image_reshape
-from muvis_align.util import apply_transform
+from src.muvis_align.image.util import image_reshape
+from src.muvis_align.util import apply_transform
 
 
 def calc_match_metrics(points1, points2, transform, threshold, lowe_ratio=None):

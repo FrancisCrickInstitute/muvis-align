@@ -6,9 +6,9 @@ import pandas as pd
 from threading import Thread
 from tqdm import tqdm
 
-from muvis_align.constants import version
-from muvis_align.image.source_helper import get_images_metadata
-from muvis_align.util import dir_regex, get_filetitle, find_all_numbers, find_target_numeric
+from src.muvis_align.constants import version
+from src.muvis_align.image.source_helper import get_images_metadata
+from src.muvis_align.util import dir_regex, get_filetitle, find_all_numbers, find_target_numeric
 
 
 class Pipeline(Thread):
@@ -155,10 +155,10 @@ class Pipeline(Thread):
 
         napari_ui = 'napari' in self.params_general.get('ui', '')
         if napari_ui:
-            from muvis_align.MVSRegistrationNapari import MVSRegistrationNapari
+            from src.muvis_align.MVSRegistrationNapari import MVSRegistrationNapari
             mvs_registration = MVSRegistrationNapari(self.params_general, self.viewer)
         else:
-            from muvis_align.MVSRegistration import MVSRegistration
+            from src.muvis_align.MVSRegistration import MVSRegistration
             mvs_registration = MVSRegistration(self.params_general)
         return mvs_registration.run_operation(fileset_label, fileset, params,
                                               global_center=center, global_rotation=rotation)

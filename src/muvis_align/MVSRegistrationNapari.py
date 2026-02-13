@@ -1,6 +1,6 @@
 from qtpy.QtCore import QObject, Signal, Slot
 
-from muvis_align.MVSRegistration import MVSRegistration
+from src.muvis_align.MVSRegistration import MVSRegistration
 
 
 class MVSRegistrationNapari(MVSRegistration, QObject):

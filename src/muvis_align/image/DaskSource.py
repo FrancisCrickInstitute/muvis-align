@@ -1,6 +1,6 @@
 import numpy as np
 
-from muvis_align.util import get_value_units_micrometer, find_all_numbers, split_numeric_dict, eval_context
+from src.muvis_align.util import get_value_units_micrometer, find_all_numbers, split_numeric_dict, eval_context
 
 
 class DaskSource:

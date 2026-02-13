@@ -15,16 +15,16 @@ import shutil
 from skimage.transform import resize
 import xarray as xr
 
-from muvis_align.Timer import Timer
-from muvis_align.constants import *
-from muvis_align.image.Video import Video
-from muvis_align.image.flatfield import flatfield_correction
-from muvis_align.image.ome_helper import save_image, exists_output_image
-from muvis_align.image.ome_tiff_helper import save_tiff
-from muvis_align.image.source_helper import create_dask_source
-from muvis_align.image.util import *
-from muvis_align.metrics import calc_ncc, calc_ssim
-from muvis_align.util import *
+from src.muvis_align.Timer import Timer
+from src.muvis_align.constants import *
+from src.muvis_align.image.Video import Video
+from src.muvis_align.image.flatfield import flatfield_correction
+from src.muvis_align.image.ome_helper import save_image, exists_output_image
+from src.muvis_align.image.ome_tiff_helper import save_tiff
+from src.muvis_align.image.source_helper import create_dask_source
+from src.muvis_align.image.util import *
+from src.muvis_align.metrics import calc_ncc, calc_ssim
+from src.muvis_align.util import *
 
 
 dask.config.set(scheduler='threads')
@@ -551,15 +551,15 @@ class MVSRegistration:
         debug = self.params_general.get('debug', False)
 
         if 'cpd' in reg_method:
-            from muvis_align.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
+            from src.muvis_align.registration_methods.RegistrationMethodCPD import RegistrationMethodCPD
             registration_method = RegistrationMethodCPD(sim0, reg_params, debug)
             pairwise_reg_func = registration_method.registration
         elif 'feature' in reg_method or 'orb' in reg_method or 'sift' in reg_method:
             if 'cv' in reg_method:
-                from muvis_align.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
+                from src.muvis_align.registration_methods.RegistrationMethodCvFeatures import RegistrationMethodCvFeatures
                 registration_method = RegistrationMethodCvFeatures(sim0, reg_params, debug)
             else:
-                from muvis_align.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
+                from src.muvis_align.registration_methods.RegistrationMethodSkFeatures import RegistrationMethodSkFeatures
                 registration_method = RegistrationMethodSkFeatures(sim0, reg_params, debug)
             pairwise_reg_func = registration_method.registration
         elif 'ant' in reg_method:
@@ -588,11 +588,11 @@ class MVSRegistration:
             fusion_method = fusion_params.lower()
 
         if 'exclus' in fusion_method:
-            from muvis_align.fusion_methods.FusionMethodExclusive import FusionMethodExclusive
+            from src.muvis_align.fusion_methods.FusionMethodExclusive import FusionMethodExclusive
             fusion_method = FusionMethodExclusive(sim0, fusion_params, debug)
             fuse_func = fusion_method.fusion
         elif 'add' in fusion_method:
-            from muvis_align.fusion_methods.FusionMethodAdditive import FusionMethodAdditive
+            from src.muvis_align.fusion_methods.FusionMethodAdditive import FusionMethodAdditive
             fusion_method = FusionMethodAdditive(sim0, fusion_params, debug)
             fuse_func = fusion_method.fusion
         else:
@@ -659,7 +659,7 @@ class MVSRegistration:
         reg_method, pairwise_reg_func, pairwise_reg_func_kwargs = self.create_registration_method(register_sims[0])
 
         # Pass registration through metrics method
-        #from muvis_align.registration_methods.RegistrationMetrics import RegistrationMetrics
+        #from src.muvis_align.registration_methods.RegistrationMetrics import RegistrationMetrics
         #registration_metrics = RegistrationMetrics(sim0, pairwise_reg_function)
         #pairwise_reg_function = registration_metrics.registration
         # TODO: extract metrics from registration_metrics

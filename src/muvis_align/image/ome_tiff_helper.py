@@ -1,7 +1,7 @@
 from tifffile import TiffWriter, tifffile
 
-from muvis_align.image.color_conversion import rgba_to_int
-from muvis_align.util import *
+from src.muvis_align.image.color_conversion import rgba_to_int
+from src.muvis_align.util import *
 
 
 def load_tiff(filename):

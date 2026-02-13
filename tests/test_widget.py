@@ -1,6 +1,6 @@
 import numpy as np
 
-from muvis_align._widget import (
+from src.muvis_align._widget import (
     MainWidget,
 )
 

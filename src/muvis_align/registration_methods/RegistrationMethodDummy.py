@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 from spatial_image import SpatialImage
 
-from muvis_align.registration_methods.RegistrationMethod import RegistrationMethod
+from src.muvis_align.registration_methods.RegistrationMethod import RegistrationMethod
 
 
 class RegistrationMethodDummy(RegistrationMethod):

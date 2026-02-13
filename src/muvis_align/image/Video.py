@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-from muvis_align.image.util import *
+from src.muvis_align.image.util import *
 
 
 class Video:
