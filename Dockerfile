@@ -4,6 +4,36 @@ FROM python:3.11-slim-bookworm AS muvis-align
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# install python resources + graphical libraries used by qt and vispy
+RUN apt-get update && \
+    apt-get install -qqy  \
+        build-essential \
+        git \
+        libglib2.0-0 \
+        mesa-utils \
+        libglx-mesa0 \
+        # tlambert03/setup-qt-libs
+        libegl1 \
+        libdbus-1-3 \
+        libxkbcommon-x11-0 \
+        libxcb-icccm4 \
+        libxcb-image0 \
+        libxcb-keysyms1 \
+        libxcb-randr0 \
+        libxcb-render-util0 \
+        libxcb-xinerama0 \
+        libxcb-xinput0 \
+        libxcb-xfixes0 \
+        x11-utils \
+        libxcb-cursor0 \
+        libopengl0 \
+        # other/remaining
+        libfontconfig1 \
+        libxrender1 \
+        libxi6 \
+        libxcb-shape0 \
+        && apt-get clean \
+
 # Set working directory
 WORKDIR /app
 
@@ -18,7 +48,7 @@ RUN pip install -r requirements.txt
 RUN pip install napari[all]
 RUN pip install .
 
-ENTRYPOINT ["python3", "-m", "napari"]
+ENTRYPOINT ["python3", "-m", "napari", "-w", "muvis-align"]
 
 
 FROM muvis-align AS muvis-align-xpra
@@ -65,3 +95,8 @@ CMD echo "Launching napari on Xpra. Connect via http://localhost:$XPRA_PORT or $
     $DISPLAY
 
 ENTRYPOINT []
+
+# Build:
+# docker build -t muvis-align-xpra .
+# Run:
+# docker run -p 9876:9876 muvis-align-xpra
