@@ -531,7 +531,7 @@ def get_rotation_from_transform(transform, dims='xyz'):
         rotation = np.arctan2(transform[0][1], transform[0][0])
     else:
         rotation = np.arctan2(transform[1][0], transform[1][1])
-    return np.rad2deg(rotation)
+    return float(np.rad2deg(rotation))
 
 
 def normalise_rotation(rotation):

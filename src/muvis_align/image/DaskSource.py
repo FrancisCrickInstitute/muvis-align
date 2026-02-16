@@ -6,7 +6,7 @@ from src.muvis_align.util import get_value_units_micrometer, find_all_numbers, s
 class DaskSource:
     default_physical_unit = 'µm'
 
-    def __init__(self, filename, source_metadata=None, index=None):
+    def __init__(self, filename, source_metadata=None):
         self.filename = filename
         self.dimension_order = ''
         self.is_rgb = False
@@ -20,36 +20,32 @@ class DaskSource:
         self.rotation = 0
         self.channels = []
         self.init_metadata()
-        self.fix_metadata(source_metadata, index=index)
+        self.fix_metadata(source_metadata)
 
     def init_metadata(self):
         raise NotImplementedError("Dask source should implement init_metadata() to initialize metadata")
 
-    def fix_metadata(self, source_metadata=None, index=None):
+    def fix_metadata(self, source_metadata=None):
         if isinstance(source_metadata, dict):
             filename_numeric = find_all_numbers(self.filename)
             filename_dict = {key: int(value) for key, value in split_numeric_dict(self.filename).items()}
             context = {'filename_numeric': filename_numeric, 'fn': filename_numeric} | filename_dict
             if 'position' in source_metadata:
-                translation0 = source_metadata['position']
-                if index is not None and isinstance(translation0, list):
-                    translation0 = translation0[index]
-                if 'x' in translation0:
-                    self.position['x'] = eval_context(translation0, 'x', 0, context)
-                if 'y' in translation0:
-                    self.position['y'] = eval_context(translation0, 'y', 0, context)
-                if 'z' in translation0:
-                    self.position['z'] = eval_context(translation0, 'z', 0, context)
+                translation = source_metadata['position']
+                if 'x' in translation:
+                    self.position['x'] = eval_context(translation, 'x', 0, context)
+                if 'y' in translation:
+                    self.position['y'] = eval_context(translation, 'y', 0, context)
+                if 'z' in translation:
+                    self.position['z'] = eval_context(translation, 'z', 0, context)
             if 'scale' in source_metadata:
-                scale0 = source_metadata['scale']
-                if index is not None and isinstance(scale0, list):
-                    scale0 = scale0[index]
-                if 'x' in scale0:
-                    self.pixel_size['x'] = eval_context(scale0, 'x', 1, context)
-                if 'y' in scale0:
-                    self.pixel_size['y'] = eval_context(scale0, 'y', 1, context)
-                if 'z' in scale0:
-                    self.pixel_size['z'] = eval_context(scale0, 'z', 1, context)
+                scale = source_metadata['scale']
+                if 'x' in scale:
+                    self.pixel_size['x'] = eval_context(scale, 'x', 1, context)
+                if 'y' in scale:
+                    self.pixel_size['y'] = eval_context(scale, 'y', 1, context)
+                if 'z' in scale:
+                    self.pixel_size['z'] = eval_context(scale, 'z', 1, context)
             if 'rotation' in source_metadata:
                 self.rotation = source_metadata['rotation']
 

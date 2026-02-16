@@ -793,8 +793,10 @@ def combine_transforms(transforms):
     return combined_transform
 
 
-def make_sims_3d(sims, z_scale=1, positions=None):
+def make_sims_3d(sims, z_scale=None, positions=None):
     new_sims = []
+    if not z_scale:
+        z_scale = 1
     for index, sim in enumerate(sims):
         # check if already 3D
         if 'z' not in sim.dims:

@@ -5,7 +5,6 @@ from contextlib import nullcontext
 import dask
 from dask.diagnostics import ProgressBar
 import logging
-import multiview_stitcher
 from multiview_stitcher import registration, vis_utils
 from multiview_stitcher.mv_graph import NotEnoughOverlapError
 from multiview_stitcher.registration import get_overlap_bboxes, sims_to_intrinsic_coord_system
@@ -46,8 +45,6 @@ class MVSRegistration:
         self.reg_transform_key = 'registered'
         self.transition_transform_key = 'transition'
         self.sources = None
-
-        logging.info(f'Multiview-stitcher version: {multiview_stitcher.__version__}')
 
     def init_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
         self.fileset_label = fileset_label
@@ -108,7 +105,7 @@ class MVSRegistration:
             return False
 
         registered_fused_filename = output + registered_name
-        mappings_filename = os.path.join(output, params.get('mappings', default_mappings_name))
+        mappings_filename = output + params.get('mappings', default_mappings_name)
 
         output_dir = os.path.dirname(output)
         if not overwrite and exists_output_image(registered_fused_filename):
@@ -193,8 +190,9 @@ class MVSRegistration:
             if is_stack:
                 sims = make_sims_3d(sims, z_scale, self.positions)
         else:
-            with Timer('register', self.logging_time):
-                results = self.register(sims, register_sims, indices)
+            if 'register' in operation:
+                with Timer('register', self.logging_time):
+                    results = self.register(sims, register_sims, indices)
 
             if is_stack:
                 results['sims'] = make_sims_3d(results['sims'], z_scale, self.positions)
@@ -266,9 +264,28 @@ class MVSRegistration:
         return True
 
     def init_sources(self):
-        source_metadata = import_metadata(self.params.get('source_metadata', 'source'), input_path=self.params['input'])
-        self.sources = [create_dask_source(file, source_metadata, index=index)
-                        for index, file in enumerate(self.filenames)]
+        source_metadata0 = import_metadata(self.params.get('source_metadata', 'source'), input_path=self.params['input'])
+        source_metadata = {}
+        self.sources = []
+        for index, (filename, label) in enumerate(zip(self.filenames, self.file_labels)):
+            if isinstance(source_metadata0, dict) and label in source_metadata0:
+                source_metadata = source_metadata0[label]
+                position, rotation, scale = get_properties_from_transform(param_utils.affine_to_xaffine(np.array(source_metadata)))
+                source_metadata = {'position': position, 'rotation': rotation, 'scale': xyz_to_dict([scale, scale])}
+            else:
+                if 'position' in source_metadata0:
+                    translation = source_metadata0['position']
+                    if isinstance(translation, list):
+                        translation = translation[index]
+                    source_metadata['position'] = translation
+                if 'scale' in source_metadata0:
+                    scale = source_metadata0['scale']
+                    if isinstance(scale, list):
+                        scale = scale[index]
+                    source_metadata['scale'] = scale
+                if 'rotation' in source_metadata0:
+                    source_metadata['rotation'] = source_metadata0['rotation']
+            self.sources.append(create_dask_source(filename, source_metadata))
 
     def init_sims(self, target_scale=None):
         operation = self.params['operation']

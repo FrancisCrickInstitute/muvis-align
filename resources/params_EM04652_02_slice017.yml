@@ -11,7 +11,7 @@ general:
     verbose: True
   output:
     clear: False
-    overwrite: True
+    overwrite: False
     format: ome.zarr
     tile_size: [4096, 4096]
     compression:
@@ -26,6 +26,9 @@ operations:
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00500.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00012.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_slice394/*.ome.tif
+    #input:
+    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00000.ome.tif
+    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00001.ome.tif
     source_metadata: sbem
     normalisation: global
     gaussian_sigma: 1.5
@@ -41,24 +44,37 @@ operations:
     fusion: exclusive
     output_spacing: min
     n_parallel_pairwise_regs: 64
-    output: ../../stitched/slice{s}/
+    output: ../../stitched/s{s}/
 
-  - operation: stack
-    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
-    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/stitched/slice*/registered.ome.zarr
-    #source_metadata: source
-    source_metadata: {position: {y: 0, x: 0}, rotation: null}
-    extra_metadata: {scale: {z: 0.05}}
-    #scale: 0.04um
+  - operation: register stack
+    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
+    #input:
+    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00000.ome.tif
+    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00001.ome.tif
+    source_metadata: {'position': {'y': 0, 'x': 0}, rotation: null}
+    normalisation: global
     gaussian_sigma: 2.5
     transform_type: affine
     #method: phase_correlation
     method:
       name: orb
+      #gaussian_sigma: 2.5
       max_keypoints: 5000
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
-    output_spacing: min
+    output_spacing: mean
+    n_parallel_pairwise_regs: 64
+    output: ../../aligned/ov_
+
+  - operation: stack
+    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/stitched/s*/registered.ome.zarr
+    #input:
+    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/stitched/s00000/registered.ome.zarr
+    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/stitched/s00001/registered.ome.zarr
+    #source_metadata: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/aligned/ov_mappings.json
+    mappings: ov_mappings.json
+    output_spacing: mean
     n_parallel_pairwise_regs: 64
     output: ../../aligned/
