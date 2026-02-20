@@ -13,11 +13,11 @@ general:
     clear: False
     overwrite: False
     format: ome.zarr
-    tile_size: [4096, 4096]
+    tile_size: [10240, 10240]
     compression:
     npyramid_add: 4
     pyramid_downsample: 2
-    thumbnail: ome.tiff
+    thumbnail:
     thumbnail_scale: 1um
 
 operations:
@@ -43,6 +43,7 @@ operations:
       ransac_iterations: 3
     fusion: exclusive
     output_spacing: min
+    n_set_workers: 64
     n_parallel_pairwise_regs: 64
     output: ../../stitched/s{s}/
 
