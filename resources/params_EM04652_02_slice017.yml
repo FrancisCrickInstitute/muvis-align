@@ -1,7 +1,7 @@
 general:
   show_original: False
   metadata_summary: False
-  chunk_size: [4096, 4096]
+  chunk_size: [10240, 10240]
   break_on_error: True
   logging:
     filename: log/muvis-align-EM04652.log
