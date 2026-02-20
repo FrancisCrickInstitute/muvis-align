@@ -166,7 +166,7 @@ class MVSRegistration:
 
         if len(filenames) == 1 and save_images:
             logging.warning('Skipping registration (single image)')
-            self.save(registered_fused_filename, sims[0], output_params.get('format'), translation0=self.positions[0])
+            self.save(registered_fused_filename, sims[0], output_params.get('format'), translations0=self.positions)
             return False
 
         _, has_overlaps = self.validate_overlap(sims, file_labels, is_simple_stack, is_simple_stack or is_channel_overlay)
@@ -256,7 +256,7 @@ class MVSRegistration:
                     logging.info('Saving fused image...')
                     with Timer('save fused image', self.logging_time):
                         self.save(registered_fused_filename, fused_image, output_params.get('format'),
-                                  transform_key=self.reg_transform_key, translation0=self.positions[0])
+                                  transform_key=self.reg_transform_key, translations0=self.positions)
 
             if is_transition:
                 self.save_video(output, sims, fused_image)
@@ -604,7 +604,10 @@ class MVSRegistration:
         else:
             fusion_method = fusion_params.lower()
 
-        if 'exclus' in fusion_method:
+        if 'compos' in fusion_method:
+            fusion_method = None
+            fuse_func = None
+        elif 'exclus' in fusion_method:
             from src.muvis_align.fusion_methods.FusionMethodExclusive import FusionMethodExclusive
             fusion_method = FusionMethodExclusive(sim0, fusion_params, debug)
             fuse_func = fusion_method.fusion
@@ -798,9 +801,9 @@ class MVSRegistration:
         data_size = np.prod(list(output_stack_properties['shape'].values())) * sim0.dtype.itemsize
         logging.info(f'Fusing {print_hbytes(data_size)}')
 
+        saving_zarr = False
         if is_channel_overlay:
             # convert to multichannel images
-            saving_zarr = False
             channel_sims = [fusion.fuse(
                 [sim],
                 transform_key=transform_key,
@@ -809,18 +812,21 @@ class MVSRegistration:
             channel_sims = [sim.assign_coords({'c': [channels[simi]['label']]}) for simi, sim in enumerate(channel_sims)]
             fused_image = xr.combine_nested([sim.rename() for sim in channel_sims], concat_dim='c', combine_attrs='override')
         else:
-            saving_zarr = output_filename is not None
-            if saving_zarr and not output_filename.lower().endswith('.zarr'):
-                output_filename += '.ome.zarr'
-
-            fused_image = fusion.fuse(
-                sims,
-                fusion_func=self.create_fusion_method(sim0),
-                transform_key=transform_key,
-                output_stack_properties=output_stack_properties,
-                output_zarr_url=output_filename,
-                zarr_options={'ome_zarr': saving_zarr}
-            )
+            fuse_func = self.create_fusion_method(sim0)
+            if fuse_func:
+                saving_zarr = output_filename is not None
+                if saving_zarr and not output_filename.lower().endswith('.zarr'):
+                    output_filename += '.ome.zarr'
+                fused_image = fusion.fuse(
+                    sims,
+                    fusion_func=fuse_func,
+                    transform_key=transform_key,
+                    output_stack_properties=output_stack_properties,
+                    output_zarr_url=output_filename,
+                    zarr_options={'ome_zarr': saving_zarr}
+                )
+            else:
+                fused_image = sims
         return fused_image, saving_zarr
 
     def save_thumbnail(self, output_filename, nom_sims=None, transform_key=None):
@@ -849,12 +855,12 @@ class MVSRegistration:
         if not is_saved or 'tif' in output_params.get('thumbnail'):
             self.save(output_filename, fused_image.squeeze(), output_params.get('thumbnail'), transform_key=transform_key)
 
-    def save(self, output_filename, data, format=zarr_extension, transform_key=None, translation0=None):
+    def save(self, output_filename, data, format=zarr_extension, transform_key=None, translations0=None):
         extra_metadata = import_metadata(self.params.get('extra_metadata', {}), input_path=self.params['input'])
         channels = extra_metadata.get('channels', [])
         general_output_params = self.params_general.get('output', {})
         save_image(output_filename, data, format, params=general_output_params,
-                   transform_key=transform_key, channels=channels, translation0=translation0,
+                   transform_key=transform_key, channels=channels, translations0=translations0,
                    verbose=self.verbose)
 
     def calc_overlap_metrics(self, results):
