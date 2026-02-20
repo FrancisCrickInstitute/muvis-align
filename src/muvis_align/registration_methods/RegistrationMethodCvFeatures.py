@@ -103,7 +103,7 @@ class RegistrationMethodCvFeatures(RegistrationMethod):
                                            show_plot=True)
 
         if not validate_transform(transform):
-            logging.error('Feature extraction: Unable to find feature-based registration')
+            logging.warning('Feature extraction: Unable to find feature-based registration')
             transform = np.eye(3)
 
         return {

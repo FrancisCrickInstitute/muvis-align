@@ -69,7 +69,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 points = points[indices]
                 desc = desc[indices]
             if len(points) == 0:
-                logging.error('Feature extraction: No features detected!')
+                logging.warning('Feature extraction: No features detected!')
         except Exception as e:
             logging.error(e)
 
@@ -199,7 +199,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                                    show_plot=True)
 
         if quality == 0 or np.sum(inliers) == 0:
-            logging.error('Feature extraction: Unable to find feature-based registration')
+            logging.warning('Feature extraction: Unable to find feature-based registration')
             transform = eye_transform
 
         if len(transform) < self.ndims + 1:
