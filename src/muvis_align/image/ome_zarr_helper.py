@@ -6,8 +6,8 @@ from src.muvis_align.image.util import create_compression_filter, redimension_da
 from src.muvis_align.image.ome_zarr_util import create_axes_metadata, create_transformation_metadata, create_channel_ome_metadata
 
 
-def save_ome_zarr(filename, data, dimension_order, pixel_size, channels, translation, rotation,
-                  compression=None, scaler=None, zarr_version=2, ome_version='0.4'):
+def save_ome_zarr(filename, data, dimension_order, pixel_size, channels, translations, rotations,
+                  compression=None, scaler=None, ome_version='0.4'):
 
     storage_options = {'dimension_separator': '/'}
     compressor, compression_filters = create_compression_filter(compression)
@@ -15,12 +15,6 @@ def save_ome_zarr(filename, data, dimension_order, pixel_size, channels, transla
         storage_options['compressor'] = compressor
     if compression_filters is not None:
         storage_options['filters'] = compression_filters
-
-    if 'z' not in dimension_order:
-        # add Z dimension to be able to store Z position
-        new_dimension_order = dimension_order.replace('yx', 'zyx')
-        data = redimension_data(data, dimension_order, new_dimension_order)
-        dimension_order = new_dimension_order
 
     axes = create_axes_metadata(dimension_order)
 
@@ -45,13 +39,19 @@ def save_ome_zarr(filename, data, dimension_order, pixel_size, channels, transla
         ome_zarr_format = ome_zarr.format.FormatV05()   # future support anticipated
     else:
         ome_zarr_format = ome_zarr.format.CurrentFormat()
+    zarr_format = 3 if float(ome_zarr_format.version) >= 0.5 else 2
 
-    zarr_root = zarr.open_group(store=filename, mode="w", zarr_version=zarr_version)
-    write_image(image=data, group=zarr_root, axes=axes, coordinate_transformations=coordinate_transformations,
-                scaler=scaler, storage_options=storage_options, fmt=ome_zarr_format)
-
-    keys = list(zarr_root.array_keys())
-    data_smallest = zarr_root.get(keys[-1])
+    group = zarr.open_group(store=filename, mode="w", zarr_format=zarr_format)
+    if isinstance(data, list):
+        for index, data1 in enumerate(data):
+            subgroup = group.create_group(name=str(index), mode="w", zarr_format=zarr_format)
+            write_image(image=data1, group=subgroup, axes=axes, coordinate_transformations=coordinate_transformations,
+                        scaler=scaler, storage_options=storage_options, fmt=ome_zarr_format)
+    else:
+        write_image(image=data, group=group, axes=axes, coordinate_transformations=coordinate_transformations,
+                    scaler=scaler, storage_options=storage_options, fmt=ome_zarr_format)
 
     # get smallest size image
-    zarr_root.attrs['omero'] = create_channel_ome_metadata(data_smallest, dimension_order, channels, ome_version)
+    keys = list(group.array_keys())
+    data_smallest = group.get(keys[-1])
+    group.attrs['omero'] = create_channel_ome_metadata(data_smallest, dimension_order, channels, ome_version)
