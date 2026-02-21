@@ -48,7 +48,7 @@ RUN pip install -r requirements.txt
 RUN pip install napari[all]
 RUN pip install .
 
-ENTRYPOINT ["python3", "-m", "napari", "-w", "muvis-align"]
+ENTRYPOINT ["python3", "-m", "napari", "--plugin", "muvis-align"]
 
 
 FROM muvis-align AS muvis-align-xpra
