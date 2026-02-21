@@ -116,9 +116,12 @@ def get_channel_window(data, dimension_order, channeli):
         info = np.iinfo(data.dtype)
         start, end = info.min, info.max
 
-    if 'c' in dimension_order:
-        data = np.take(data, channeli, axis=dimension_order.index('c'))
-    min, max = get_image_quantile(data, min_quantile), get_image_quantile(data, max_quantile)
+    if data.dtype.itemsize == 1:
+        min, max = start, end
+    else:
+        if 'c' in dimension_order:
+            data = np.take(data, channeli, axis=dimension_order.index('c'))
+        min, max = get_image_quantile(data, min_quantile), get_image_quantile(data, max_quantile)
     window = {'start': start, 'end': end, 'min': min, 'max': max}
     return window
 
