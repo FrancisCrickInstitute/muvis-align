@@ -33,13 +33,13 @@ operations:
     gaussian_sigma: 6
     #pairing: overlay
     transform_type: translation
-    #method: phase_correlation
-    method:
-      name: sift
-      max_keypoints: 5000
-      inlier_threshold_factor: 0.05
-      max_trials: 1000
-      ransac_iterations: 3
+    method: phase_correlation
+    #method:
+    #  name: sift
+    #  max_keypoints: 5000
+    #  inlier_threshold_factor: 0.05
+    #  max_trials: 1000
+    #  ransac_iterations: 3
     #fusion: compose
     n_set_workers: 64
     n_parallel_pairwise_regs: 64
