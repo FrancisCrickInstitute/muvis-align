@@ -825,6 +825,8 @@ class MVSRegistration:
                     output_zarr_url=output_filename,
                     zarr_options={'ome_zarr': saving_zarr}
                 )
+                if saving_zarr:
+                    open(output_filename.rstrip('.zarr').rstrip('.ome'), 'w')
             else:
                 fused_image = sims
         return fused_image, saving_zarr
