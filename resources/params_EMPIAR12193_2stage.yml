@@ -38,7 +38,7 @@ operations:
 #      ransac_iterations: 3
 #    output: ../../stitched/S{S}/
 #
-#  - operation: stack
+#  - operation: register stack
 #    #input: /nemo/project/proj-ccp-vem/datasets/12193/stitched/S???/registered.ome.zarr
 #    input: D:/slides/12193/stitched/S???/registered.ome.zarr
 #    source_metadata: source
@@ -61,7 +61,7 @@ operations:
 #    source_metadata: {'scale': {'x': 0.004, 'y': 0.004, 'z': 0.1}, 'position': {'y':'fn[-3]*24', 'x':'fn[-2]*24', 'z':'S*0.1'}}
 #    extra_metadata: aligned_stitched_mappings2.json
 #    #flatfield_quantiles: [0.5]
-#    use_orthogonal_pairs: False
+#    #pairing: orthogonal
 #    transform_type: rigid
 #    method:
 #      name: 3din2d  # sift
@@ -85,7 +85,7 @@ operations:
     extra_metadata: ../../aligned_stitched_mappings1.json
     scale: 4
     flatfield_quantiles: [0.5]
-    use_orthogonal_pairs: True
+    pairing: orthogonal
     transform_type: rigid
     method:
       name: orb

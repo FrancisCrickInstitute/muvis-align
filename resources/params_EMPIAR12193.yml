@@ -29,7 +29,7 @@ operations:
     #normalisation: global  # normalise in custom registration function instead
     scale: 4
     flatfield_quantiles: [0.5]
-    use_orthogonal_pairs: True
+    pairing: orthogonal
     transform_type: translation
     method:
       name: orb
@@ -40,7 +40,7 @@ operations:
       ransac_iterations: 3
     output: ../../stitched/S{S}/
 
-  - operation: stack
+  - operation: register stack
     input: /nemo/project/proj-ccp-vem/datasets/12193/stitched/S???/registered.ome.zarr
     #input: D:/slides/12193/stitched/S???/registered.ome.zarr
     source_metadata: source

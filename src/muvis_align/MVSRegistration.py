@@ -665,7 +665,7 @@ class MVSRegistration:
             register_sims = [si_utils.max_project_sim(sim, dim='z') if 'z' in sim.dims else sim
                              for sim in register_sims]
             pairs = [(index, index + 1) for index in range(len(register_sims) - 1)]
-        elif 'orthogonal' in pairing or 'overlay' in pairing:
+        elif 'ortho' in pairing or 'overla' in pairing:
             origins = np.array([get_sim_position_final(sim, position, get_center=True)
                                 for sim, position in zip(sims, self.positions)])
             sizes = [get_sim_physical_size(sim) for sim in sims]
