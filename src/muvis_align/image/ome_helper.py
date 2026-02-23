@@ -22,7 +22,8 @@ def save_image(filename, data, output_format=zarr_extension, params={},
     else:
         data0 = data
         # metadata: only use coords of fused image
-        position, rotation = get_data_mapping(data, transform_key=transform_key, translation0=translations0[0])
+        translation0 = translations0[0] if translations0 is not None else None
+        position, rotation = get_data_mapping(data, transform_key=transform_key, translation0=translation0)
         nplanes = data.sizes.get('z', 1) * data.sizes.get('c', 1) * data.sizes.get('t', 1)
         positions = [position] * nplanes
         rotations = [rotation] * nplanes
