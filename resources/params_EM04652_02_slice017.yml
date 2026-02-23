@@ -18,22 +18,20 @@ general:
     compression:
     npyramid_add: 4
     pyramid_downsample: 2
-    thumbnail:
+    thumbnail: ome.tiff
     thumbnail_scale: 1um
 
 operations:
   - operation: register match s
-    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
+    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*.ome.tif
+    input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00400.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00500.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/**/*_s00012.ome.tif
     #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_slice394/*.ome.tif
-    #input:
-    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00000.ome.tif
-    #  - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00001.ome.tif
     source_metadata: sbem
     normalisation: global
-    gaussian_sigma: 1.5
-    pairing: overlay
+    gaussian_sigma: 6
+    #pairing: overlay
     transform_type: translation
     #method: phase_correlation
     method:
@@ -42,8 +40,8 @@ operations:
       inlier_threshold_factor: 0.05
       max_trials: 1000
       ransac_iterations: 3
-    fusion: compose
-    #n_set_workers: 64
+    #fusion: compose
+    n_set_workers: 64
     n_parallel_pairwise_regs: 64
     output: ../../stitched/s{s}/
 

@@ -496,13 +496,13 @@ class MVSRegistration:
 
         # normalise pixel size: take max pixel size
         max_scale = {dim: max(scale[dim] for scale in self.scales) for dim in 'xy'}
-        needs_reinit = False
-        for source in self.sources:
-            if not np.all([np.isclose(source.get_pixel_size()[dim], max_scale[dim]) for dim in 'xy']):
-                needs_reinit = True
+        #needs_reinit = False
+        #for source in self.sources:
+        #    if not np.all([np.isclose(source.get_pixel_size()[dim], max_scale[dim]) for dim in 'xy']):
+        #        needs_reinit = True
         scales0 = self.scales
-        if needs_reinit:
-            sims = self.init_sims(target_scale=max_scale)
+        #if needs_reinit:
+        #    sims = self.init_sims(target_scale=max_scale)
 
         if filter_foreground:
             foreground_map = calc_foreground_map(sims)
