@@ -17,9 +17,9 @@ class RegistrationMethod(ABC):
         self.debug = debug
         self.count = 0  # for debugging
 
-    def convert_data_to_float(self, data):
+    def convert_data_to_float(self, data, dtype=float):
         maxval = 2 ** (8 * self.source_type.itemsize) - 1
-        return data / np.float32(maxval)
+        return data / dtype(maxval)
 
     @abstractmethod
     def registration(self, fixed_data: SpatialImage, moving_data: SpatialImage, **kwargs) -> dict:

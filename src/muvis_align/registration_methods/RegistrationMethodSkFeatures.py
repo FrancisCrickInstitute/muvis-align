@@ -21,6 +21,7 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         super().__init__(source, params, debug=debug)
         self.method = params.get('name', 'sift').lower()
         self.full_size_gaussian_sigma = params.get('gaussian_sigma', params.get('sigma', 0))
+        self.normalisation = params.get('normalisation')
         self.downscale_factor = params.get('downscale_factor', params.get('downscale', np.sqrt(2)))
         self.nkeypoints = params.get('max_keypoints', 5000)
         self.cross_check = params.get('cross_check', True)
@@ -48,10 +49,11 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
         if 'z' in data0.dims:
             # make data 2D
             data0 = data0.max('z')
-        data = self.convert_data_to_float(data0)
-        #data = norm_image_variance2(data)
+        data = self.convert_data_to_float(np.nan_to_num(data0))
         if gaussian_sigma:
             data = gaussian_filter_image(data, gaussian_sigma)
+        if self.normalisation:
+            data = norm_image_variance2(data)
 
         try:
             # not thread-safe - create instance that is not re-used in other thread
@@ -154,10 +156,11 @@ class RegistrationMethodSkFeatures(RegistrationMethod):
                 "quality": 0  # float between 0 and 1 (if not available, set to 1.0)
             }
 
-        full_size_dist = np.linalg.norm(self.full_size)
+        full_size_min = np.min(self.full_size)
+        mean_size_min = np.mean([np.min([size for size in data.shape if size > 4]) for data in [fixed_data, moving_data]])
         mean_size_dist = np.mean([np.linalg.norm(data.shape) for data in [fixed_data, moving_data]])
-        scale = mean_size_dist / full_size_dist
-        gaussian_sigma = self.full_size_gaussian_sigma * (scale ** (1/3))
+        scale = mean_size_min / full_size_min
+        gaussian_sigma = self.full_size_gaussian_sigma * (scale ** (1/2))
         mean_size = np.mean([np.linalg.norm(data.shape) / np.sqrt(self.ndims) for data in [fixed_data, moving_data]])
         inlier_threshold = mean_size * self.inlier_threshold_factor
 

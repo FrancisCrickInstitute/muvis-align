@@ -520,24 +520,22 @@ class MVSRegistration:
                     new_sims[sim_index] = sim
             sims = new_sims
 
+        if gaussian_sigma:
+            new_sims = []
+            for sim, scale0 in zip(sims, scales0):
+                # factor in original pixel size for gaussian sigma value
+                scale = np.mean(list(scale0.values())) / np.mean(list(max_scale.values()))
+                sigma = gaussian_sigma * (scale ** (1 / 3))
+                new_sims.append(gaussian_filter_sim(sim, self.source_transform_key, sigma))
+            sims = new_sims
+
         if normalisation:
             use_global = ('global' in normalisation)
             if use_global:
                 logging.info('Normalising (global)...')
             else:
                 logging.info('Normalising (individual)...')
-            new_sims = normalise_sims(sims, self.source_transform_key, use_global=use_global)
-        else:
-            new_sims = sims
-
-        if gaussian_sigma:
-            new_sims2 = []
-            for sim, scale0 in zip(new_sims, scales0):
-                # factor in original pixel size for gaussian sigma value
-                scale = np.mean(list(scale0.values())) / np.mean(list(max_scale.values()))
-                sigma = gaussian_sigma * (scale ** (1 / 3))
-                new_sims2.append(gaussian_filter_sim(sim, self.source_transform_key, sigma))
-            new_sims = new_sims2
+            sims = normalise_sims(sims, self.source_transform_key, use_global=use_global)
 
         if filter_foreground:
             logging.info('Filtering foreground images...')
@@ -547,12 +545,13 @@ class MVSRegistration:
             #threshold3, _ = cv.threshold(np.array(tile_vars).astype(np.uint16), 0, 1, cv.THRESH_OTSU)
             #threshold = min(threshold1, threshold2, threshold3)
             #foregrounds = (tile_vars >= threshold)
-            new_sims = [sim for sim, is_foreground in zip(new_sims, foreground_map) if is_foreground]
+            new_sims = [sim for sim, is_foreground in zip(sims, foreground_map) if is_foreground]
             logging.info(f'Foreground images: {len(new_sims)} / {len(sims)}')
             indices = np.where(foreground_map)[0]
+            sims = new_sims
         else:
             indices = range(len(sims))
-        return new_sims, indices
+        return sims, indices
 
     def create_registration_method(self, sim0):
         registration_method = None
