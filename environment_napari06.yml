@@ -1,0 +1,13 @@
+name: napari06-env
+channels:
+ - conda-forge
+ - defaults
+dependencies:
+ - python=3.12
+ - requests
+ - aiohttp
+ - pyqt
+ - pip
+ - pip:
+    - git+https://github.com/will-moore/napari-ome-zarr.git@refs/pull/4/head
+#    - git+https://github.com/will-moore/napari-ome-zarr.git@v0.6.dev3
