@@ -48,7 +48,7 @@ def save_image(filename, data, output_format=zarr_extension, params={},
     pyramid_downsample = params.get('pyramid_downsample', 2)
     npyramid_add = get_max_downsamples(data0.shape, params.get('npyramid_add', 0), pyramid_downsample)
     scaler = Scaler(downscale=pyramid_downsample, max_layer=npyramid_add)
-    ome_version = params.get('ome_version', '0.4')
+    ome_version = str(params.get('ome_version', '0.4'))
 
     dimension_order = ''.join(data0.dims)
     pixel_size = si_utils.get_spacing_from_sim(data0)
