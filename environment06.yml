@@ -1,0 +1,23 @@
+name: muvis-align06-env
+channels:
+ - conda-forge
+ - defaults
+dependencies:
+ - python=3.12
+ - numpy
+ - scipy
+ - scikit-image
+ - scikit-learn
+ - dask
+ - tifffile>=2023.9.26
+ - zarr
+ - ome-zarr
+ - matplotlib
+ - tqdm
+ - pip
+ - pip:
+   - git+https://github.com/fideus-labs/ngff-zarr.git@refs/pull/255/head#subdirectory=mcp
+   - multiview-stitcher
+   - opencv-python
+   - spatial-image
+   - multiscale-spatial-image

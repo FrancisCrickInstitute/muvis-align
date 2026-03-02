@@ -68,7 +68,7 @@ class MVSRegistration:
 
     def run_operation(self, fileset_label, filenames, params, global_rotation=None, global_center=None):
         self.init_operation(fileset_label, filenames, params, global_rotation, global_center)
-        with ProgressBar(minimum=10, dt=1) if self.logging_dask else nullcontext():
+        with ProgressBar(minimum=60, dt=1) if self.logging_dask else nullcontext():
             return self._run_operation()
 
     def _run_operation(self):
@@ -521,6 +521,7 @@ class MVSRegistration:
             sims = new_sims
 
         if gaussian_sigma:
+            logging.info('Applying Gaussian filtering...')
             new_sims = []
             for sim, scale0 in zip(sims, scales0):
                 # factor in original pixel size for gaussian sigma value
