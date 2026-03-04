@@ -1,9 +1,9 @@
-from ngff_zarr import to_ngff_image, to_multiscales, to_ngff_zarr, Omero, OmeroChannel, OmeroWindow
-import ome_zarr.format
 import zarr
+import ome_zarr.format
+from ome_zarr.writer import write_image
 
 from src.muvis_align.image.util import create_compression_filter
-from src.muvis_align.image.ome_zarr_util import create_transformation_metadata, get_channel_window
+from src.muvis_align.image.ome_zarr_util import create_axes_metadata, create_transformation_metadata, create_channel_ome_metadata
 
 
 def save_ome_zarr(filename, datas, dim_order, pixel_size, channels, translations, rotations,
@@ -22,25 +22,38 @@ def save_ome_zarr(filename, datas, dim_order, pixel_size, channels, translations
         translation = translations[index] if translations is not None else None
         rotation = rotations[index] if rotations is not None else None
         if is_series:
-            path = filename + '/' + str(index)
+            group_path = str(index)
+            group = root.create_group(name=group_path, overwrite=True)
         else:
-            path = filename
-        metadata = save_ome_image(data, path=path, dim_order=dim_order, pixel_size=pixel_size, channels=channels,
-                                  translation=translation, rotation=rotation,
-                                  scaler=scaler, compression=compression, ome_version=ome_version)
+            group_path = ''
+            group = root
+        save_ome_image(data, group=group, dim_order=dim_order, pixel_size=pixel_size, channels=channels,
+                       translation=translation, rotation=rotation,
+                       scaler=scaler, compression=compression, ome_version=ome_version)
 
         if is_series:
-            multi_metadata.append(metadata)
-            if metadata:
-                omero_metadata = metadata.omero
+            is_ome_root = 'ome' in group.attrs
+            if is_ome_root:
+                meta = group.attrs['ome']['multiscales'][0].copy()
+            else:
+                meta = group.attrs['multiscales'][0].copy()
+            for dataset_meta in meta['datasets']:
+                dataset_meta['path'] = f'{group_path}/{dataset_meta["path"]}'
+            multi_metadata.append(meta)
+            omero_metadata = group.attrs['omero']
 
     if is_series:
-        root.attrs['multiscales'] = multi_metadata
+        if is_ome_root:
+            root.attrs['ome']['multiscales'] = multi_metadata
+        else:
+            root.attrs['multiscales'] = multi_metadata
         root.attrs['omero'] = omero_metadata
 
 
-def save_ome_image(data, path, dim_order, pixel_size, channels, translation, rotation,
+def save_ome_image(data, group, dim_order, pixel_size, channels, translation, rotation,
                    scaler=None, compression=None, ome_version='0.4'):
+
+    zarr_format, ome_zarr_format = get_ome_zarr_format(ome_version)
 
     storage_options = {}
     compressor, compression_filters = create_compression_filter(compression)
@@ -48,6 +61,8 @@ def save_ome_image(data, path, dim_order, pixel_size, channels, translation, rot
         storage_options['compressor'] = compressor
     if compression_filters is not None:
         storage_options['filters'] = compression_filters
+
+    axes = create_axes_metadata(dim_order)
 
     if scaler is not None:
         npyramid_add = scaler.max_layer
@@ -64,25 +79,13 @@ def save_ome_image(data, path, dim_order, pixel_size, channels, translation, rot
         if pyramid_downsample:
             factor *= pyramid_downsample
 
-    axes_units = {dim: 'micrometer' for dim in dim_order if dim in 'xyz'}
-    image = to_ngff_image(data, dims=dim_order, scale=pixel_size, translation=translation, axes_units=axes_units)
+    write_image(image=data, group=group, axes=axes, coordinate_transformations=coordinate_transformations,
+                scaler=scaler, storage_options=storage_options, fmt=ome_zarr_format)
 
-    scale_factors = [pyramid_downsample ** (scale + 1) for scale in range(npyramid_add)]
-    multiscales = to_multiscales(image, scale_factors=scale_factors, chunks=1024)
-
-    if channels:
-        omero = Omero(channels=[OmeroChannel(label=channel,
-                                             color=channel.get('color'),
-                                             window=OmeroWindow(**get_channel_window(multiscales.images[-1], dim_order, index)))
-                                for index, channel in enumerate(channels)])
-
-        multiscales.metadata.omero = omero
-
-    chunks_per_shard = None
-
-    to_ngff_zarr(path, multiscales, chunks_per_shard=chunks_per_shard, version=ome_version)
-
-    return multiscales.metadata
+    # get smallest size image for (window) metadata
+    keys = list(group.array_keys())
+    data_smallest = group.get(keys[-1])
+    group.attrs['omero'] = create_channel_ome_metadata(data_smallest, axes, channels, ome_version)
 
 
 def get_ome_zarr_format(ome_version):

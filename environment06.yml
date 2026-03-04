@@ -16,7 +16,8 @@ dependencies:
  - tqdm
  - pip
  - pip:
-   - git+https://github.com/fideus-labs/ngff-zarr.git@refs/pull/255/head#subdirectory=mcp
+   - git+https://github.com/fideus-labs/ngff-zarr.git@refs/pull/255/head#subdirectory=py
+#   - git+https://github.com/jo-mueller/ngff-zarr.git@RFC5#subdirectory=py
    - multiview-stitcher
    - opencv-python
    - spatial-image

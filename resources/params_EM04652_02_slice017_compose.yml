@@ -1,0 +1,43 @@
+general:
+  show_original: False
+  metadata_summary: False
+  chunk_size: [10240, 10240]
+  break_on_error: True
+  logging:
+    filename: log/muvis-align-EM04652.log
+    format: '%(asctime)s %(levelname)s: %(message)s'
+    dask: True
+    time: True
+    verbose: True
+  output:
+    clear: False
+    overwrite: False
+    format: ome.zarr
+    ome_version: 0.6
+    tile_size: [10240, 10240]
+    compression:
+    npyramid_add: 4
+    pyramid_downsample: 2
+    thumbnail:
+    thumbnail_scale: 1um
+
+operations:
+  - operation: register
+    #input: /nemo/project/proj-mrc-mm/raw/em/EM04652/EM04652_02_slice017/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
+    #input: D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/overviews/ov000/*.ome.tif
+    input:
+      - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_slice394/EM04652-02_slice17_spaghettiandmeatballs2_r0005_t0002_s00394.ome.tif
+      - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_slice394/EM04652-02_slice17_spaghettiandmeatballs2_r0005_t0003_s00394.ome.tif
+      - D:/slides/EM04652-02_slice17_spaghettiandmeatballs2/tiles_slice394/EM04652-02_slice17_spaghettiandmeatballs2_ov000_s00394.ome.tif
+    source_metadata: sbem
+    transform_type: affine
+    method:
+      name: orb
+      gaussian_sigma: 5
+      max_keypoints: 5000
+      inlier_threshold_factor: 0.05
+      max_trials: 1000
+      ransac_iterations: 3
+    output_spacing: mean
+    fusion: compose
+    output: ../composed/
