@@ -644,17 +644,12 @@ class MVSRegistration:
         else:
             reg_channel_index = None
 
-        if 'groupwise_resolution_method' in params:
-            groupwise_resolution_method = params['groupwise_resolution_method']
-        else:
-            groupwise_resolution_method = 'global_optimization'
-
+        groupwise_resolution_method = params.get('groupwise_resolution_method', 'global_optimization')
         groupwise_resolution_kwargs = None
         if groupwise_resolution_method == 'global_optimization' and 'transform_type' in params:
            groupwise_resolution_kwargs = {
                 'transform': params['transform_type']  # options include 'translation', 'rigid', 'affine', 'similarity'
             }
-
         if groupwise_resolution_method == 'shortest_paths':
             return_dict = False
 
