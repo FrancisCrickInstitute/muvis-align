@@ -96,6 +96,8 @@ class TiffDaskSource(DaskSource):
                     if color:
                         channel['color'] = int_to_rgba(int(color))
                     channels.append(channel)
+        else:
+            self.metadata = tags_to_dict(tiff.pages.first.tags)
         self.pixel_size = pixel_size
         self.position = position
         self.rotation = rotation
@@ -112,3 +114,10 @@ class TiffDaskSource(DaskSource):
             lazy_array = dask.delayed(tifffile.imread)(self.filename, level=level)
             dask_data = dask.array.from_delayed(lazy_array, shape=self.shapes[level], dtype=self.dtype)
         return dask_data
+
+
+def tags_to_dict(tags: tifffile.TiffTags) -> dict:
+    tag_dict = {}
+    for tag in tags.values():
+        tag_dict[tag.name] = tag.value
+    return tag_dict

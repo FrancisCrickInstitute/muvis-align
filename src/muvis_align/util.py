@@ -221,65 +221,47 @@ def split_numeric_dict(text: str) -> dict:
     return num_parts
 
 
+def get_unique_nums(all_parts: list) -> list:
+    keys = []
+    for parts in all_parts:
+        for key in parts:
+            if key not in keys:
+                keys.append(key)
+
+    changing_keys = []
+    for key in keys:
+        values = [parts.get(key) for parts in all_parts]
+        if len(set(values)) > 1:
+            changing_keys.append(key)
+
+    final_parts = [{key: parts[key] for key in changing_keys if key in parts} for parts in all_parts]
+    return final_parts
+
+
 def get_unique_file_labels(filenames: list) -> list:
     file_labels = []
     label_indices = set()
-    last_parts = None
 
-    n_dic = 0
-    n_full_dic = 0
-    n_full_num = 0
-    for filename in filenames:
-        parts = split_numeric_dict(get_filetitle(filename))
-        if len(parts) > 0:
-            n_dic += 1
-        else:
-            parts = split_numeric_dict(filename)
-            if len(parts) > 0:
-                n_full_dic += 1
-            else:
-                parts = split_numeric(filename)
-                if len(parts) > 0:
-                    n_full_num += 1
+    ntot = len(filenames)
+    parts_dic = get_unique_nums([split_numeric_dict(get_filetitle(filename)) for filename in filenames])
+    parts_dic_full = get_unique_nums([split_numeric_dict(filename) for filename in filenames])
+    parts_num_full = get_unique_nums([{index: value for index, value in enumerate(split_numeric(filename))} for filename in filenames])
 
-    use_dic = (n_dic == len(filenames))
-    use_full_dic = (n_full_dic == len(filenames))
-    use_full_num = (n_full_num == len(filenames))
+    dic_ok = (len(set(['_'.join(parts.values()) for parts in parts_dic])) == ntot)
+    full_dic_ok = (len(set(['_'.join(parts.values()) for parts in parts_dic_full])) == ntot)
+    full_num_ok = (len(set(['_'.join(parts.values()) for parts in parts_num_full])) == ntot)
 
-    all_parts = []
-    for filename in filenames:
-        if use_dic:
-            parts = split_numeric_dict(get_filetitle(filename))
-        elif use_full_dic:
-            parts = split_numeric_dict(filename)
-        elif use_full_num:
-            parts = split_numeric(filename)
-        else:
-            parts = filename
-        all_parts.append(parts)
+    if dic_ok:
+        all_parts = parts_dic
+    elif full_dic_ok:
+        all_parts = parts_dic_full
+    elif full_num_ok:
+        all_parts = parts_num_full
+    else:
+        all_parts = [{0: filename} for filename in filenames]
 
     for parts in all_parts:
-        if last_parts is not None:
-            if isinstance(parts, dict):
-                indices = set(list(parts) + list(last_parts))
-                for index in indices:
-                    if parts.get(index) != last_parts.get(index):
-                        label_indices.add(index)
-            else:
-                indices = range(min(len(parts), len(last_parts)))
-                for index in indices:
-                    if index < len(parts) and index < len(last_parts) and parts[index] != last_parts[index]:
-                        label_indices.add(index)
-        last_parts = parts
-    label_indices = sorted(list(label_indices))
-
-    for parts in all_parts:
-        if isinstance(parts, dict):
-            file_label = '_'.join([key + parts[key] if isinstance(key, str) else parts[key]
-                                   for key in label_indices if key in parts])
-        else:
-            file_label = '_'.join([parts[index]
-                                   for index in label_indices if index in parts])
+        file_label = '_'.join([key + part if isinstance(key, str) else part for key, part in parts.items()])
         file_labels.append(file_label)
 
     if len(set(file_labels)) < len(file_labels):
